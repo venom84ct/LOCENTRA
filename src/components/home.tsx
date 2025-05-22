@@ -37,11 +37,23 @@ const Home = () => {
                 professionals.
               </p>
               <div className="flex flex-col sm:flex-row gap-4">
-                <Button size="lg" asChild>
-                  <Link to="/post-job">
-                    Post a Job
-                    <ArrowRight className="ml-2 h-5 w-5" />
-                  </Link>
+                <Button
+                  size="lg"
+                  onClick={() => {
+                    // Check if user is logged in and is a centra resident
+                    const isLoggedIn =
+                      localStorage.getItem("isLoggedIn") === "true";
+                    const userType = localStorage.getItem("userType");
+
+                    if (isLoggedIn && userType === "centraResident") {
+                      window.location.href = "/post-job";
+                    } else {
+                      window.location.href = "/login?redirect=/post-job";
+                    }
+                  }}
+                >
+                  Post a Job
+                  <ArrowRight className="ml-2 h-5 w-5" />
                 </Button>
                 <Button size="lg" variant="outline" asChild>
                   <Link to="/register?type=tradie">Join as a Tradie</Link>

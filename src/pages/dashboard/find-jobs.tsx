@@ -21,6 +21,7 @@ import {
   AlertCircle,
   Eye,
   ShoppingCart,
+  MessageSquare,
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
 import PurchaseLeadModal from "@/components/dashboard/PurchaseLeadModal";

@@ -77,7 +77,9 @@ const HelpPage = () => {
   return (
     <DashboardLayout
       userType={
-        window.location.pathname.includes("tradie") ? "tradie" : "homeowner"
+        window.location.pathname.includes("tradie")
+          ? "tradie"
+          : "centraResident"
       }
       user={user}
     >

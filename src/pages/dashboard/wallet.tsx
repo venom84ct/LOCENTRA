@@ -195,11 +195,11 @@ const WalletPage = () => {
                       >
                         {transaction.type === "credit" ? (
                           <ArrowDownLeft
-                            className={`h-4 w-4 ${transaction.type === "credit" ? "text-green-600" : "text-blue-600"}`}
+                            className={`h-6 w-6 ${transaction.type === "credit" ? "text-green-600" : "text-blue-600"}`}
                           />
                         ) : (
                           <ArrowUpRight
-                            className={`h-4 w-4 ${transaction.type === "credit" ? "text-green-600" : "text-blue-600"}`}
+                            className={`h-6 w-6 ${transaction.type === "credit" ? "text-green-600" : "text-blue-600"}`}
                           />
                         )}
                       </div>

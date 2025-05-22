@@ -61,7 +61,10 @@ const SettingsPage = () => {
   };
 
   return (
-    <DashboardLayout userType={user.role as "homeowner" | "tradie"} user={user}>
+    <DashboardLayout
+      userType={user.role === "homeowner" ? "centraResident" : "tradie"}
+      user={user}
+    >
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-6">Settings</h1>
 

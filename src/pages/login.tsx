@@ -1,12 +1,22 @@
-import React from "react";
-import { useLocation } from "react-router-dom";
+import React, { useEffect } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import PublicLayout from "@/components/layout/PublicLayout";
 import LoginForm from "@/components/auth/LoginForm";
 
 const LoginPage = () => {
   const location = useLocation();
+  const navigate = useNavigate();
   const message = location.state?.message || "";
-  const redirectAfterLogin = location.state?.redirectAfterLogin || "/dashboard";
+  const searchParams = new URLSearchParams(location.search);
+  const redirectAfterLogin = searchParams.get("redirect") || "/dashboard";
+
+  useEffect(() => {
+    // Check if user is already logged in
+    const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+    if (isLoggedIn) {
+      navigate(redirectAfterLogin);
+    }
+  }, [navigate, redirectAfterLogin]);
 
   return (
     <PublicLayout>
@@ -17,7 +27,7 @@ const LoginPage = () => {
               {message}
             </div>
           )}
-          <LoginForm redirectPath={redirectAfterLogin} />
+          <LoginForm />
         </div>
       </div>
     </PublicLayout>
