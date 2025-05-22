@@ -324,6 +324,9 @@ const WalletPage = () => {
                       <Button
                         className="w-full"
                         variant={bundle.popular ? "default" : "outline"}
+                        onClick={() => {
+                          setIsModalOpen(true);
+                        }}
                       >
                         Purchase
                       </Button>
