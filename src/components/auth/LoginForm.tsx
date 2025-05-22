@@ -1,9 +1,9 @@
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import React, { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
   Card,
   CardContent,
@@ -11,47 +11,48 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card";
-import { Eye, EyeOff } from "lucide-react";
+} from "@/components/ui/card"
+import { Eye, EyeOff } from "lucide-react"
+import { signIn } from "@/lib/auth"  // 👈 Import Supabase login function
 
 const LoginForm = () => {
-  const navigate = useNavigate();
-  const [userType, setUserType] = useState<"centraResident" | "tradie">(
-    "centraResident",
-  );
-  const [showPassword, setShowPassword] = useState(false);
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    // In a real app, this would authenticate with a backend
-    console.log(`Logging in as ${userType} with email: ${email}`);
-
-    // For demo purposes, we'll just navigate to the dashboard
-    navigate("/dashboard", { state: { userType } });
-  };
+  const navigate = useNavigate()
+  const [userType, setUserType] = useState<"centraResident" | "tradie">("centraResident")
+  const [showPassword, setShowPassword] = useState(false)
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState("")
 
   const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
+    setShowPassword(!showPassword)
+  }
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+
+    const { error } = await signIn(email, password)
+
+    if (error) {
+      setError(error.message)
+    } else {
+      localStorage.setItem("isLoggedIn", "true")
+      navigate("/dashboard", { state: { userType } })
+    }
+  }
 
   return (
     <Card className="w-full max-w-md mx-auto bg-white">
       <CardHeader>
         <CardTitle className="text-2xl font-bold text-center">Log In</CardTitle>
         <CardDescription className="text-center">
-          Access your{" "}
-          {userType === "centraResident" ? "Centra Resident" : "tradie"} account
+          Access your {userType === "centraResident" ? "Centra Resident" : "tradie"} account
         </CardDescription>
       </CardHeader>
       <CardContent>
         <Tabs
           defaultValue="centraResident"
           value={userType}
-          onValueChange={(value) =>
-            setUserType(value as "centraResident" | "tradie")
-          }
+          onValueChange={(value) => setUserType(value as "centraResident" | "tradie")}
           className="mb-6"
         >
           <TabsList className="grid grid-cols-2 w-full">
@@ -98,6 +99,8 @@ const LoginForm = () => {
             </div>
           </div>
 
+          {error && <p className="text-sm text-red-600">{error}</p>}
+
           <div className="flex justify-end">
             <a
               href="/forgot-password"
@@ -121,7 +124,7 @@ const LoginForm = () => {
         </div>
       </CardFooter>
     </Card>
-  );
-};
+  )
+}
 
-export default LoginForm;
+export default LoginForm
