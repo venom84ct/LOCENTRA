@@ -1,85 +1,60 @@
 import React, { useState } from "react"
 import { useNavigate } from "react-router-dom"
+import { supabase } from "@/lib/supabaseClient"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
-import { signIn } from "@/lib/auth"
-import { supabase } from "@/lib/supabaseClient"
 
-const LoginForm = () => {
+const LoginPage = () => {
   const navigate = useNavigate()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e) => {
     e.preventDefault()
+    setError("")
 
-    const { error, data } = await signIn(email, password)
+    const { error: loginError } = await supabase.auth.signInWithPassword({ email, password })
 
-    if (error || !data.session) {
-      setError("Invalid credentials")
-      return
-    }
-
-    const userId = data.session.user.id
-
-    const { data: profile, error: profileError } = await supabase
-      .from("profile centra resident")
-      .select("user_type")
-      .eq("id", userId)
-      .single()
-
-    if (profileError || !profile) {
-      setError("Could not find user role")
-      return
-    }
-
-    if (profile.user_type === "tradie") {
-      navigate("/dashboard/tradie")
-    } else if (profile.user_type === "homeowner") {
-      navigate("/dashboard/homeowner")
+    if (loginError) {
+      setError(loginError.message)
     } else {
-      setError("Unknown user role")
+      const {
+        data: { user },
+      } = await supabase.auth.getUser()
+
+      const { data: profile, error: profileError } = await supabase
+        .from("profile_centra_resident") // ✅ updated table name
+        .select("role")
+        .eq("id", user.id)
+        .single()
+
+      if (profileError || !profile?.role) {
+        setError("Could not find user role")
+      } else {
+        navigate("/dashboard")
+      }
     }
   }
 
   return (
-    <form onSubmit={handleLogin} className="space-y-6">
-      <div className="space-y-2">
-        <Label htmlFor="email">Email</Label>
-        <Input
-          id="email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="password">Password</Label>
-        <Input
-          id="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-      </div>
-
-      {error && <p className="text-sm text-red-600">{error}</p>}
-
-      <Button type="submit" className="w-full">
-        Log In
-      </Button>
-
-      <div className="text-center text-sm mt-4">
-        Don't have an account? <a href="/register" className="text-blue-600 hover:underline">Sign up</a>
-      </div>
-    </form>
+    <div className="max-w-md mx-auto mt-10">
+      <h1 className="text-xl font-bold mb-4">Login</h1>
+      <form onSubmit={handleLogin} className="space-y-4">
+        <div>
+          <Label htmlFor="email">Email</Label>
+          <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
+        </div>
+        <div>
+          <Label htmlFor="password">Password</Label>
+          <Input id="password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+        </div>
+        {error && <p className="text-red-600 text-sm">{error}</p>}
+        <Button type="submit" className="w-full">Login</Button>
+      </form>
+    </div>
   )
 }
 
-export default LoginForm
-
+export default LoginPage
