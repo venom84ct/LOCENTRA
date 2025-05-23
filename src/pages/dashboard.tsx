@@ -15,7 +15,7 @@ const Dashboard = () => {
       if (!user) return setLoading(false)
 
       const { data, error } = await supabase
-        .from("profile_centra_resident")
+        .from("profile_centra_resident") // ✅ updated table name
         .select("*")
         .eq("id", user.id)
         .single()
@@ -51,3 +51,4 @@ const Dashboard = () => {
 }
 
 export default Dashboard
+
