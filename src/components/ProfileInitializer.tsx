@@ -3,52 +3,46 @@ import { supabase } from "@/lib/supabaseClient"
 
 const ProfileInitializer = () => {
   useEffect(() => {
-    const initialize = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        if (event === "SIGNED_IN" && session?.user) {
+          const user = session.user
 
-      if (!user) return
+          // 🔍 1. Check if profile already exists
+          const { data: existingProfile, error: fetchError } = await supabase
+            .from("profile_centra_resident")
+            .select("id")
+            .eq("id", user.id)
+            .single()
 
-      console.log("✅ Logged in user:", user.id)
+          // 🔄 2. If not, insert profile row
+          if (!existingProfile && !fetchError) {
+            const storedRole = localStorage.getItem("signupRole") || "homeowner"
 
-      const { data: existingProfile, error: fetchError } = await supabase
-        .from("profile_centra_resident") // ✅ updated table name
-        .select("id")
-        .eq("id", user.id)
-        .single()
+            const { error: insertError } = await supabase
+              .from("profile_centra_resident")
+              .insert({
+                id: user.id, // 🔑 Required for RLS
+                email: user.email,
+                role: storedRole,
+                status: "pending",
+                created_at: new Date(),
+              })
 
-      if (fetchError && fetchError.code !== "PGRST116") {
-        console.error("❌ Error checking profile:", fetchError.message)
-        return
-      }
-
-      if (!existingProfile) {
-        const storedRole = localStorage.getItem("signupRole") || "homeowner"
-        console.log("📝 Creating profile with role:", storedRole)
-
-        const { error: insertError } = await supabase
-          .from("profile_centra_resident") // ✅ updated table name
-          .insert({
-            id: user.id,
-            email: user.email,
-            role: storedRole,
-            status: "pending",
-            created_at: new Date(),
-          })
-
-        if (insertError) {
-          console.error("❌ Error inserting profile:", insertError.message)
-        } else {
-          console.log("✅ Profile successfully inserted")
-          localStorage.removeItem("signupRole")
+            if (insertError) {
+              console.error("Profile insert failed:", insertError.message)
+            }
+          }
         }
       }
-    }
+    )
 
-    initialize()
+    return () => {
+      authListener?.subscription?.unsubscribe()
+    }
   }, [])
 
   return null
 }
 
 export default ProfileInitializer
-
