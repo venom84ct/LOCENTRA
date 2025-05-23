@@ -33,6 +33,7 @@ const RegisterPage = () => {
     setError("")
     setSuccess("")
 
+    // ✅ Set role before sign-up
     localStorage.setItem("signupRole", role)
 
     const { email, password } = formData
@@ -41,54 +42,27 @@ const RegisterPage = () => {
     if (signUpError) {
       setError(signUpError.message)
     } else {
-      setSuccess("✅ Account created! Please confirm your email or log in.")
+      setSuccess("✅ Account created! Please confirm your email before logging in.")
       setTimeout(() => navigate("/login"), 3000)
     }
   }
 
   const commonFields = (
     <>
-      <div>
-        <Label htmlFor="firstName">First Name</Label>
-        <Input id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} required />
-      </div>
-      <div>
-        <Label htmlFor="lastName">Last Name</Label>
-        <Input id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} required />
-      </div>
-      <div>
-        <Label htmlFor="email">Email</Label>
-        <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} required />
-      </div>
-      <div>
-        <Label htmlFor="password">Password</Label>
-        <Input id="password" name="password" type="password" value={formData.password} onChange={handleChange} required />
-      </div>
-      <div>
-        <Label htmlFor="phone">Phone</Label>
-        <Input id="phone" name="phone" value={formData.phone} onChange={handleChange} required />
-      </div>
+      <div><Label htmlFor="firstName">First Name</Label><Input id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} required /></div>
+      <div><Label htmlFor="lastName">Last Name</Label><Input id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} required /></div>
+      <div><Label htmlFor="email">Email</Label><Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} required /></div>
+      <div><Label htmlFor="password">Password</Label><Input id="password" name="password" type="password" value={formData.password} onChange={handleChange} required /></div>
+      <div><Label htmlFor="phone">Phone</Label><Input id="phone" name="phone" value={formData.phone} onChange={handleChange} required /></div>
     </>
   )
 
   const tradieFields = (
     <>
-      <div>
-        <Label htmlFor="abn">ABN</Label>
-        <Input id="abn" name="abn" value={formData.abn} onChange={handleChange} required />
-      </div>
-      <div>
-        <Label htmlFor="license">License</Label>
-        <Input id="license" name="license" value={formData.license} onChange={handleChange} required />
-      </div>
-      <div>
-        <Label htmlFor="businessName">Business Name</Label>
-        <Input id="businessName" name="businessName" value={formData.businessName} onChange={handleChange} required />
-      </div>
-      <div>
-        <Label htmlFor="businessWebsite">Business Website</Label>
-        <Input id="businessWebsite" name="businessWebsite" value={formData.businessWebsite} onChange={handleChange} />
-      </div>
+      <div><Label htmlFor="abn">ABN</Label><Input id="abn" name="abn" value={formData.abn} onChange={handleChange} required /></div>
+      <div><Label htmlFor="license">License</Label><Input id="license" name="license" value={formData.license} onChange={handleChange} required /></div>
+      <div><Label htmlFor="businessName">Business Name</Label><Input id="businessName" name="businessName" value={formData.businessName} onChange={handleChange} required /></div>
+      <div><Label htmlFor="businessWebsite">Business Website</Label><Input id="businessWebsite" name="businessWebsite" value={formData.businessWebsite} onChange={handleChange} /></div>
     </>
   )
 
