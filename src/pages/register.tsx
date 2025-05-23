@@ -41,9 +41,12 @@ const RegisterPage = () => {
       return
     }
 
-    const { user } = signUpData
+    // Wait for session to be available
+    const { data: sessionData } = await supabase.auth.getSession()
+    const user = sessionData.session?.user
+
     if (!user) {
-      setError("Sign up failed. No user returned.")
+      setError("Sign up failed: no session user found.")
       return
     }
 
