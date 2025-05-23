@@ -1,5 +1,6 @@
-[⚠️ Suspicious Content] import React, { useEffect, useState } from "react"
+import React, { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabaseClient"
+import JobHistoryAndReviews from "@/components/JobHistoryAndReviews"
 
 export default function ProfilePage() {
   const [profile, setProfile] = useState(null)
@@ -105,7 +106,7 @@ export default function ProfilePage() {
       {profile.avatar_url && (
         <div className="mb-4">
           <img
-            src={`https://<your-supabase-project-id>.supabase.co/storage/v1/object/public/avatars/${profile.avatar_url.split("/").pop()}`}
+            src={`https://nlgiukcwbexfxkzdvzzq.supabase.co/storage/v1/object/public/avatars/${profile.avatar_url.split("/").pop()}`}
             alt="Avatar"
             className="w-32 h-32 rounded-full object-cover"
           />
@@ -119,74 +120,26 @@ export default function ProfilePage() {
 
       {editing ? (
         <div className="space-y-4">
-          {/* editable fields as before */}
-          <div>
-            <label className="block font-medium">First Name</label>
-            <input
-              className="w-full border p-2"
-              name="first_name"
-              value={formData.first_name}
-              onChange={handleChange}
-            />
-          </div>
-          <div>
-            <label className="block font-medium">Last Name</label>
-            <input
-              className="w-full border p-2"
-              name="last_name"
-              value={formData.last_name}
-              onChange={handleChange}
-            />
-          </div>
-          <div>
-            <label className="block font-medium">Phone</label>
-            <input
-              className="w-full border p-2"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-            />
-          </div>
-          <div>
-            <label className="block font-medium">ABN</label>
-            <input
-              className="w-full border p-2"
-              name="abn"
-              value={formData.abn}
-              onChange={handleChange}
-            />
-          </div>
-          <div>
-            <label className="block font-medium">License</label>
-            <input
-              className="w-full border p-2"
-              name="license"
-              value={formData.license}
-              onChange={handleChange}
-            />
-          </div>
-          <div>
-            <label className="block font-medium">Business Name</label>
-            <input
-              className="w-full border p-2"
-              name="business_name"
-              value={formData.business_name}
-              onChange={handleChange}
-            />
-          </div>
-          <div>
-            <label className="block font-medium">Business Website</label>
-            <input
-              className="w-full border p-2"
-              name="business_website"
-              value={formData.business_website || ""}
-              onChange={handleChange}
-            />
-          </div>
-          <button
-            className="bg-blue-500 text-white px-4 py-2 rounded"
-            onClick={handleSave}
-          >
+          {[
+            ["first_name", "First Name"],
+            ["last_name", "Last Name"],
+            ["phone", "Phone"],
+            ["abn", "ABN"],
+            ["license", "License"],
+            ["business_name", "Business Name"],
+            ["business_website", "Business Website"]
+          ].map(([field, label]) => (
+            <div key={field}>
+              <label className="block font-medium">{label}</label>
+              <input
+                className="w-full border p-2"
+                name={field}
+                value={formData[field] || ""}
+                onChange={handleChange}
+              />
+            </div>
+          ))}
+          <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={handleSave}>
             Save Profile
           </button>
         </div>
@@ -199,11 +152,24 @@ export default function ProfilePage() {
           <p><strong>License:</strong> {profile.license}</p>
           <p><strong>Business:</strong> {profile.business_name}</p>
           <p><strong>Website:</strong> <a className="text-blue-600 underline" href={profile.business_website} target="_blank" rel="noreferrer">{profile.business_website}</a></p>
-          <p><strong>Status:</strong> <span className={`inline-block px-2 py-1 rounded text-white text-xs ${profile.status === "approved" ? "bg-green-500" : profile.status === "pending" ? "bg-yellow-500" : "bg-red-500"}`}>{profile.status}</span></p>
-          <button className="mt-4 bg-gray-800 text-white px-4 py-2 rounded" onClick={() => setEditing(true)}>Edit Profile</button>
+          <p>
+            <strong>Status:</strong> <span className={`inline-block px-2 py-1 rounded text-white text-xs ${
+              profile.status === "approved"
+                ? "bg-green-500"
+                : profile.status === "pending"
+                ? "bg-yellow-500"
+                : "bg-red-500"
+            }`}>
+              {profile.status}
+            </span>
+          </p>
+          <button className="mt-4 bg-gray-800 text-white px-4 py-2 rounded" onClick={() => setEditing(true)}>
+            Edit Profile
+          </button>
         </div>
       )}
+
+      <JobHistoryAndReviews />
     </div>
   )
 }
-
