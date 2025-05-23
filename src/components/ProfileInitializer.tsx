@@ -3,42 +3,29 @@ import { supabase } from "@/lib/supabaseClient"
 
 const ProfileInitializer = () => {
   useEffect(() => {
-    const insertIfMissing = async () => {
-      const {
-        data: { user },
-        error: authError,
-      } = await supabase.auth.getUser()
+    const initialize = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
 
-      if (authError || !user) {
-        console.warn("🚫 No user found or auth error:", authError?.message)
-        return
-      }
+      if (!user) return
 
-      console.log("✅ Logged in user:", user.id, user.email)
+      console.log("✅ Logged in user:", user.id)
 
-      const { data: profile, error: fetchError } = await supabase
-        .from("profile centra resident")
+      const { data: existingProfile, error: fetchError } = await supabase
+        .from("profile_centra_resident")
         .select("id")
         .eq("id", user.id)
-        .maybeSingle()
+        .single()
 
-      if (fetchError) {
+      if (fetchError && fetchError.code !== "PGRST116") {
         console.error("❌ Error checking profile:", fetchError.message)
         return
       }
 
-      if (profile) {
-        console.log("✅ Profile already exists — skipping insert")
-        return
-      }
+      if (!existingProfile) {
+        const storedRole = localStorage.getItem("signupRole") || "homeowner"
+        console.log("📝 Creating profile with role:", storedRole)
 
-      const storedRole = localStorage.getItem("signupRole") || "homeowner"
-
-      console.log("📝 Creating profile with role:", storedRole)
-
-      const { error: insertError } = await supabase
-        .from("profile centra resident")
-        .insert({
+        const { error: insertError } = await supabase.from("profile_centra_resident").insert({
           id: user.id,
           email: user.email,
           role: storedRole,
@@ -46,15 +33,16 @@ const ProfileInitializer = () => {
           created_at: new Date(),
         })
 
-      if (insertError) {
-        console.error("❌ Failed to insert profile:", insertError.message)
-      } else {
-        console.log("✅ Profile successfully inserted")
-        localStorage.removeItem("signupRole")
+        if (insertError) {
+          console.error("❌ Error inserting profile:", insertError.message)
+        } else {
+          console.log("✅ Profile successfully inserted")
+          localStorage.removeItem("signupRole")
+        }
       }
     }
 
-    insertIfMissing()
+    initialize()
   }, [])
 
   return null
