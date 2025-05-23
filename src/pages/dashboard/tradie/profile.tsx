@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react"
+[⚠️ Suspicious Content] import React, { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabaseClient"
 
 export default function ProfilePage() {
@@ -206,3 +206,4 @@ export default function ProfilePage() {
     </div>
   )
 }
+
