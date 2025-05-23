@@ -11,7 +11,7 @@ const ProfileInitializer = () => {
       console.log("✅ Logged in user:", user.id)
 
       const { data: existingProfile, error: fetchError } = await supabase
-        .from("profile_centra_resident")
+        .from("profile_centra_resident") // ✅ updated table name
         .select("id")
         .eq("id", user.id)
         .single()
@@ -25,13 +25,15 @@ const ProfileInitializer = () => {
         const storedRole = localStorage.getItem("signupRole") || "homeowner"
         console.log("📝 Creating profile with role:", storedRole)
 
-        const { error: insertError } = await supabase.from("profile_centra_resident").insert({
-          id: user.id,
-          email: user.email,
-          role: storedRole,
-          status: "pending",
-          created_at: new Date(),
-        })
+        const { error: insertError } = await supabase
+          .from("profile_centra_resident") // ✅ updated table name
+          .insert({
+            id: user.id,
+            email: user.email,
+            role: storedRole,
+            status: "pending",
+            created_at: new Date(),
+          })
 
         if (insertError) {
           console.error("❌ Error inserting profile:", insertError.message)
@@ -49,3 +51,4 @@ const ProfileInitializer = () => {
 }
 
 export default ProfileInitializer
+
