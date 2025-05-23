@@ -4,9 +4,11 @@ import { supabase } from "@/lib/supabaseClient"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
 
-const RegisterTradie = () => {
+const RegisterPage = () => {
   const navigate = useNavigate()
+  const [role, setRole] = useState("homeowner")
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -32,11 +34,7 @@ const RegisterTradie = () => {
     setSuccess("")
 
     const { email, password } = formData
-
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-    })
+    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password })
 
     if (signUpError) {
       setError(signUpError.message)
@@ -49,19 +47,24 @@ const RegisterTradie = () => {
       return
     }
 
-    const { error: insertError } = await supabase.from("profile centra resident").insert({
+    const insertData = {
       id: user.id,
       email: formData.email,
       phone: formData.phone,
       first_name: formData.firstName,
       last_name: formData.lastName,
-      abn: formData.abn,
-      license: formData.license,
-      business_name: formData.businessName,
-      business_website: formData.businessWebsite,
       created_at: new Date(),
       status: "pending",
-    })
+    }
+
+    if (role === "tradie") {
+      insertData.abn = formData.abn
+      insertData.license = formData.license
+      insertData.business_name = formData.businessName
+      insertData.business_website = formData.businessWebsite
+    }
+
+    const { error: insertError } = await supabase.from("profile centra resident").insert(insertData)
 
     if (insertError) {
       setError(insertError.message)
@@ -83,38 +86,80 @@ const RegisterTradie = () => {
     navigate("/dashboard")
   }
 
+  const commonFields = (
+    <>
+      <div>
+        <Label htmlFor="firstName">First Name</Label>
+        <Input id="firstName" name="firstName" value={formData.firstName} onChange={handleChange} required />
+      </div>
+      <div>
+        <Label htmlFor="lastName">Last Name</Label>
+        <Input id="lastName" name="lastName" value={formData.lastName} onChange={handleChange} required />
+      </div>
+      <div>
+        <Label htmlFor="email">Email</Label>
+        <Input id="email" name="email" type="email" value={formData.email} onChange={handleChange} required />
+      </div>
+      <div>
+        <Label htmlFor="password">Password</Label>
+        <Input id="password" name="password" type="password" value={formData.password} onChange={handleChange} required />
+      </div>
+      <div>
+        <Label htmlFor="phone">Phone</Label>
+        <Input id="phone" name="phone" value={formData.phone} onChange={handleChange} required />
+      </div>
+    </>
+  )
+
+  const tradieFields = (
+    <>
+      <div>
+        <Label htmlFor="abn">ABN</Label>
+        <Input id="abn" name="abn" value={formData.abn} onChange={handleChange} required />
+      </div>
+      <div>
+        <Label htmlFor="license">License</Label>
+        <Input id="license" name="license" value={formData.license} onChange={handleChange} required />
+      </div>
+      <div>
+        <Label htmlFor="businessName">Business Name</Label>
+        <Input id="businessName" name="businessName" value={formData.businessName} onChange={handleChange} required />
+      </div>
+      <div>
+        <Label htmlFor="businessWebsite">Business Website</Label>
+        <Input id="businessWebsite" name="businessWebsite" value={formData.businessWebsite} onChange={handleChange} />
+      </div>
+    </>
+  )
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 max-w-xl mx-auto">
-      <h1 className="text-2xl font-bold">Tradie Sign Up</h1>
-
-      {[{ label: "First Name", name: "firstName" },
-        { label: "Last Name", name: "lastName" },
-        { label: "Email", name: "email", type: "email" },
-        { label: "Password", name: "password", type: "password" },
-        { label: "Phone", name: "phone" },
-        { label: "ABN", name: "abn" },
-        { label: "License", name: "license" },
-        { label: "Business Name", name: "businessName" },
-        { label: "Business Website", name: "businessWebsite" }].map(({ label, name, type = "text" }) => (
-        <div key={name}>
-          <Label htmlFor={name}>{label}</Label>
-          <Input
-            id={name}
-            name={name}
-            type={type}
-            value={formData[name]}
-            onChange={handleChange}
-            required={name !== "businessWebsite"}
-          />
-        </div>
-      ))}
-
-      {error && <p className="text-red-600 text-sm">❌ {error}</p>}
-      {success && <p className="text-green-600 text-sm">{success}</p>}
-
-      <Button type="submit" className="w-full">Create Tradie Account</Button>
-    </form>
+    <div className="max-w-xl mx-auto p-6">
+      <h1 className="text-2xl font-bold mb-4">Sign Up</h1>
+      <Tabs value={role} onValueChange={setRole} className="mb-6">
+        <TabsList className="grid grid-cols-2 w-full">
+          <TabsTrigger value="homeowner">Homeowner</TabsTrigger>
+          <TabsTrigger value="tradie">Tradie</TabsTrigger>
+        </TabsList>
+        <TabsContent value="homeowner">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {commonFields}
+            {error && <p className="text-red-600 text-sm">❌ {error}</p>}
+            {success && <p className="text-green-600 text-sm">{success}</p>}
+            <Button type="submit" className="w-full">Create Homeowner Account</Button>
+          </form>
+        </TabsContent>
+        <TabsContent value="tradie">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {commonFields}
+            {tradieFields}
+            {error && <p className="text-red-600 text-sm">❌ {error}</p>}
+            {success && <p className="text-green-600 text-sm">{success}</p>}
+            <Button type="submit" className="w-full">Create Tradie Account</Button>
+          </form>
+        </TabsContent>
+      </Tabs>
+    </div>
   )
 }
 
-export default RegisterTradie
+export default RegisterPage;
