@@ -41,7 +41,7 @@ const RegisterPage = () => {
     if (signUpError) {
       setError(signUpError.message)
     } else {
-      setSuccess("✅ Account created! Please confirm your email before logging in.")
+      setSuccess("✅ Account created! Please confirm your email or log in.")
       setTimeout(() => navigate("/login"), 3000)
     }
   }
