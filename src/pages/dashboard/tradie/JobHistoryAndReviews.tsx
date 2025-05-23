@@ -11,20 +11,20 @@ export default function JobHistoryAndReviews() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data: jobData, error: jobError } = await supabase
+      const { data: jobData } = await supabase
         .from("jobs")
         .select("*")
         .eq("tradie_id", user.id)
         .order("created_at", { ascending: false })
 
-      const { data: reviewData, error: reviewError } = await supabase
+      const { data: reviewData } = await supabase
         .from("reviews")
         .select("*")
         .eq("tradie_id", user.id)
         .order("created_at", { ascending: false })
 
-      if (!jobError) setJobs(jobData || [])
-      if (!reviewError) setReviews(reviewData || [])
+      setJobs(jobData || [])
+      setReviews(reviewData || [])
       setLoading(false)
     }
 
