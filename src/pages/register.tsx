@@ -33,7 +33,7 @@ const RegisterPage = () => {
     setError("")
     setSuccess("")
 
-    localStorage.setItem("signupRole", role); // ✅ Save role
+    localStorage.setItem("signupRole", role)
 
     const { email, password } = formData
     const { error: signUpError } = await supabase.auth.signUp({ email, password })
@@ -42,7 +42,7 @@ const RegisterPage = () => {
       setError(signUpError.message)
     } else {
       setSuccess("✅ Account created! Please confirm your email before logging in.")
-      setTimeout(() => navigate("/login"), 3000) // ✅ Redirect to login
+      setTimeout(() => navigate("/login"), 3000)
     }
   }
 
@@ -111,7 +111,7 @@ const RegisterPage = () => {
         <TabsContent value="tradie">
           <form onSubmit={handleSubmit} className="space-y-4">
             {commonFields}
-            {tradFields}
+            {tradieFields}
             {error && <p className="text-red-600 text-sm">❌ {error}</p>}
             {success && <p className="text-green-600 text-sm">{success}</p>}
             <Button type="submit" className="w-full">Create Tradie Account</Button>
@@ -122,4 +122,4 @@ const RegisterPage = () => {
   )
 }
 
-export default RegisterPage;
+export default RegisterPage
