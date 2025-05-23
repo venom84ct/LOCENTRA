@@ -27,7 +27,7 @@ export default function ProfilePage() {
 
       if (user) {
         const { data, error } = await supabase
-          .from("profile-centra-resident")
+          .from("profile_centra_resident")
           .select("*")
           .eq("id", user.id)
           .single()
