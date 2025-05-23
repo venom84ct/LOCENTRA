@@ -34,59 +34,13 @@ const RegisterPage = () => {
     setSuccess("")
 
     const { email, password } = formData
-    const { data: signUpData, error: signUpError } = await supabase.auth.signUp({ email, password })
+    const { error: signUpError } = await supabase.auth.signUp({ email, password })
 
     if (signUpError) {
       setError(signUpError.message)
-      return
+    } else {
+      setSuccess("✅ Account created! Please confirm your email before logging in.")
     }
-
-    // Wait for session to be available
-    const { data: sessionData } = await supabase.auth.getSession()
-    const user = sessionData.session?.user
-
-    if (!user) {
-      setError("Sign up failed: no session user found.")
-      return
-    }
-
-    const insertData = {
-      id: user.id,
-      email: formData.email,
-      phone: formData.phone,
-      first_name: formData.firstName,
-      last_name: formData.lastName,
-      created_at: new Date(),
-      status: "pending",
-    }
-
-    if (role === "tradie") {
-      insertData.abn = formData.abn
-      insertData.license = formData.license
-      insertData.business_name = formData.businessName
-      insertData.business_website = formData.businessWebsite
-    }
-
-    const { error: insertError } = await supabase.from("profile centra resident").insert(insertData)
-
-    if (insertError) {
-      setError(insertError.message)
-      return
-    }
-
-    setSuccess("✅ Account created! Check your email to confirm.")
-    setFormData({
-      email: "",
-      password: "",
-      phone: "",
-      firstName: "",
-      lastName: "",
-      abn: "",
-      license: "",
-      businessName: "",
-      businessWebsite: "",
-    })
-    navigate("/dashboard")
   }
 
   const commonFields = (
