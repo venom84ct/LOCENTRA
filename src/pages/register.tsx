@@ -33,7 +33,6 @@ const RegisterPage = () => {
     setError("")
     setSuccess("")
 
-    // ✅ Set role before sign-up
     localStorage.setItem("signupRole", role)
 
     const { email, password } = formData
