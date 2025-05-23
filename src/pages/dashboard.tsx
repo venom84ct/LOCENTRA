@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { supabase } from "@/lib/supabaseClient"
+import ProfileInitializer from "@/components/ProfileInitializer"
 
 const Dashboard = () => {
   const [profile, setProfile] = useState(null)
@@ -10,6 +11,7 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       const { data: { user } } = await supabase.auth.getUser()
+
       if (user) {
         const { data, error } = await supabase
           .from("profile centra resident")
@@ -17,10 +19,10 @@ const Dashboard = () => {
           .eq("id", user.id)
           .single()
 
-        if (error) {
-          console.error("❌ Error fetching profile:", error.message)
-        } else {
+        if (!error) {
           setProfile(data)
+        } else {
+          console.error("Failed to fetch profile:", error.message)
         }
       }
       setLoading(false)
@@ -39,11 +41,15 @@ const Dashboard = () => {
     }
   }, [profile, navigate])
 
-  if (loading) return <p className="p-4">Loading your dashboard...</p>
-  if (!profile) return <p className="p-4 text-red-500">No profile found. Please refresh or sign up again.</p>
-  if (!profile.role) return <p className="p-4">Setting up your profile... Please wait.</p>
+  if (loading || !profile) return <p className="p-4">Loading profile...</p>
+  if (!profile.role) return <p className="p-4">Setting up your account. Please wait...</p>
 
-  return null
+  return (
+    <>
+      <ProfileInitializer />
+      <p>Redirecting...</p>
+    </>
+  )
 }
 
 export default Dashboard
