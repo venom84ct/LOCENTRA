@@ -34,6 +34,10 @@ const RegisterForm = () => {
     phone: "",
     password: "",
     confirmPassword: "",
+    abn: "",
+    license: "",
+    businessName: "",
+    businessWebsite: "",
     agreeTerms: false,
   })
 
@@ -57,6 +61,13 @@ const RegisterForm = () => {
       return
     }
 
+    if (userType === "tradie") {
+      if (!formData.abn || !formData.license || !formData.businessName) {
+        setError("ABN, License, and Business Name are required for tradies.")
+        return
+      }
+    }
+
     const { data, error } = await signUp(formData.email, formData.password)
 
     if (error || !data.user) {
@@ -74,6 +85,10 @@ const RegisterForm = () => {
           phone: formData.phone,
           email: formData.email,
           user_type: userType,
+          abn: formData.abn,
+          license: formData.license,
+          business_name: formData.businessName,
+          business_website: formData.businessWebsite,
           created_at: new Date().toISOString(),
         },
       ])
@@ -189,6 +204,50 @@ const RegisterForm = () => {
               required
             />
           </div>
+
+          {userType === "tradie" && (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="abn">ABN</Label>
+                <Input
+                  id="abn"
+                  name="abn"
+                  value={formData.abn}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="license">Trade License</Label>
+                <Input
+                  id="license"
+                  name="license"
+                  value={formData.license}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="businessName">Business Name</Label>
+                <Input
+                  id="businessName"
+                  name="businessName"
+                  value={formData.businessName}
+                  onChange={handleChange}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="businessWebsite">Website (optional)</Label>
+                <Input
+                  id="businessWebsite"
+                  name="businessWebsite"
+                  value={formData.businessWebsite}
+                  onChange={handleChange}
+                />
+              </div>
+            </>
+          )}
 
           <div className="flex items-center space-x-2">
             <Checkbox
