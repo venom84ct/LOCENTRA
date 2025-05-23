@@ -1,53 +1,49 @@
-
-import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import CentraResidentDashboard from "@/components/dashboard/HomeownerDashboard";
-import TradieDashboard from "@/components/dashboard/TradieDashboard";
-import DashboardLayout from "@/components/layout/DashboardLayout";
-import ProfileInitializer from "@/components/ProfileInitializer";
+import React, { useEffect, useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { supabase } from "@/lib/supabaseClient"
 
 const Dashboard = () => {
-  const location = useLocation();
-  const navigate = useNavigate();
-  const [userType, setUserType] = useState<"centraResident" | "tradie">("centraResident");
+  const [profile, setProfile] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const navigate = useNavigate()
 
   useEffect(() => {
-    if (location.state && location.state.userType) {
-      setUserType(location.state.userType);
+    const fetchProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        const { data, error } = await supabase
+          .from("profile centra resident")
+          .select("*")
+          .eq("id", user.id)
+          .single()
+
+        if (error) {
+          console.error("❌ Error fetching profile:", error.message)
+        } else {
+          setProfile(data)
+        }
+      }
+      setLoading(false)
     }
 
-    if (location.pathname.includes("/tradie")) {
-      setUserType("tradie");
+    fetchProfile()
+  }, [])
+
+  useEffect(() => {
+    if (profile?.role) {
+      if (profile.role === "tradie") {
+        navigate("/dashboard/tradie")
+      } else {
+        navigate("/dashboard/homeowner")
+      }
     }
+  }, [profile, navigate])
 
-    const isAuthenticated = true;
-    if (!isAuthenticated) {
-      navigate("/login");
-    }
-  }, [location, navigate]);
+  if (loading) return <p className="p-4">Loading your dashboard...</p>
+  if (!profile) return <p className="p-4 text-red-500">No profile found. Please refresh or sign up again.</p>
+  if (!profile.role) return <p className="p-4">Setting up your profile... Please wait.</p>
 
-  const mockUser = {
-    name: userType === "centraResident" ? "John Smith" : "Mike Johnson",
-    email: userType === "centraResident"
-      ? "john.smith@example.com"
-      : "mike.johnson@example.com",
-    avatar: userType === "centraResident"
-      ? "https://api.dicebear.com/7.x/avataaars/svg?seed=John"
-      : "https://api.dicebear.com/7.x/avataaars/svg?seed=Mike",
-    unreadMessages: 2,
-    unreadNotifications: 3,
-  };
+  return null
+}
 
-  return (
-    <DashboardLayout userType={userType} user={mockUser}>
-      <ProfileInitializer />
-      {userType === "centraResident" ? (
-        <CentraResidentDashboard />
-      ) : (
-        <TradieDashboard />
-      )}
-    </DashboardLayout>
-  );
-};
-
-export default Dashboard;
+export default Dashboard
