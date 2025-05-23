@@ -65,7 +65,7 @@ const RegisterForm = () => {
     }
 
     const { error: profileError } = await supabase
-      .from("profile centra resident")
+      .from("profile_centra_resident")
       .insert([
         {
           id: data.user.id,
