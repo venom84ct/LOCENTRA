@@ -56,7 +56,7 @@ export default function ProfilePage() {
     } = await supabase.auth.getUser()
 
     const { error } = await supabase
-      .from("profile centra resident")
+      .from("profile_centra_resident")
       .update(formData)
       .eq("id", user.id)
 
@@ -84,7 +84,7 @@ export default function ProfilePage() {
     }
 
     const { error: updateError } = await supabase
-      .from("profile centra resident")
+      .from("profile_centra_resident")
       .update({ avatar_url: filePath })
       .eq("id", profile.id)
 
