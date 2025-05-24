@@ -1,54 +1,45 @@
-import { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabaseClient"
-import { useNavigate } from "react-router-dom"
-import ProfileInitializer from "@/components/ProfileInitializer"
 
-const Dashboard = () => {
-  const [profile, setProfile] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const navigate = useNavigate()
+import React, { useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/lib/supabaseClient";
+
+const DashboardPage = () => {
+  const navigate = useNavigate();
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
+    const fetchProfileAndRedirect = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
 
-      if (!user) return setLoading(false)
-
-      const { data, error } = await supabase
-        .from("profile_centra_resident") // ✅ updated table name
-        .select("*")
-        .eq("id", user.id)
-        .single()
-
-      if (!error && data) {
-        setProfile(data)
-      } else {
-        console.warn("⚠️ No profile found or error occurred:", error)
+      if (!user) {
+        navigate("/login");
+        return;
       }
 
-      setLoading(false)
-    }
+      const { data, error } = await supabase
+        .from("profile_centra_resident")
+        .select("role")
+        .eq("id", user.id)
+        .single();
 
-    fetchProfile()
-  }, [])
+      if (error || !data) {
+        console.error("Error fetching profile role:", error);
+        navigate("/login");
+      } else {
+        if (data.role === "homeowner") {
+          navigate("/dashboard/homeowner");
+        } else if (data.role === "tradie") {
+          navigate("/dashboard/tradie");
+        } else {
+          console.warn("Unknown role:", data.role);
+          navigate("/login");
+        }
+      }
+    };
 
-  useEffect(() => {
-    if (profile?.role === "tradie") {
-      navigate("/dashboard/tradie")
-    } else if (profile?.role === "homeowner") {
-      navigate("/dashboard/homeowner")
-    }
-  }, [profile, navigate])
+    fetchProfileAndRedirect();
+  }, [navigate]);
 
-  if (loading || !profile?.role) return <p className="p-4">Setting up your profile...</p>
+  return <div className="text-center text-xl mt-12">Redirecting based on your role...</div>;
+};
 
-  return (
-    <>
-      <ProfileInitializer />
-      <p>Redirecting based on your role...</p>
-    </>
-  )
-}
-
-export default Dashboard
-
+export default DashboardPage;
