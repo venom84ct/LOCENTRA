@@ -1,45 +1,18 @@
 
-import React, { useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { supabase } from "@/lib/supabaseClient";
+import { Routes, Route } from "react-router-dom"
+import DashboardRedirect from "@/components/DashboardRedirect"
+import TradieDashboard from "@/pages/dashboard/tradie"
+import HomeownerDashboard from "@/pages/dashboard/homeowner"
 
-const DashboardPage = () => {
-  const navigate = useNavigate();
+const DashboardRoutes = () => {
+  return (
+    <Routes>
+      <Route index element={<DashboardRedirect />} />
+      <Route path="tradie" element={<TradieDashboard />} />
+      <Route path="homeowner" element={<HomeownerDashboard />} />
+    </Routes>
+  )
+}
 
-  useEffect(() => {
-    const fetchProfileAndRedirect = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+export default DashboardRoutes
 
-      if (!user) {
-        navigate("/login");
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("profile_centra_resident")
-        .select("role")
-        .eq("id", user.id)
-        .single();
-
-      if (error || !data) {
-        console.error("Error fetching profile role:", error);
-        navigate("/login");
-      } else {
-        if (data.role === "homeowner") {
-          navigate("/dashboard/homeowner");
-        } else if (data.role === "tradie") {
-          navigate("/dashboard/tradie");
-        } else {
-          console.warn("Unknown role:", data.role);
-          navigate("/login");
-        }
-      }
-    };
-
-    fetchProfileAndRedirect();
-  }, [navigate]);
-
-  return <div className="text-center text-xl mt-12">Redirecting based on your role...</div>;
-};
-
-export default DashboardPage;
