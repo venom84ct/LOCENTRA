@@ -103,7 +103,7 @@ const PostJobForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }) => {
         is_emergency: isEmergency,
         image_urls: uploadedUrls,
         created_at: new Date().toISOString(),
-        status: "pending",
+        status: "open", // ✅ Corrected here
       },
     ]);
 
@@ -217,3 +217,5 @@ const PostJobForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }) => {
 };
 
 export default PostJobForm;
+
+    
