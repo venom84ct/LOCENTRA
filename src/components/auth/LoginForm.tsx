@@ -1,9 +1,10 @@
-import React, { useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { supabase } from "@/lib/supabaseClient";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
   CardContent,
@@ -11,50 +12,45 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from "@/components/ui/card"
-import { Eye, EyeOff } from "lucide-react"
-import { signIn } from "@/lib/auth"  // 👈 Import Supabase login function
+} from "@/components/ui/card";
+import { Eye, EyeOff } from "lucide-react";
 
 const LoginForm = () => {
-  const navigate = useNavigate()
-  const [userType, setUserType] = useState<"centraResident" | "tradie">("centraResident")
-  const [showPassword, setShowPassword] = useState(false)
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [error, setError] = useState("")
-
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword)
-  }
+  const navigate = useNavigate();
+  const [userType, setUserType] = useState<"centraResident" | "tradie">("centraResident");
+  const [showPassword, setShowPassword] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
 
   const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
+    e.preventDefault();
+    setError("");
 
-    const { error } = await signIn(email, password)
+    const { error, data } = await supabase.auth.signInWithPassword({ email, password });
 
     if (error) {
-      setError(error.message)
+      setError("Login failed: " + error.message);
     } else {
-      localStorage.setItem("isLoggedIn", "true")
-      navigate("/dashboard", { state: { userType } })
+      localStorage.setItem("userType", userType); // store for later redirect
+      navigate("/dashboard"); // will auto-redirect inside dashboard.tsx based on role
     }
-  }
+  };
+
+  const togglePasswordVisibility = () => {
+    setShowPassword(!showPassword);
+  };
 
   return (
     <Card className="w-full max-w-md mx-auto bg-white">
       <CardHeader>
         <CardTitle className="text-2xl font-bold text-center">Log In</CardTitle>
         <CardDescription className="text-center">
-          Access your {userType === "centraResident" ? "Centra Resident" : "tradie"} account
+          Access your {userType === "centraResident" ? "Centra Resident" : "Tradie"} account
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <Tabs
-          defaultValue="centraResident"
-          value={userType}
-          onValueChange={(value) => setUserType(value as "centraResident" | "tradie")}
-          className="mb-6"
-        >
+        <Tabs value={userType} onValueChange={(val) => setUserType(val as "centraResident" | "tradie")} className="mb-6">
           <TabsList className="grid grid-cols-2 w-full">
             <TabsTrigger value="centraResident">Centra Resident</TabsTrigger>
             <TabsTrigger value="tradie">Tradie</TabsTrigger>
@@ -90,11 +86,7 @@ const LoginForm = () => {
                 className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
                 onClick={togglePasswordVisibility}
               >
-                {showPassword ? (
-                  <EyeOff className="h-4 w-4" />
-                ) : (
-                  <Eye className="h-4 w-4" />
-                )}
+                {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
               </button>
             </div>
           </div>
@@ -102,10 +94,7 @@ const LoginForm = () => {
           {error && <p className="text-sm text-red-600">{error}</p>}
 
           <div className="flex justify-end">
-            <a
-              href="/forgot-password"
-              className="text-sm text-primary hover:underline"
-            >
+            <a href="/forgot-password" className="text-sm text-primary hover:underline">
               Forgot password?
             </a>
           </div>
@@ -117,14 +106,14 @@ const LoginForm = () => {
       </CardContent>
       <CardFooter className="flex flex-col space-y-4">
         <div className="text-center text-sm">
-          Don't have an account?{" "}
+          Don’t have an account?{" "}
           <a href="/register" className="text-primary hover:underline">
             Sign up
           </a>
         </div>
       </CardFooter>
     </Card>
-  )
-}
+  );
+};
 
-export default LoginForm
+export default LoginForm;
