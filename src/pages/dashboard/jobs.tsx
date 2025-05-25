@@ -77,23 +77,23 @@ const JobsPage = () => {
     }
   };
 
+  const visibleJobs = jobs.filter((job) => job.status !== "cancelled");
+
   return (
     <DashboardLayout userType="centraResident" user={{ email: user?.email }}>
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">My Jobs</h1>
-          <Button onClick={() => window.location.href = "/post-job"}>
-            Post New Job
-          </Button>
+          <Button onClick={() => (window.location.href = "/post-job")}>Post New Job</Button>
         </div>
 
         {loading ? (
           <p>Loading jobs...</p>
-        ) : jobs.length === 0 ? (
+        ) : visibleJobs.length === 0 ? (
           <p className="text-gray-600">No jobs posted yet.</p>
         ) : (
           <div className="grid gap-6">
-            {jobs.map((job) => (
+            {visibleJobs.map((job) => (
               <Card key={job.id}>
                 <CardHeader>
                   <div className="flex justify-between">
@@ -140,10 +140,7 @@ const JobsPage = () => {
                     </div>
                   )}
 
-                  {(() => {
-                    console.log("STATUS:", job.status);
-                    return job.status === "open";
-                  })() && (
+                  {job.status === "open" && (
                     <div className="mt-4 flex gap-2 justify-end">
                       <Button
                         variant="destructive"
@@ -172,4 +169,3 @@ const JobsPage = () => {
 };
 
 export default JobsPage;
-
