@@ -46,17 +46,6 @@ const LoginPage = () => {
     else navigate("/dashboard")
   }
 
-  const handleGoogleLogin = async () => {
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: { redirectTo: `${window.location.origin}/dashboard/homeowner` },
-    })
-
-    if (error) {
-      setError(error.message)
-    }
-  }
-
   return (
     <PublicLayout>
       <div className="max-w-md mx-auto p-6">
@@ -76,11 +65,6 @@ const LoginPage = () => {
               <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
               {error && <p className="text-red-600 text-sm">❌ {error}</p>}
               <Button type="submit" className="w-full">Log In</Button>
-              <div className="text-center mt-4">
-                <Button type="button" onClick={handleGoogleLogin} className="w-full" variant="outline">
-                  Sign in with Google
-                </Button>
-              </div>
             </form>
           </TabsContent>
 
