@@ -3,10 +3,10 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { supabase } from "@/lib/supabaseClient";
 import {
   Card,
-  CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
+  CardDescription,
+  CardContent,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,6 @@ import {
   MapPin,
   Calendar,
   DollarSign,
-  Clock,
   CheckCircle,
   XCircle,
 } from "lucide-react";
@@ -46,21 +45,6 @@ const JobsPage = () => {
     fetchJobs();
   }, []);
 
-  const updateJobStatus = async (id: string, newStatus: string) => {
-    const { error } = await supabase
-      .from("jobs")
-      .update({ status: newStatus })
-      .eq("id", id);
-
-    if (!error) {
-      setJobs((prev) =>
-        prev.map((job) =>
-          job.id === id ? { ...job, status: newStatus } : job
-        )
-      );
-    }
-  };
-
   const renderStatus = (status: string) => {
     switch (status) {
       case "open":
@@ -73,6 +57,23 @@ const JobsPage = () => {
         return <Badge variant="destructive">Cancelled</Badge>;
       default:
         return <Badge>Unknown</Badge>;
+    }
+  };
+
+  const updateJobStatus = async (jobId: string, newStatus: string) => {
+    const { error } = await supabase
+      .from("jobs")
+      .update({ status: newStatus })
+      .eq("id", jobId);
+
+    if (!error) {
+      setJobs((prev) =>
+        prev.map((j) =>
+          j.id === jobId ? { ...j, status: newStatus } : j
+        )
+      );
+    } else {
+      console.error("Failed to update status:", error);
     }
   };
 
@@ -102,8 +103,10 @@ const JobsPage = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="mb-2 text-sm text-gray-600">{job.description}</p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <p className="mb-2 text-sm text-gray-600">
+                    {job.description}
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
                     <div className="flex items-center text-sm text-gray-700">
                       <MapPin className="h-4 w-4 mr-1" />
                       {job.location}
@@ -121,33 +124,51 @@ const JobsPage = () => {
                   {job.image_urls?.length > 0 && (
                     <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
                       {job.image_urls.map((url: string, i: number) => (
-                        <img
+                        <a
                           key={i}
-                          src={url}
-                          alt={`Job Image ${i + 1}`}
-                          className="rounded object-cover h-32 w-full"
-                        />
+                          href={url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <img
+                            src={url}
+                            alt={`Job Image ${i + 1}`}
+                            className="rounded object-cover h-32 w-full hover:opacity-90"
+                          />
+                        </a>
                       ))}
                     </div>
                   )}
 
-                  <div className="flex gap-2 mt-4">
-                    {job.status === "open" && (
+                  {job.status === "open" && (
+                    <div className="flex gap-2 mt-4">
                       <Button
-                        variant="outline"
+                        variant="destructive"
                         onClick={() => updateJobStatus(job.id, "cancelled")}
                       >
-                        <XCircle className="h-4 w-4 mr-1" /> Cancel
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Cancel Job
                       </Button>
-                    )}
-                    {job.status === "in_progress" && (
+                    </div>
+                  )}
+
+                  {job.status === "in_progress" && (
+                    <div className="flex gap-2 mt-4">
                       <Button
                         onClick={() => updateJobStatus(job.id, "completed")}
                       >
-                        <CheckCircle className="h-4 w-4 mr-1" /> Mark Complete
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Mark as Complete
                       </Button>
-                    )}
-                  </div>
+                      <Button
+                        variant="destructive"
+                        onClick={() => updateJobStatus(job.id, "cancelled")}
+                      >
+                        <XCircle className="h-4 w-4 mr-2" />
+                        Cancel Job
+                      </Button>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             ))}
