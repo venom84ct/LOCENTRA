@@ -3,10 +3,10 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { supabase } from "@/lib/supabaseClient";
 import {
   Card,
+  CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
-  CardContent,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -14,13 +14,14 @@ import {
   MapPin,
   Calendar,
   DollarSign,
-  CheckCircle,
   XCircle,
+  CheckCircle,
 } from "lucide-react";
 
 const JobsPage = () => {
   const [jobs, setJobs] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -40,10 +41,26 @@ const JobsPage = () => {
         .order("created_at", { ascending: false });
 
       if (!error) setJobs(data || []);
+      setLoading(false);
     };
 
     fetchJobs();
   }, []);
+
+  const updateJobStatus = async (jobId: string, newStatus: string) => {
+    const { error } = await supabase
+      .from("jobs")
+      .update({ status: newStatus })
+      .eq("id", jobId);
+
+    if (!error) {
+      setJobs((prev) =>
+        prev.map((job) =>
+          job.id === jobId ? { ...job, status: newStatus } : job
+        )
+      );
+    }
+  };
 
   const renderStatus = (status: string) => {
     switch (status) {
@@ -60,23 +77,6 @@ const JobsPage = () => {
     }
   };
 
-  const updateJobStatus = async (jobId: string, newStatus: string) => {
-    const { error } = await supabase
-      .from("jobs")
-      .update({ status: newStatus })
-      .eq("id", jobId);
-
-    if (!error) {
-      setJobs((prev) =>
-        prev.map((j) =>
-          j.id === jobId ? { ...j, status: newStatus } : j
-        )
-      );
-    } else {
-      console.error("Failed to update status:", error);
-    }
-  };
-
   return (
     <DashboardLayout userType="centraResident" user={{ email: user?.email }}>
       <div className="container mx-auto px-4 py-8">
@@ -87,7 +87,9 @@ const JobsPage = () => {
           </Button>
         </div>
 
-        {jobs.length === 0 ? (
+        {loading ? (
+          <p>Loading jobs...</p>
+        ) : jobs.length === 0 ? (
           <p className="text-gray-600">No jobs posted yet.</p>
         ) : (
           <div className="grid gap-6">
@@ -103,19 +105,17 @@ const JobsPage = () => {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="mb-2 text-sm text-gray-600">
-                    {job.description}
-                  </p>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                    <div className="flex items-center text-sm text-gray-700">
+                  <p className="mb-2 text-sm text-gray-600">{job.description}</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-gray-700">
+                    <div className="flex items-center">
                       <MapPin className="h-4 w-4 mr-1" />
                       {job.location}
                     </div>
-                    <div className="flex items-center text-sm text-gray-700">
+                    <div className="flex items-center">
                       <Calendar className="h-4 w-4 mr-1" />
                       {new Date(job.created_at).toLocaleDateString()}
                     </div>
-                    <div className="flex items-center text-sm text-gray-700">
+                    <div className="flex items-center">
                       <DollarSign className="h-4 w-4 mr-1" />
                       {job.budget}
                     </div>
@@ -125,15 +125,15 @@ const JobsPage = () => {
                     <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
                       {job.image_urls.map((url: string, i: number) => (
                         <a
-                          key={i}
                           href={url}
                           target="_blank"
                           rel="noopener noreferrer"
+                          key={i}
                         >
                           <img
                             src={url}
                             alt={`Job Image ${i + 1}`}
-                            className="rounded object-cover h-32 w-full hover:opacity-90"
+                            className="rounded object-cover h-32 w-full hover:opacity-90 transition"
                           />
                         </a>
                       ))}
@@ -141,31 +141,20 @@ const JobsPage = () => {
                   )}
 
                   {job.status === "open" && (
-                    <div className="flex gap-2 mt-4">
+                    <div className="mt-4 flex gap-2 justify-end">
                       <Button
                         variant="destructive"
                         onClick={() => updateJobStatus(job.id, "cancelled")}
                       >
-                        <XCircle className="h-4 w-4 mr-2" />
+                        <XCircle className="h-4 w-4 mr-1" />
                         Cancel Job
                       </Button>
-                    </div>
-                  )}
-
-                  {job.status === "in_progress" && (
-                    <div className="flex gap-2 mt-4">
                       <Button
+                        variant="outline"
                         onClick={() => updateJobStatus(job.id, "completed")}
                       >
-                        <CheckCircle className="h-4 w-4 mr-2" />
+                        <CheckCircle className="h-4 w-4 mr-1" />
                         Mark as Complete
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        onClick={() => updateJobStatus(job.id, "cancelled")}
-                      >
-                        <XCircle className="h-4 w-4 mr-2" />
-                        Cancel Job
                       </Button>
                     </div>
                   )}
