@@ -1,60 +1,111 @@
-import React, { useState, useEffect } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import CentraResidentDashboard from "@/components/dashboard/HomeownerDashboard";
-import TradieDashboard from "@/components/dashboard/TradieDashboard";
+import React, { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { supabase } from "@/lib/supabaseClient";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Gift, Award, CalendarDays } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
-const Dashboard = () => {
-  const location = useLocation();
+const HomeownerDashboard = () => {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  const [userType, setUserType] = useState<"centraResident" | "tradie">(
-    "centraResident",
-  );
 
   useEffect(() => {
-    // Check if userType was passed in location state (from login/register)
-    if (location.state && location.state.userType) {
-      setUserType(location.state.userType);
-    }
+    const fetchUser = async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth?.user) return navigate("/login");
 
-    // Check if we're in a tradie-specific route
-    if (location.pathname.includes("/tradie")) {
-      setUserType("tradie");
-    }
+      const { data, error } = await supabase
+        .from("profile_centra_resident")
+        .select("*")
+        .eq("id", auth.user.id)
+        .single();
 
-    // In a real app, this would check if the user is authenticated
-    // For demo purposes, we'll just assume they are
-    const isAuthenticated = true;
+      if (error) {
+        console.error("Failed to load profile:", error);
+      } else {
+        setUser(data);
+      }
 
-    if (!isAuthenticated) {
-      navigate("/login");
-    }
-  }, [location, navigate]);
+      setLoading(false);
+    };
 
-  // Mock user data
-  const mockUser = {
-    name: userType === "centraResident" ? "John Smith" : "Mike Johnson",
-    email:
-      userType === "centraResident"
-        ? "john.smith@example.com"
-        : "mike.johnson@example.com",
-    avatar:
-      userType === "centraResident"
-        ? "https://api.dicebear.com/7.x/avataaars/svg?seed=John"
-        : "https://api.dicebear.com/7.x/avataaars/svg?seed=Mike",
-    unreadMessages: 2,
-    unreadNotifications: 3,
-  };
+    fetchUser();
+  }, [navigate]);
+
+  if (loading) return <div className="p-8">Loading dashboard...</div>;
 
   return (
-    <DashboardLayout userType={userType} user={mockUser}>
-      {userType === "centraResident" ? (
-        <CentraResidentDashboard />
-      ) : (
-        <TradieDashboard />
-      )}
+    <DashboardLayout userType="centraResident" user={user}>
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-2xl font-bold mb-6">Welcome back, {user.first_name}!</h1>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <Card>
+            <CardHeader>
+              <CardTitle>Reward Points</CardTitle>
+              <CardDescription>
+                Earned by completing jobs and referrals
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex items-center justify-between">
+              <div className="text-3xl font-bold">{user.reward_points ?? 0}</div>
+              <Gift className="h-8 w-8 text-red-500" />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Jobs Completed</CardTitle>
+              <CardDescription>
+                Total completed home service requests
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="flex items-center justify-between">
+              <div className="text-3xl font-bold">{user.jobs_completed ?? 0}</div>
+              <Award className="h-8 w-8 text-green-600" />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Member Since</CardTitle>
+              <CardDescription>Your join date</CardDescription>
+            </CardHeader>
+            <CardContent className="flex items-center justify-between">
+              <div className="text-lg">
+                {new Date(user.created_at).toLocaleDateString()}
+              </div>
+              <CalendarDays className="h-8 w-8 text-blue-600" />
+            </CardContent>
+          </Card>
+        </div>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Next Steps</CardTitle>
+            <CardDescription>Quick actions to get you started</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col md:flex-row gap-4">
+            <Button onClick={() => navigate("/post-job")}>Post a New Job</Button>
+            <Button variant="outline" onClick={() => navigate("/dashboard/jobs")}>
+              View My Jobs
+            </Button>
+            <Button variant="ghost" onClick={() => navigate("/dashboard/rewards")}>
+              Redeem Points
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </DashboardLayout>
   );
 };
 
-export default Dashboard;
+export default HomeownerDashboard;
