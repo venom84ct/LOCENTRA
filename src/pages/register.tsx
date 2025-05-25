@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
+import PublicLayout from "@/components/layout/PublicLayout" // ✅ Add layout
 
 const RegisterPage = () => {
   const navigate = useNavigate()
@@ -116,32 +117,34 @@ const RegisterPage = () => {
   )
 
   return (
-    <div className="max-w-xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-4">Sign Up</h1>
-      <Tabs value={role} onValueChange={setRole} className="mb-6">
-        <TabsList className="grid grid-cols-2 w-full">
-          <TabsTrigger value="homeowner">Homeowner</TabsTrigger>
-          <TabsTrigger value="tradie">Tradie</TabsTrigger>
-        </TabsList>
-        <TabsContent value="homeowner">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {commonFields}
-            {error && <p className="text-red-600 text-sm">❌ {error}</p>}
-            {success && <p className="text-green-600 text-sm">{success}</p>}
-            <Button type="submit" className="w-full">Create Homeowner Account</Button>
-          </form>
-        </TabsContent>
-        <TabsContent value="tradie">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            {commonFields}
-            {tradieFields}
-            {error && <p className="text-red-600 text-sm">❌ {error}</p>}
-            {success && <p className="text-green-600 text-sm">{success}</p>}
-            <Button type="submit" className="w-full">Create Tradie Account</Button>
-          </form>
-        </TabsContent>
-      </Tabs>
-    </div>
+    <PublicLayout>
+      <div className="max-w-xl mx-auto p-6">
+        <h1 className="text-2xl font-bold mb-4">Sign Up</h1>
+        <Tabs value={role} onValueChange={setRole} className="mb-6">
+          <TabsList className="grid grid-cols-2 w-full">
+            <TabsTrigger value="homeowner">Homeowner</TabsTrigger>
+            <TabsTrigger value="tradie">Tradie</TabsTrigger>
+          </TabsList>
+          <TabsContent value="homeowner">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {commonFields}
+              {error && <p className="text-red-600 text-sm">❌ {error}</p>}
+              {success && <p className="text-green-600 text-sm">{success}</p>}
+              <Button type="submit" className="w-full">Create Homeowner Account</Button>
+            </form>
+          </TabsContent>
+          <TabsContent value="tradie">
+            <form onSubmit={handleSubmit} className="space-y-4">
+              {commonFields}
+              {tradieFields}
+              {error && <p className="text-red-600 text-sm">❌ {error}</p>}
+              {success && <p className="text-green-600 text-sm">{success}</p>}
+              <Button type="submit" className="w-full">Create Tradie Account</Button>
+            </form>
+          </TabsContent>
+        </Tabs>
+      </div>
+    </PublicLayout>
   )
 }
 
