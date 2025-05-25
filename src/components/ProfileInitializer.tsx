@@ -1,40 +1,40 @@
-// src/components/ProfileInitializer.tsx
-import { useEffect } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { useEffect } from "react"
+import { supabase } from "@/lib/supabaseClient"
 
 const ProfileInitializer = () => {
   useEffect(() => {
     const { data: authListener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
         if (event === "SIGNED_IN" && session?.user) {
-          const user = session.user;
-          const { data: existing, error } = await supabase
+          const user = session.user
+
+          // Check if profile already exists
+          const { data: profile, error } = await supabase
             .from("profile_centra_resident")
             .select("id")
             .eq("id", user.id)
-            .single();
+            .single()
 
-          if (!existing && !error) {
-            const role = localStorage.getItem("signupRole") || "homeowner";
+          // If not, insert it as homeowner
+          if (!profile && !error) {
             await supabase.from("profile_centra_resident").insert({
               id: user.id,
               email: user.email,
-              role,
+              role: "homeowner",
               status: "pending",
-              created_at: new Date().toISOString(),
-            });
+              created_at: new Date(),
+            })
           }
         }
       }
-    );
+    )
 
     return () => {
-      authListener?.subscription?.unsubscribe();
-    };
-  }, []);
+      authListener?.subscription?.unsubscribe()
+    }
+  }, [])
 
-  return null;
-};
+  return null
+}
 
-export default ProfileInitializer;
-
+export default ProfileInitializer
