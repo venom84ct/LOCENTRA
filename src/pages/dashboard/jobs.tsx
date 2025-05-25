@@ -14,6 +14,7 @@ import {
   MapPin,
   Calendar,
   DollarSign,
+  Clock,
   CheckCircle,
   XCircle,
 } from "lucide-react";
@@ -30,6 +31,7 @@ const JobsPage = () => {
       } = await supabase.auth.getUser();
 
       if (authError || !user) return;
+
       setUser(user);
 
       const { data, error } = await supabase
@@ -43,6 +45,21 @@ const JobsPage = () => {
 
     fetchJobs();
   }, []);
+
+  const updateJobStatus = async (id: string, newStatus: string) => {
+    const { error } = await supabase
+      .from("jobs")
+      .update({ status: newStatus })
+      .eq("id", id);
+
+    if (!error) {
+      setJobs((prev) =>
+        prev.map((job) =>
+          job.id === id ? { ...job, status: newStatus } : job
+        )
+      );
+    }
+  };
 
   const renderStatus = (status: string) => {
     switch (status) {
@@ -59,27 +76,14 @@ const JobsPage = () => {
     }
   };
 
-  const updateJobStatus = async (jobId: string, newStatus: string) => {
-    const { error } = await supabase
-      .from("jobs")
-      .update({ status: newStatus })
-      .eq("id", jobId);
-
-    if (!error) {
-      setJobs((prev) =>
-        prev.map((job) =>
-          job.id === jobId ? { ...job, status: newStatus } : job
-        )
-      );
-    }
-  };
-
   return (
     <DashboardLayout userType="centraResident" user={{ email: user?.email }}>
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">My Jobs</h1>
-          <Button onClick={() => (window.location.href = "/post-job")}>Post New Job</Button>
+          <Button onClick={() => window.location.href = "/post-job"}>
+            Post New Job
+          </Button>
         </div>
 
         {jobs.length === 0 ? (
@@ -114,23 +118,34 @@ const JobsPage = () => {
                     </div>
                   </div>
 
-                  <div className="flex gap-4 mt-4">
+                  {job.image_urls?.length > 0 && (
+                    <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {job.image_urls.map((url: string, i: number) => (
+                        <img
+                          key={i}
+                          src={url}
+                          alt={`Job Image ${i + 1}`}
+                          className="rounded object-cover h-32 w-full"
+                        />
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="flex gap-2 mt-4">
                     {job.status === "open" && (
-                      <>
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          onClick={() => updateJobStatus(job.id, "cancelled")}
-                        >
-                          <XCircle className="h-4 w-4 mr-1" /> Cancel
-                        </Button>
-                        <Button
-                          size="sm"
-                          onClick={() => updateJobStatus(job.id, "completed")}
-                        >
-                          <CheckCircle className="h-4 w-4 mr-1" /> Complete
-                        </Button>
-                      </>
+                      <Button
+                        variant="outline"
+                        onClick={() => updateJobStatus(job.id, "cancelled")}
+                      >
+                        <XCircle className="h-4 w-4 mr-1" /> Cancel
+                      </Button>
+                    )}
+                    {job.status === "in_progress" && (
+                      <Button
+                        onClick={() => updateJobStatus(job.id, "completed")}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-1" /> Mark Complete
+                      </Button>
                     )}
                   </div>
                 </CardContent>
@@ -144,4 +159,3 @@ const JobsPage = () => {
 };
 
 export default JobsPage;
-
