@@ -1,4 +1,3 @@
-
 import React, { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { supabase } from "@/lib/supabaseClient"
@@ -43,7 +42,7 @@ const LoginPage = () => {
     localStorage.setItem("isLoggedIn", "true")
 
     if (role === "tradie") navigate("/dashboard/tradie")
-    else if (role === "homeowner") navigate("/dashboard/homeowner")
+    else if (role === "homeowner") navigate("/dashboard")
     else navigate("/dashboard")
   }
 
