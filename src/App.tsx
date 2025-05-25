@@ -1,75 +1,108 @@
-import React from "react";
-import { Routes, Route, BrowserRouter } from "react-router-dom";
-import ProfileInitializer from "@/components/ProfileInitializer";
-import PublicLayout from "@/components/layout/PublicLayout";
+import { Suspense, lazy } from "react";
+import { useRoutes, Routes, Route } from "react-router-dom";
+import Home from "./components/home";
+import routes from "tempo-routes";
 
-// Pages
-import HomePage from "@/components/home"; // ✅ Your original homepage
-import LoginPage from "@/pages/login";
-import RegisterPage from "@/pages/register";
-import Dashboard from "@/pages/dashboard";
-import About from "@/pages/about";
-import Contact from "@/pages/contact";
-import Pricing from "@/pages/pricing";
-import HowItWorks from "@/pages/how-it-works";
+// Lazy load pages for better performance
+const Dashboard = lazy(() => import("./pages/dashboard"));
+const AdminPage = lazy(() => import("./pages/admin"));
+const HowItWorks = lazy(() => import("./pages/how-it-works"));
+const Pricing = lazy(() => import("./pages/pricing"));
+const About = lazy(() => import("./pages/about"));
+const Contact = lazy(() => import("./pages/contact"));
+const Login = lazy(() => import("./pages/login"));
+const Register = lazy(() => import("./pages/register"));
+const PostJob = lazy(() => import("./pages/post-job"));
 
-const App = () => {
+// Lazy load dashboard pages
+const DashboardJobs = lazy(() => import("./pages/dashboard/jobs"));
+const DashboardMessages = lazy(() => import("./pages/dashboard/messages"));
+const DashboardNotifications = lazy(
+  () => import("./pages/dashboard/notifications"),
+);
+const DashboardRewards = lazy(() => import("./pages/dashboard/rewards"));
+const DashboardProfile = lazy(() => import("./pages/dashboard/profile"));
+const DashboardSettings = lazy(() => import("./pages/dashboard/settings"));
+const DashboardHelp = lazy(() => import("./pages/dashboard/help"));
+const DashboardWallet = lazy(() => import("./pages/dashboard/wallet"));
+const DashboardFindJobs = lazy(() => import("./pages/dashboard/find-jobs"));
+const DashboardFindTradie = lazy(() => import("./pages/dashboard/find-tradie"));
+
+// Lazy load tradie dashboard pages
+const TradieMessages = lazy(() => import("./pages/dashboard/tradie/messages"));
+const TradieNotifications = lazy(
+  () => import("./pages/dashboard/tradie/notifications"),
+);
+const TradieProfile = lazy(() => import("./pages/dashboard/tradie/profile"));
+const TradieSettings = lazy(() => import("./pages/dashboard/tradie/settings"));
+const TradieHelp = lazy(() => import("./pages/dashboard/tradie/help"));
+const TradieTopTradies = lazy(
+  () => import("./pages/dashboard/tradie/top-tradies"),
+);
+const TradieMyJobs = lazy(() => import("./pages/dashboard/tradie/my-jobs"));
+
+function App() {
   return (
-    <BrowserRouter>
-      <ProfileInitializer />
-      <Routes>
-        {/* Public Pages with Layout */}
-        <Route
-          path="/"
-          element={
-            <PublicLayout>
-              <HomePage />
-            </PublicLayout>
-          }
-        />
-        <Route
-          path="/how-it-works"
-          element={
-            <PublicLayout>
-              <HowItWorks />
-            </PublicLayout>
-          }
-        />
-        <Route
-          path="/pricing"
-          element={
-            <PublicLayout>
-              <Pricing />
-            </PublicLayout>
-          }
-        />
-        <Route
-          path="/about"
-          element={
-            <PublicLayout>
-              <About />
-            </PublicLayout>
-          }
-        />
-        <Route
-          path="/contact"
-          element={
-            <PublicLayout>
-              <Contact />
-            </PublicLayout>
-          }
-        />
+    <Suspense fallback={<p>Loading...</p>}>
+      <>
+        <Routes>
+          <Route path="/" element={<Home />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard/tradie" element={<Dashboard />} />
+          <Route path="/dashboard/jobs" element={<DashboardJobs />} />
+          <Route path="/dashboard/messages" element={<DashboardMessages />} />
+          <Route
+            path="/dashboard/notifications"
+            element={<DashboardNotifications />}
+          />
+          <Route path="/dashboard/rewards" element={<DashboardRewards />} />
+          <Route path="/dashboard/profile" element={<DashboardProfile />} />
+          <Route path="/dashboard/settings" element={<DashboardSettings />} />
+          <Route path="/dashboard/help" element={<DashboardHelp />} />
+          <Route path="/dashboard/wallet" element={<DashboardWallet />} />
+          <Route path="/dashboard/find-jobs" element={<DashboardFindJobs />} />
+          <Route
+            path="/dashboard/find-tradie"
+            element={<DashboardFindTradie />}
+          />
 
-        {/* Auth Pages */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-
-        {/* Dashboard */}
-        <Route path="/dashboard/*" element={<Dashboard />} />
-      </Routes>
-    </BrowserRouter>
+          {/* Tradie specific routes */}
+          <Route
+            path="/dashboard/tradie/messages"
+            element={<TradieMessages />}
+          />
+          <Route
+            path="/dashboard/tradie/notifications"
+            element={<TradieNotifications />}
+          />
+          <Route path="/dashboard/tradie/profile" element={<TradieProfile />} />
+          <Route
+            path="/dashboard/tradie/settings"
+            element={<TradieSettings />}
+          />
+          <Route path="/dashboard/tradie/help" element={<TradieHelp />} />
+          <Route
+            path="/dashboard/tradie/top-tradies"
+            element={<TradieTopTradies />}
+          />
+          <Route path="/dashboard/tradie/my-jobs" element={<TradieMyJobs />} />
+          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/how-it-works" element={<HowItWorks />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/post-job" element={<PostJob />} />
+          {/* Add the tempobook route for Tempo to work properly with the catchall */}
+          {import.meta.env.VITE_TEMPO === "true" && (
+            <Route path="/tempobook/*" element={<></>} />
+          )}
+        </Routes>
+        {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
+      </>
+    </Suspense>
   );
-};
+}
 
 export default App;
-
