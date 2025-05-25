@@ -1,37 +1,31 @@
 import React, { useEffect, useState } from "react";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 import { supabase } from "@/lib/supabaseClient";
 import {
   Card,
-  CardHeader,
-  CardTitle,
   CardContent,
   CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-
-interface Job {
-  id: string;
-  title: string;
-  description: string;
-  status: string;
-  location: string;
-  created_at: string;
-  budget: string;
-  image_urls?: string[];
-}
+import { Button } from "@/components/ui/button";
+import { MapPin, Calendar, DollarSign, Clock, CheckCircle, Star } from "lucide-react";
 
 const JobsPage = () => {
-  const [jobs, setJobs] = useState<Job[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     const fetchJobs = async () => {
-      setLoading(true);
       const {
         data: { user },
+        error: authError,
       } = await supabase.auth.getUser();
 
-      if (!user) return;
+      if (authError || !user) return;
+
+      setUser(user);
 
       const { data, error } = await supabase
         .from("jobs")
@@ -39,60 +33,87 @@ const JobsPage = () => {
         .eq("homeowner_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Failed to load jobs:", error.message);
-      } else {
-        setJobs(data);
-      }
-      setLoading(false);
+      if (!error) setJobs(data || []);
     };
 
     fetchJobs();
   }, []);
 
-  if (loading) return <div className="p-4">Loading jobs...</div>;
+  const renderStatus = (status: string) => {
+    switch (status) {
+      case "open":
+        return <Badge variant="secondary">Open</Badge>;
+      case "in_progress":
+        return <Badge variant="default">In Progress</Badge>;
+      case "completed":
+        return <Badge variant="success">Completed</Badge>;
+      case "cancelled":
+        return <Badge variant="destructive">Cancelled</Badge>;
+      default:
+        return <Badge>Unknown</Badge>;
+    }
+  };
 
   return (
-    <div className="p-4 space-y-6">
-      <h1 className="text-2xl font-bold">My Jobs</h1>
+    <DashboardLayout userType="centraResident" user={{ email: user?.email }}>
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">My Jobs</h1>
+          <Button onClick={() => window.location.href = "/post-job"}>
+            Post New Job
+          </Button>
+        </div>
 
-      {jobs.length === 0 ? (
-        <p>No jobs posted yet.</p>
-      ) : (
-        jobs.map((job) => (
-          <Card key={job.id}>
-            <CardHeader>
-              <CardTitle>{job.title}</CardTitle>
-              <CardDescription>{job.location}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <p>{job.description}</p>
-              <p className="text-sm text-muted-foreground">
-                Budget: {job.budget}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                Posted: {new Date(job.created_at).toLocaleDateString()}
-              </p>
-              <Badge variant="outline" className="capitalize">
-                {job.status}
-              </Badge>
-              {job.image_urls?.length > 0 && (
-                <div className="grid grid-cols-2 gap-2 pt-2">
-                  {job.image_urls.map((url, i) => (
-                    <img
-                      key={i}
-                      src={url}
-                      alt={`Job image ${i + 1}`}
-                      className="w-full h-auto rounded"
-                    />
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))
-      )}
-    </div>
+        {jobs.length === 0 ? (
+          <p className="text-gray-600">No jobs posted yet.</p>
+        ) : (
+          <div className="grid gap-6">
+            {jobs.map((job) => (
+              <Card key={job.id}>
+                <CardHeader>
+                  <div className="flex justify-between">
+                    <div>
+                      <CardTitle className="text-lg">{job.title}</CardTitle>
+                      <CardDescription>{job.category}</CardDescription>
+                    </div>
+                    {renderStatus(job.status)}
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <p className="mb-2 text-sm text-gray-600">{job.description}</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="flex items-center text-sm text-gray-700">
+                      <MapPin className="h-4 w-4 mr-1" />
+                      {job.location}
+                    </div>
+                    <div className="flex items-center text-sm text-gray-700">
+                      <Calendar className="h-4 w-4 mr-1" />
+                      {new Date(job.created_at).toLocaleDateString()}
+                    </div>
+                    <div className="flex items-center text-sm text-gray-700">
+                      <DollarSign className="h-4 w-4 mr-1" />
+                      {job.budget}
+                    </div>
+                  </div>
+                  {job.image_urls?.length > 0 && (
+                    <div className="mt-4 grid grid-cols-2 md:grid-cols-4 gap-2">
+                      {job.image_urls.map((url: string, i: number) => (
+                        <img
+                          key={i}
+                          src={url}
+                          alt={`Job Image ${i + 1}`}
+                          className="rounded object-cover h-32 w-full"
+                        />
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
+    </DashboardLayout>
   );
 };
 
