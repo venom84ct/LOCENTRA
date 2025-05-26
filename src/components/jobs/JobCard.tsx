@@ -1,28 +1,22 @@
-// src/components/jobs/JobCard.tsx
 import React from "react";
 import {
   Card,
-  CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
+  CardDescription,
+  CardContent,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  MapPin,
-  Calendar,
-  DollarSign,
-  XCircle,
-  CheckCircle,
-} from "lucide-react";
+import { MapPin, Calendar, DollarSign, XCircle, CheckCircle } from "lucide-react";
 
 interface JobCardProps {
   job: any;
-  onStatusChange: (jobId: string, newStatus: string) => void;
+  onCancel: (id: string) => void;
+  onComplete: (id: string) => void;
 }
 
-const JobCard: React.FC<JobCardProps> = ({ job, onStatusChange }) => {
+const JobCard: React.FC<JobCardProps> = ({ job, onCancel, onComplete }) => {
   const renderStatus = (status: string) => {
     switch (status) {
       case "open":
@@ -41,7 +35,9 @@ const JobCard: React.FC<JobCardProps> = ({ job, onStatusChange }) => {
   return (
     <Card
       className={`relative ${
-        job.is_emergency ? "border-red-500 border-2" : ""
+        job.is_emergency
+          ? "border-2 border-red-600 shadow-lg"
+          : "border border-gray-200"
       }`}
     >
       <CardHeader>
@@ -52,7 +48,16 @@ const JobCard: React.FC<JobCardProps> = ({ job, onStatusChange }) => {
           </div>
           {renderStatus(job.status)}
         </div>
+        {job.is_emergency && (
+          <Badge
+            variant="destructive"
+            className="absolute top-4 right-4 text-xs bg-red-600"
+          >
+            Emergency
+          </Badge>
+        )}
       </CardHeader>
+
       <CardContent>
         <p className="mb-2 text-sm text-gray-600">{job.description}</p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-gray-700">
@@ -93,15 +98,19 @@ const JobCard: React.FC<JobCardProps> = ({ job, onStatusChange }) => {
           <div className="mt-4 flex gap-2 justify-end">
             <Button
               variant="destructive"
-              onClick={() => onStatusChange(job.id, "cancelled")}
+              onClick={() => onCancel(job.id)}
+              size="sm"
             >
-              <XCircle className="h-4 w-4 mr-1" /> Cancel Job
+              <XCircle className="h-4 w-4 mr-1" />
+              Cancel Job
             </Button>
             <Button
               variant="outline"
-              onClick={() => onStatusChange(job.id, "completed")}
+              onClick={() => onComplete(job.id)}
+              size="sm"
             >
-              <CheckCircle className="h-4 w-4 mr-1" /> Mark as Complete
+              <CheckCircle className="h-4 w-4 mr-1" />
+              Mark as Complete
             </Button>
           </div>
         )}
