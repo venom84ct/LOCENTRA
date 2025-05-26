@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { supabase } from "@/lib/supabaseClient";
 import {
@@ -18,11 +17,13 @@ import {
   XCircle,
   CheckCircle,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const JobsPage = () => {
   const [jobs, setJobs] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -39,7 +40,6 @@ const JobsPage = () => {
         .from("jobs")
         .select("*")
         .eq("homeowner_id", user.id)
-        .not("status", "eq", "cancelled")
         .order("created_at", { ascending: false });
 
       if (!error) setJobs(data || []);
@@ -47,6 +47,31 @@ const JobsPage = () => {
     };
 
     fetchJobs();
+
+    const channel = supabase
+      .channel("realtime-jobs")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "jobs" },
+        (payload) => {
+          if (payload.new?.homeowner_id === user?.id) {
+            setJobs((prevJobs) => {
+              const index = prevJobs.findIndex((j) => j.id === payload.new.id);
+              if (index !== -1) {
+                const updated = [...prevJobs];
+                updated[index] = payload.new;
+                return updated;
+              }
+              return [payload.new, ...prevJobs];
+            });
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   const updateJobStatus = async (jobId: string, newStatus: string) => {
@@ -57,7 +82,9 @@ const JobsPage = () => {
 
     if (!error) {
       setJobs((prev) =>
-        prev.filter((job) => !(job.id === jobId && newStatus === "cancelled"))
+        prev.filter((job) =>
+          newStatus === "cancelled" ? job.id !== jobId : true
+        )
       );
     }
   };
@@ -82,12 +109,7 @@ const JobsPage = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">My Jobs</h1>
-          <Button asChild>
-            <Link to="/post-job">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Post New Job
-            </Link>
-          </Button>
+          <Button onClick={() => navigate("/post-job")}>Post New Job</Button>
         </div>
 
         {loading ? (
@@ -97,32 +119,18 @@ const JobsPage = () => {
         ) : (
           <div className="grid gap-6">
             {jobs.map((job) => (
-              <Card
-                key={job.id}
-                className={`bg-white ${
-                  job.is_emergency ? "border-red-500 border-2" : ""
-                }`}
-              >
+              <Card key={job.id} className={`border ${job.is_emergency ? "border-red-500" : "border-gray-200"}`}>
                 <CardHeader>
                   <div className="flex justify-between">
                     <div>
-                      <div className="flex items-center">
-                        <CardTitle className="text-lg">{job.title}</CardTitle>
-                        {job.is_emergency && (
-                          <Badge variant="destructive" className="ml-2">
-                            Emergency
-                          </Badge>
-                        )}
-                      </div>
+                      <CardTitle className="text-lg">{job.title}</CardTitle>
                       <CardDescription>{job.category}</CardDescription>
                     </div>
                     {renderStatus(job.status)}
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="mb-2 text-sm text-gray-600">
-                    {job.description}
-                  </p>
+                  <p className="mb-2 text-sm text-gray-600">{job.description}</p>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-gray-700">
                     <div className="flex items-center">
                       <MapPin className="h-4 w-4 mr-1" />
