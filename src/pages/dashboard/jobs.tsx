@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { supabase } from "@/lib/supabaseClient";
 import {
@@ -38,6 +39,7 @@ const JobsPage = () => {
         .from("jobs")
         .select("*")
         .eq("homeowner_id", user.id)
+        .not("status", "eq", "cancelled")
         .order("created_at", { ascending: false });
 
       if (!error) setJobs(data || []);
@@ -55,9 +57,7 @@ const JobsPage = () => {
 
     if (!error) {
       setJobs((prev) =>
-        prev.map((job) =>
-          job.id === jobId ? { ...job, status: newStatus } : job
-        )
+        prev.filter((job) => !(job.id === jobId && newStatus === "cancelled"))
       );
     }
   };
@@ -77,35 +77,52 @@ const JobsPage = () => {
     }
   };
 
-  const visibleJobs = jobs.filter((job) => job.status !== "cancelled");
-
   return (
     <DashboardLayout userType="centraResident" user={{ email: user?.email }}>
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">My Jobs</h1>
-          <Button onClick={() => (window.location.href = "/post-job")}>Post New Job</Button>
+          <Button asChild>
+            <Link to="/post-job">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Post New Job
+            </Link>
+          </Button>
         </div>
 
         {loading ? (
           <p>Loading jobs...</p>
-        ) : visibleJobs.length === 0 ? (
+        ) : jobs.length === 0 ? (
           <p className="text-gray-600">No jobs posted yet.</p>
         ) : (
           <div className="grid gap-6">
-            {visibleJobs.map((job) => (
-              <Card key={job.id}>
+            {jobs.map((job) => (
+              <Card
+                key={job.id}
+                className={`bg-white ${
+                  job.is_emergency ? "border-red-500 border-2" : ""
+                }`}
+              >
                 <CardHeader>
                   <div className="flex justify-between">
                     <div>
-                      <CardTitle className="text-lg">{job.title}</CardTitle>
+                      <div className="flex items-center">
+                        <CardTitle className="text-lg">{job.title}</CardTitle>
+                        {job.is_emergency && (
+                          <Badge variant="destructive" className="ml-2">
+                            Emergency
+                          </Badge>
+                        )}
+                      </div>
                       <CardDescription>{job.category}</CardDescription>
                     </div>
                     {renderStatus(job.status)}
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="mb-2 text-sm text-gray-600">{job.description}</p>
+                  <p className="mb-2 text-sm text-gray-600">
+                    {job.description}
+                  </p>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm text-gray-700">
                     <div className="flex items-center">
                       <MapPin className="h-4 w-4 mr-1" />
