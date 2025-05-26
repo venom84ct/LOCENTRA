@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { supabase } from "@/lib/supabaseClient";
 import {
@@ -16,12 +17,14 @@ import {
   DollarSign,
   XCircle,
   CheckCircle,
+  PlusCircle,
 } from "lucide-react";
 
 const JobsPage = () => {
   const [jobs, setJobs] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -55,7 +58,11 @@ const JobsPage = () => {
 
     if (!error) {
       setJobs((prev) =>
-        prev.filter((job) => job.id !== jobId || newStatus !== "cancelled")
+        prev
+          .map((job) =>
+            job.id === jobId ? { ...job, status: newStatus } : job
+          )
+          .filter((job) => job.status !== "cancelled")
       );
     }
   };
@@ -80,7 +87,8 @@ const JobsPage = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">My Jobs</h1>
-          <Button onClick={() => window.location.href = "/post-job"}>
+          <Button onClick={() => navigate("/post-job")}>
+            <PlusCircle className="mr-2 h-4 w-4" />
             Post New Job
           </Button>
         </div>
@@ -95,25 +103,20 @@ const JobsPage = () => {
               <Card
                 key={job.id}
                 className={`bg-white ${
-                  job.is_emergency
-                    ? "border-4 border-red-600 shadow-md"
-                    : "border border-gray-200"
+                  job.is_emergency ? "border-4 border-red-600" : ""
                 }`}
               >
                 <CardHeader>
                   <div className="flex justify-between">
                     <div>
-                      <CardTitle className="text-lg flex items-center gap-2">
-                        {job.title}
+                      <div className="flex items-center">
+                        <CardTitle className="text-lg">{job.title}</CardTitle>
                         {job.is_emergency && (
-                          <span
-                            className="bg-red-600 text-white text-xs px-2 py-1 rounded-full font-semibold"
-                            title="This is an emergency job"
-                          >
+                          <Badge variant="destructive" className="ml-2">
                             Emergency
-                          </span>
+                          </Badge>
                         )}
-                      </CardTitle>
+                      </div>
                       <CardDescription>{job.category}</CardDescription>
                     </div>
                     {renderStatus(job.status)}
