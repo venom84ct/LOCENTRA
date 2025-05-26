@@ -17,13 +17,11 @@ import {
   XCircle,
   CheckCircle,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 
 const JobsPage = () => {
   const [jobs, setJobs] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -47,31 +45,6 @@ const JobsPage = () => {
     };
 
     fetchJobs();
-
-    const channel = supabase
-      .channel("realtime-jobs")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "jobs" },
-        (payload) => {
-          if (payload.new?.homeowner_id === user?.id) {
-            setJobs((prevJobs) => {
-              const index = prevJobs.findIndex((j) => j.id === payload.new.id);
-              if (index !== -1) {
-                const updated = [...prevJobs];
-                updated[index] = payload.new;
-                return updated;
-              }
-              return [payload.new, ...prevJobs];
-            });
-          }
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, []);
 
   const updateJobStatus = async (jobId: string, newStatus: string) => {
@@ -82,9 +55,7 @@ const JobsPage = () => {
 
     if (!error) {
       setJobs((prev) =>
-        prev.filter((job) =>
-          newStatus === "cancelled" ? job.id !== jobId : true
-        )
+        prev.filter((job) => job.id !== jobId || newStatus !== "cancelled")
       );
     }
   };
@@ -109,7 +80,9 @@ const JobsPage = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">My Jobs</h1>
-          <Button onClick={() => navigate("/post-job")}>Post New Job</Button>
+          <Button onClick={() => window.location.href = "/post-job"}>
+            Post New Job
+          </Button>
         </div>
 
         {loading ? (
@@ -119,11 +92,28 @@ const JobsPage = () => {
         ) : (
           <div className="grid gap-6">
             {jobs.map((job) => (
-              <Card key={job.id} className={`border ${job.is_emergency ? "border-red-500" : "border-gray-200"}`}>
+              <Card
+                key={job.id}
+                className={`bg-white ${
+                  job.is_emergency
+                    ? "border-4 border-red-600 shadow-md"
+                    : "border border-gray-200"
+                }`}
+              >
                 <CardHeader>
                   <div className="flex justify-between">
                     <div>
-                      <CardTitle className="text-lg">{job.title}</CardTitle>
+                      <CardTitle className="text-lg flex items-center gap-2">
+                        {job.title}
+                        {job.is_emergency && (
+                          <span
+                            className="bg-red-600 text-white text-xs px-2 py-1 rounded-full font-semibold"
+                            title="This is an emergency job"
+                          >
+                            Emergency
+                          </span>
+                        )}
+                      </CardTitle>
                       <CardDescription>{job.category}</CardDescription>
                     </div>
                     {renderStatus(job.status)}
