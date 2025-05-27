@@ -42,6 +42,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             icon: <Briefcase className="h-5 w-5 mr-2" />,
           },
           {
+            name: "Job History",
+            path: "/dashboard/job-history",
+            icon: <Briefcase className="h-5 w-5 mr-2" />,
+          },
+          {
             name: "Messages",
             path: "/dashboard/messages",
             icon: <MessagesSquare className="h-5 w-5 mr-2" />,
