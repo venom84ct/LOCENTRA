@@ -24,37 +24,26 @@ const DashboardJobs = () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) {
-        setError("Not logged in.");
-        return;
-      }
+      if (!user) return setError("Not logged in.");
 
-      const { data: profileData, error: profileError } = await supabase
+      const { data: profileData } = await supabase
         .from("profile_centra_resident")
         .select("*")
         .eq("id", user.id)
         .single();
 
-      if (profileError || !profileData) {
-        setError("Unable to fetch user profile.");
-        return;
-      }
+      if (!profileData) return setError("Unable to load profile.");
 
       setProfile(profileData);
 
-      const { data: jobsData, error: jobsError } = await supabase
+      const { data: jobsData } = await supabase
         .from("jobs")
         .select("*")
         .eq("homeowner_id", profileData.id)
         .not("status", "in", "('completed','cancelled')")
         .order("created_at", { ascending: false });
 
-      if (jobsError) {
-        console.error(jobsError);
-        setError("Failed to load jobs.");
-      } else {
-        setJobs(jobsData || []);
-      }
+      setJobs(jobsData || []);
     };
 
     fetchJobs();
@@ -69,7 +58,7 @@ const DashboardJobs = () => {
     if (error) {
       alert("Failed to update job status.");
     } else {
-      setJobs((prev) => prev.filter((job) => job.id !== jobId)); // remove from view
+      setJobs((prev) => prev.filter((job) => job.id !== jobId));
     }
   };
 
@@ -94,13 +83,13 @@ const DashboardJobs = () => {
         {jobs.length === 0 ? (
           <p>No active jobs found.</p>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {jobs.map((job) => (
               <Card
                 key={job.id}
-                className={`rounded-xl border bg-white shadow p-4 ${
-                  job.is_emergency ? "border-red-600 border-4" : ""
-                }`}
+                className={`rounded-2xl shadow-md bg-white border ${
+                  job.is_emergency ? "border-red-600 border-4" : "border-gray-200"
+                } p-6`}
               >
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start">
@@ -116,8 +105,19 @@ const DashboardJobs = () => {
                     {renderStatusBadge(job.status)}
                   </div>
                 </CardHeader>
+
                 <CardContent className="space-y-4">
+                  {/* Show job image if available */}
+                  {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
+                    <img
+                      src={job.image_urls[0]}
+                      alt="Job"
+                      className="w-full h-40 object-cover rounded-lg border"
+                    />
+                  )}
+
                   <p className="text-sm">{job.description}</p>
+
                   <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
                     <div className="flex items-center">
                       <MapPin className="h-4 w-4 mr-1" />
@@ -137,7 +137,6 @@ const DashboardJobs = () => {
                     </div>
                   </div>
 
-                  {/* Action buttons */}
                   <div className="flex gap-2 mt-4">
                     <Button
                       size="sm"
