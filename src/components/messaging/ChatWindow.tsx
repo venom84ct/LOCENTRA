@@ -1,21 +1,32 @@
-import React, { useEffect, useRef } from "react";
-import { useMessages } from "./useMessages";
+import React, { useEffect, useRef, useState } from "react";
+import { useMessages } from "@/components/messaging/useMessages";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { supabase } from "@/lib/supabaseClient";
 import { cn } from "@/lib/utils";
 
 interface ChatWindowProps {
   conversationId: string;
-  currentUserId: string;
 }
 
-const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, currentUserId }) => {
+const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId }) => {
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const { messages } = useMessages(conversationId);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setCurrentUserId(user.id);
+    };
+    fetchUser();
+  }, []);
+
+  useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  if (!currentUserId) return <div className="p-4">Loading...</div>;
 
   return (
     <ScrollArea className="h-[500px] border rounded-md bg-white p-4">
@@ -63,3 +74,4 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversationId, currentUserId }
 };
 
 export default ChatWindow;
+
