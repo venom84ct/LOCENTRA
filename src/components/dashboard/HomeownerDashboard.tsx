@@ -44,23 +44,27 @@ const HomeownerDashboard = () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-
       if (!user) return;
 
+      // ✅ Get the homeowner profile (where profile.id = jobs.homeowner_id)
       const { data: profile } = await supabase
         .from("profile_centra_resident")
         .select("*")
         .eq("id", user.id)
         .single();
 
+      if (!profile) return;
+
+      setUserProfile(profile);
+
+      // ✅ Now use profile.id instead of user.id
       const { data: jobList } = await supabase
         .from("jobs")
         .select("*")
-        .eq("homeowner_id", user.id)
+        .eq("homeowner_id", profile.id)
         .not("status", "in", "('completed','cancelled')")
         .order("created_at", { ascending: false });
 
-      setUserProfile(profile);
       setJobs(jobList || []);
     };
 
