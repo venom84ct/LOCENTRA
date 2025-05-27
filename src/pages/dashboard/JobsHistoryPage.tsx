@@ -22,13 +22,16 @@ const JobsHistoryPage = () => {
         return;
       }
 
+      console.log("User ID:", user.id); // Debugging
+
       const { data: profile, error: profileError } = await supabase
         .from("profile_centra_resident")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("id", user.id) // ✅ This is the correct query now
         .single();
 
       if (profileError || !profile) {
+        console.error("Profile error:", profileError);
         setError("Unable to fetch user profile.");
         return;
       }
@@ -42,8 +45,8 @@ const JobsHistoryPage = () => {
         .eq("homeowner_id", profile.id);
 
       if (jobsError) {
+        console.error("Jobs fetch error:", jobsError);
         setError("Failed to load jobs.");
-        console.error(jobsError);
       } else {
         setJobs(jobsData || []);
       }
@@ -61,7 +64,7 @@ const JobsHistoryPage = () => {
   }
 
   if (!user) {
-    return <div className="p-8">Loading user...</div>;
+    return <div className="p-8">Loading...</div>;
   }
 
   return (
