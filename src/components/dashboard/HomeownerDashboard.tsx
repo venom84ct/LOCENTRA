@@ -17,8 +17,6 @@ import {
   MapPin,
   MessageSquare,
   PlusCircle,
-  Star,
-  Wrench,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -40,13 +38,17 @@ interface Job {
 const HomeownerDashboard = () => {
   const [userProfile, setUserProfile] = useState<any>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
+  const [jobCounts, setJobCounts] = useState({
+    active: 0,
+    completed: 0,
+    total: 0,
+  });
 
   useEffect(() => {
     const fetchUserAndJobs = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-
       if (!user) return;
 
       const { data: profile } = await supabase
@@ -59,12 +61,23 @@ const HomeownerDashboard = () => {
         .from("jobs")
         .select("*")
         .eq("homeowner_id", user.id)
-        .not("status", "eq", "completed") // ✅ exclude completed
-        .not("status", "eq", "cancelled") // ✅ exclude cancelled
         .order("created_at", { ascending: false });
 
-      setUserProfile(profile);
-      setJobs(jobList || []);
+      if (profile) setUserProfile(profile);
+
+      if (jobList) {
+        const active = jobList.filter(
+          (j) => j.status === "open" || j.status === "in_progress"
+        ).length;
+        const completed = jobList.filter((j) => j.status === "completed").length;
+        const total = active + completed;
+
+        setJobCounts({ active, completed, total });
+
+        setJobs(
+          jobList.filter((j) => j.status !== "completed" && j.status !== "cancelled")
+        );
+      }
     };
 
     fetchUserAndJobs();
@@ -111,8 +124,9 @@ const HomeownerDashboard = () => {
       </header>
 
       <div className="container mx-auto px-4 py-6 space-y-6">
-        {/* Profile Card */}
+        {/* Info Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Profile */}
           <Card className="bg-white">
             <CardHeader className="pb-2">
               <CardTitle>Profile</CardTitle>
@@ -142,6 +156,28 @@ const HomeownerDashboard = () => {
                   <Gift className="h-4 w-4 mr-2" />
                   <span>{userProfile?.points || 0} reward points</span>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Job Summary */}
+          <Card className="bg-white">
+            <CardHeader className="pb-2">
+              <CardTitle>Job Summary</CardTitle>
+              <CardDescription>Overview of your job postings</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-2 text-sm text-muted-foreground">
+              <div className="flex justify-between">
+                <span>Active Jobs</span>
+                <span className="font-semibold text-primary">{jobCounts.active}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Completed</span>
+                <span className="font-semibold text-green-600">{jobCounts.completed}</span>
+              </div>
+              <div className="flex justify-between border-t pt-2 mt-2">
+                <span>Total (Active + Completed)</span>
+                <span className="font-semibold">{jobCounts.total}</span>
               </div>
             </CardContent>
           </Card>
@@ -179,7 +215,7 @@ const HomeownerDashboard = () => {
           </Card>
         </div>
 
-        {/* Jobs */}
+        {/* My Jobs Section */}
         <Tabs defaultValue="jobs">
           <TabsList>
             <TabsTrigger value="jobs">My Jobs</TabsTrigger>
@@ -225,7 +261,7 @@ const HomeownerDashboard = () => {
                     </div>
                     <div className="flex items-center">
                       <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
-                      {job.status}
+                      {job.timeline}
                     </div>
                   </div>
                 </CardContent>
