@@ -32,7 +32,8 @@ const DashboardJobs = () => {
       .from("jobs")
       .select("*")
       .eq("homeowner_id", profileData.id)
-      .not("status", "in", "('completed','cancelled')")
+      .not("status", "eq", "completed") // ✅ proper filter
+      .not("status", "eq", "cancelled") // ✅ proper filter
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -63,15 +64,15 @@ const DashboardJobs = () => {
 
     const { error } = await supabase
       .from("jobs")
-      .update({ status: lowercaseStatus }) // ✅ only update 'status'
+      .update({ status: lowercaseStatus })
       .eq("id", jobId)
-      .eq("homeowner_id", user.id); // ✅ ensures RLS match
+      .eq("homeowner_id", user.id);
 
     if (error) {
       console.error("❌ Failed to update job:", error.message);
     } else {
       console.log("✅ Job status updated to:", lowercaseStatus);
-      await refetchJobs(user.id); // ✅ force update UI from DB
+      await refetchJobs(user.id);
     }
   };
 
