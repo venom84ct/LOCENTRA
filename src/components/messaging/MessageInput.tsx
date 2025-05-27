@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabaseClient";
@@ -6,16 +6,24 @@ import { Image as ImageIcon } from "lucide-react";
 
 interface MessageInputProps {
   conversationId: string;
-  currentUserId: string;
 }
 
-const MessageInput: React.FC<MessageInputProps> = ({ conversationId, currentUserId }) => {
+const MessageInput: React.FC<MessageInputProps> = ({ conversationId }) => {
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [message, setMessage] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setCurrentUserId(user.id);
+    };
+    fetchUser();
+  }, []);
+
   const sendMessage = async () => {
-    if (!message && !file) return;
+    if (!message && !file || !currentUserId) return;
     setLoading(true);
 
     let imageUrl = null;
@@ -56,6 +64,8 @@ const MessageInput: React.FC<MessageInputProps> = ({ conversationId, currentUser
     setFile(null);
     setLoading(false);
   };
+
+  if (!currentUserId) return <div className="p-4">Loading...</div>;
 
   return (
     <div className="flex gap-2 items-center mt-4">
