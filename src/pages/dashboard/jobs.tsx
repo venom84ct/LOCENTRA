@@ -63,13 +63,17 @@ const DashboardJobs = () => {
   };
 
   const renderStatusBadge = (status: string) => {
-    switch (status) {
+    switch (status?.toLowerCase()) {
       case "open":
         return <Badge variant="secondary">Open</Badge>;
       case "in_progress":
         return <Badge variant="default">In Progress</Badge>;
+      case "completed":
+        return <Badge variant="success">Completed</Badge>;
+      case "cancelled":
+        return <Badge variant="destructive">Cancelled</Badge>;
       default:
-        return <Badge>Unknown</Badge>;
+        return <Badge variant="outline">Unknown</Badge>;
     }
   };
 
@@ -87,11 +91,11 @@ const DashboardJobs = () => {
             {jobs.map((job) => (
               <Card
                 key={job.id}
-                className={`rounded-2xl shadow-md bg-white border ${
+                className={`bg-white border ${
                   job.is_emergency ? "border-red-600 border-4" : "border-gray-200"
-                } p-6`}
+                } rounded-xl shadow-md`}
               >
-                <CardHeader className="pb-2">
+                <CardHeader className="pb-2 px-6 pt-6">
                   <div className="flex justify-between items-start">
                     <div>
                       <div className="flex items-center gap-2">
@@ -106,8 +110,7 @@ const DashboardJobs = () => {
                   </div>
                 </CardHeader>
 
-                <CardContent className="space-y-4">
-                  {/* Show job image if available */}
+                <CardContent className="space-y-4 px-6 pb-6">
                   {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
                     <img
                       src={job.image_urls[0]}
@@ -137,7 +140,7 @@ const DashboardJobs = () => {
                     </div>
                   </div>
 
-                  <div className="flex gap-2 mt-4">
+                  <div className="flex gap-2 pt-4">
                     <Button
                       size="sm"
                       variant="outline"
@@ -171,3 +174,4 @@ const DashboardJobs = () => {
 };
 
 export default DashboardJobs;
+
