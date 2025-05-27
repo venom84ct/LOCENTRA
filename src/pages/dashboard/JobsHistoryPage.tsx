@@ -55,4 +55,25 @@ const JobsHistoryPage = () => {
               >
                 <h2 className="text-lg font-bold mb-1">{job.title}</h2>
                 <p className="text-sm text-gray-600 mb-2">
-                  {job.description?.slice(0, 100)
+                  {job.description?.slice(0, 100)}...
+                </p>
+                <p className="text-xs text-gray-400 mb-2">
+                  Completed on: {job.updated_at?.slice(0, 10)}
+                </p>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => navigate(`/dashboard/edit-job/${job.id}`)}
+                >
+                  Edit
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </DashboardLayout>
+  );
+};
+
+export default JobsHistoryPage;
