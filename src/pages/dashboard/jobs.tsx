@@ -34,12 +34,16 @@ const DashboardJobs = () => {
 
       setProfile(profileData);
 
-      const { data: jobsData } = await supabase
+      const { data: jobsData, error } = await supabase
         .from("jobs")
         .select("*")
-        .eq("homeowner_id", profileData.id) // ✅ use correct ID
-        .not("status", "in", "('completed','cancelled')") // ✅ hide completed/cancelled jobs
+        .eq("homeowner_id", profileData.id)
+        .not("status", "in", "('completed','cancelled')") // ✅ filter out finished jobs
         .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Failed to fetch jobs:", error.message);
+      }
 
       setJobs(jobsData || []);
     };
@@ -51,12 +55,13 @@ const DashboardJobs = () => {
     const { error } = await supabase
       .from("jobs")
       .update({ status: newStatus })
-      .eq("id", jobId);
+      .eq("id", jobId); // ✅ update by ID
 
-    if (!error) {
-      setJobs((prev) => prev.filter((job) => job.id !== jobId));
+    if (error) {
+      console.error("Failed to update job:", error.message);
     } else {
-      console.error("Failed to update status:", error);
+      console.log("✅ Job status updated to:", newStatus);
+      setJobs((prev) => prev.filter((job) => job.id !== jobId)); // ✅ remove from UI
     }
   };
 
