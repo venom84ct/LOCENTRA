@@ -37,8 +37,8 @@ const DashboardJobs = () => {
       const { data: jobsData } = await supabase
         .from("jobs")
         .select("*")
-        .eq("homeowner_id", profileData.id)
-        .not("status", "in", "('completed','cancelled')") // ✅ Filter fixed
+        .eq("homeowner_id", profileData.id) // ✅ use correct ID
+        .not("status", "in", "('completed','cancelled')") // ✅ hide completed/cancelled jobs
         .order("created_at", { ascending: false });
 
       setJobs(jobsData || []);
@@ -104,13 +104,19 @@ const DashboardJobs = () => {
                 </div>
               </div>
 
-              {/* Job image if available */}
+              {/* ✅ Clickable image */}
               {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
-                <img
-                  src={job.image_urls[0]}
-                  alt="Job image"
-                  className="w-full h-40 object-cover rounded-md border"
-                />
+                <a
+                  href={job.image_urls[0]}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <img
+                    src={job.image_urls[0]}
+                    alt="Job image"
+                    className="w-full h-40 object-cover rounded-md border hover:opacity-90 transition"
+                  />
+                </a>
               )}
 
               <p className="text-sm">{job.description}</p>
