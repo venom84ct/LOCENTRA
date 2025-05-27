@@ -2,7 +2,13 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { Card, CardHeader, CardTitle, CardContent, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent,
+  CardDescription,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { MapPin, Calendar, DollarSign, Clock } from "lucide-react";
@@ -23,7 +29,6 @@ const DashboardJobs = () => {
         return;
       }
 
-      // Get profile from profile_centra_resident
       const { data: profileData, error: profileError } = await supabase
         .from("profile_centra_resident")
         .select("*")
@@ -37,7 +42,6 @@ const DashboardJobs = () => {
 
       setProfile(profileData);
 
-      // Fetch only active jobs (not completed or cancelled)
       const { data: jobsData, error: jobsError } = await supabase
         .from("jobs")
         .select("*")
@@ -56,6 +60,19 @@ const DashboardJobs = () => {
     fetchJobs();
   }, []);
 
+  const updateJobStatus = async (jobId: string, status: string) => {
+    const { error } = await supabase
+      .from("jobs")
+      .update({ status })
+      .eq("id", jobId);
+
+    if (error) {
+      alert("Failed to update job status.");
+    } else {
+      setJobs((prev) => prev.filter((job) => job.id !== jobId)); // remove from view
+    }
+  };
+
   const renderStatusBadge = (status: string) => {
     switch (status) {
       case "open":
@@ -67,9 +84,7 @@ const DashboardJobs = () => {
     }
   };
 
-  if (!profile) {
-    return <div className="p-8">Loading...</div>;
-  }
+  if (!profile) return <div className="p-8">Loading...</div>;
 
   return (
     <DashboardLayout user={profile} userType="centraResident">
@@ -83,7 +98,9 @@ const DashboardJobs = () => {
             {jobs.map((job) => (
               <Card
                 key={job.id}
-                className={`bg-white ${job.is_emergency ? "border-4 border-red-600" : ""}`}
+                className={`rounded-xl border bg-white shadow p-4 ${
+                  job.is_emergency ? "border-red-600 border-4" : ""
+                }`}
               >
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start">
@@ -99,34 +116,51 @@ const DashboardJobs = () => {
                     {renderStatusBadge(job.status)}
                   </div>
                 </CardHeader>
-                <CardContent>
-                  <p className="text-sm mb-4">{job.description}</p>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
+                <CardContent className="space-y-4">
+                  <p className="text-sm">{job.description}</p>
+                  <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
                     <div className="flex items-center">
-                      <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
+                      <MapPin className="h-4 w-4 mr-1" />
                       {job.location}
                     </div>
                     <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
+                      <Calendar className="h-4 w-4 mr-1" />
                       {new Date(job.created_at).toLocaleDateString()}
                     </div>
                     <div className="flex items-center">
-                      <DollarSign className="h-4 w-4 mr-1 text-muted-foreground" />
+                      <DollarSign className="h-4 w-4 mr-1" />
                       {job.budget}
                     </div>
                     <div className="flex items-center">
-                      <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
+                      <Clock className="h-4 w-4 mr-1" />
                       {job.timeline}
                     </div>
                   </div>
-                  <Button
-                    className="mt-4"
-                    size="sm"
-                    variant="outline"
-                    onClick={() => navigate(`/dashboard/edit-job/${job.id}`)}
-                  >
-                    Edit Job
-                  </Button>
+
+                  {/* Action buttons */}
+                  <div className="flex gap-2 mt-4">
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => navigate(`/dashboard/edit-job/${job.id}`)}
+                    >
+                      Edit
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="success"
+                      onClick={() => updateJobStatus(job.id, "completed")}
+                    >
+                      Mark as Completed
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => updateJobStatus(job.id, "cancelled")}
+                    >
+                      Cancel Job
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             ))}
