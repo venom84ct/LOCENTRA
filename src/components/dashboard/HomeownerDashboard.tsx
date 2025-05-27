@@ -17,8 +17,6 @@ import {
   MapPin,
   MessageSquare,
   PlusCircle,
-  Star,
-  Wrench,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -59,6 +57,7 @@ const HomeownerDashboard = () => {
         .from("jobs")
         .select("*")
         .eq("homeowner_id", user.id)
+        .not("status", "in", "('completed','cancelled')")
         .order("created_at", { ascending: false });
 
       setUserProfile(profile);
@@ -85,7 +84,6 @@ const HomeownerDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-primary">
@@ -109,7 +107,6 @@ const HomeownerDashboard = () => {
       </header>
 
       <div className="container mx-auto px-4 py-6 space-y-6">
-        {/* Profile Card */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <Card className="bg-white">
             <CardHeader className="pb-2">
@@ -144,7 +141,6 @@ const HomeownerDashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Quick Actions */}
           <Card className="bg-white">
             <CardHeader className="pb-2">
               <CardTitle>Quick Actions</CardTitle>
@@ -177,7 +173,6 @@ const HomeownerDashboard = () => {
           </Card>
         </div>
 
-        {/* Jobs */}
         <Tabs defaultValue="jobs">
           <TabsList>
             <TabsTrigger value="jobs">My Jobs</TabsTrigger>
