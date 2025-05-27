@@ -58,12 +58,12 @@ const DashboardJobs = () => {
 
     const { error } = await supabase
       .from("jobs")
-      .update({ status: newStatus })
+      .update({ status: newStatus, homeowner_id: user.id }) // ✅ Include homeowner_id
       .eq("id", jobId)
-      .eq("homeowner_id", user.id); // ✅ ensures RLS permits the update
+      .eq("homeowner_id", user.id); // ✅ Ensure RLS match
 
     if (error) {
-      console.error("Failed to update job:", error.message);
+      console.error("❌ Failed to update job:", error.message);
     } else {
       console.log("✅ Job status updated to:", newStatus);
       setJobs((prev) => prev.filter((job) => job.id !== jobId));
@@ -114,7 +114,6 @@ const DashboardJobs = () => {
                 </div>
               </div>
 
-              {/* ✅ Clickable image */}
               {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
                 <a
                   href={job.image_urls[0]}
