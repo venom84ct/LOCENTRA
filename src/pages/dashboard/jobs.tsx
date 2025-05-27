@@ -38,7 +38,7 @@ const DashboardJobs = () => {
         .from("jobs")
         .select("*")
         .eq("homeowner_id", profileData.id)
-        .not("status", "in", "('completed','cancelled')") // ✅ filter out finished jobs
+        .not("status", "in", "('completed','cancelled')")
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -52,16 +52,21 @@ const DashboardJobs = () => {
   }, []);
 
   const updateStatus = async (jobId: string, newStatus: string) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     const { error } = await supabase
       .from("jobs")
       .update({ status: newStatus })
-      .eq("id", jobId); // ✅ update by ID
+      .eq("id", jobId)
+      .eq("homeowner_id", user.id); // ✅ ensures RLS permits the update
 
     if (error) {
       console.error("Failed to update job:", error.message);
     } else {
       console.log("✅ Job status updated to:", newStatus);
-      setJobs((prev) => prev.filter((job) => job.id !== jobId)); // ✅ remove from UI
+      setJobs((prev) => prev.filter((job) => job.id !== jobId));
     }
   };
 
