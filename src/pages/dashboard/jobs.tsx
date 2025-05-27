@@ -56,16 +56,18 @@ const DashboardJobs = () => {
       data: { user },
     } = await supabase.auth.getUser();
 
+    const lowercaseStatus = newStatus.toLowerCase(); // ✅ normalize for filter
+
     const { error } = await supabase
       .from("jobs")
-      .update({ status: newStatus, homeowner_id: user.id }) // ✅ Include homeowner_id
+      .update({ status: lowercaseStatus, homeowner_id: user.id }) // ✅ ensure lowercase + RLS
       .eq("id", jobId)
-      .eq("homeowner_id", user.id); // ✅ Ensure RLS match
+      .eq("homeowner_id", user.id);
 
     if (error) {
       console.error("❌ Failed to update job:", error.message);
     } else {
-      console.log("✅ Job status updated to:", newStatus);
+      console.log("✅ Job status updated to:", lowercaseStatus);
       setJobs((prev) => prev.filter((job) => job.id !== jobId));
     }
   };
