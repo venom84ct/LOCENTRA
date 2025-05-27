@@ -17,35 +17,39 @@ const DashboardJobs = () => {
   const [profile, setProfile] = useState<any>(null);
   const navigate = useNavigate();
 
+  // Reusable job fetcher (used on page load & after update)
+  const refetchJobs = async (userId: string) => {
+    const { data: profileData } = await supabase
+      .from("profile_centra_resident")
+      .select("*")
+      .eq("id", userId)
+      .single();
+
+    if (!profileData) return;
+
+    setProfile(profileData);
+
+    const { data: jobsData, error } = await supabase
+      .from("jobs")
+      .select("*")
+      .eq("homeowner_id", profileData.id)
+      .not("status", "in", "('completed','cancelled')")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("❌ Failed to fetch jobs:", error.message);
+    }
+
+    setJobs(jobsData || []);
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
-
-      const { data: profileData } = await supabase
-        .from("profile_centra_resident")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-
-      if (!profileData) return;
-
-      setProfile(profileData);
-
-      const { data: jobsData, error } = await supabase
-        .from("jobs")
-        .select("*")
-        .eq("homeowner_id", profileData.id)
-        .not("status", "in", "('completed','cancelled')")
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("Failed to fetch jobs:", error.message);
-      }
-
-      setJobs(jobsData || []);
+      await refetchJobs(user.id);
     };
 
     fetchData();
@@ -56,11 +60,11 @@ const DashboardJobs = () => {
       data: { user },
     } = await supabase.auth.getUser();
 
-    const lowercaseStatus = newStatus.toLowerCase(); // ✅ normalize for filter
+    const lowercaseStatus = newStatus.toLowerCase(); // 🔒 for consistency
 
     const { error } = await supabase
       .from("jobs")
-      .update({ status: lowercaseStatus, homeowner_id: user.id }) // ✅ ensure lowercase + RLS
+      .update({ status: lowercaseStatus, homeowner_id: user.id }) // ✅ enforce lowercase and RLS pass
       .eq("id", jobId)
       .eq("homeowner_id", user.id);
 
@@ -68,7 +72,7 @@ const DashboardJobs = () => {
       console.error("❌ Failed to update job:", error.message);
     } else {
       console.log("✅ Job status updated to:", lowercaseStatus);
-      setJobs((prev) => prev.filter((job) => job.id !== jobId));
+      await refetchJobs(user.id); // ✅ force refresh
     }
   };
 
