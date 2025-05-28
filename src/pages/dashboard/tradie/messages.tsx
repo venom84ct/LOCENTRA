@@ -1,16 +1,14 @@
 import React from "react";
-import TradieSidebar from "@/components/layout/TradieSidebar";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 import MessagingSystem from "@/components/messaging/MessagingSystem";
+import { useAuthUser } from "@/hooks/useAuthUser";
 
 const TradieMessagesPage = () => {
+  const { user, profile } = useAuthUser("tradie"); // assumes custom hook
   return (
-    <div className="flex min-h-screen">
-      <TradieSidebar />
-      <main className="flex-1 p-4 bg-gray-50">
-        <h1 className="text-2xl font-bold mb-4">Messages</h1>
-        <MessagingSystem userType="tradie" />
-      </main>
-    </div>
+    <DashboardLayout user={profile} userType="tradie">
+      <MessagingSystem userId={user?.id} userType="tradie" />
+    </DashboardLayout>
   );
 };
 
