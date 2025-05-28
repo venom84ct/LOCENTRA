@@ -1,3 +1,5 @@
-git add vercel.json
-git commit -m "Add Vercel rewrite rules for React Router SPA"
-git push
+{
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/" }
+  ]
+}
