@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Badge } from "@/components/ui/badge";
@@ -33,7 +32,7 @@ const FindJobsPage = () => {
         .from("jobs")
         .select("*")
         .is("tradie_id", null)
-        .in("status", ["pending", "in_progress"]) // Adjust as needed
+        .in("status", ["open"]) // ✅ Correct status
         .order("created_at", { ascending: false });
 
       setJobs(jobsData || []);
@@ -67,12 +66,12 @@ const FindJobsPage = () => {
       .update({ credits: profile.credits - cost })
       .eq("id", profile.id);
 
-    // ✅ Refresh jobs list
+    // ✅ Refresh job list
     const { data: updatedJobs } = await supabase
       .from("jobs")
       .select("*")
       .is("tradie_id", null)
-      .in("status", ["pending", "in_progress"])
+      .in("status", ["open"])
       .order("created_at", { ascending: false });
 
     setJobs(updatedJobs || []);
@@ -148,3 +147,4 @@ const FindJobsPage = () => {
 };
 
 export default FindJobsPage;
+
