@@ -1,36 +1,34 @@
-
-import React, { useEffect, useState } from "react";
+import React from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import MessagingSystem from "@/components/messaging/MessagingSystem";
 import { supabase } from "@/lib/supabaseClient";
+import { useEffect, useState } from "react";
 
 const TradieMessagesPage = () => {
-  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
-    const getProfile = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+    const fetchProfile = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: profile } = await supabase
+      const { data } = await supabase
         .from("profile_centra_tradie")
         .select("*")
         .eq("id", user.id)
         .single();
 
-      setUser(profile);
+      setProfile(data);
     };
 
-    getProfile();
+    fetchProfile();
   }, []);
 
-  if (!user) return <p>Loading...</p>;
+  if (!profile) return <div>Loading...</div>;
 
   return (
-    <DashboardLayout user={user} userType="tradie">
-      <MessagingSystem user={user} userType="tradie" />
+    <DashboardLayout user={profile} userType="tradie">
+      <MessagingSystem user={profile} userType="tradie" />
     </DashboardLayout>
   );
 };
