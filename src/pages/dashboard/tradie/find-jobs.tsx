@@ -18,17 +18,20 @@ const FindJobsPage = () => {
       } = await supabase.auth.getUser();
       if (!user) return;
 
+      // ✅ Get tradie profile
       const { data: profileData } = await supabase
-        .from("profile_centra_resident")
+        .from("profile_centra_tradie")
         .select("*")
         .eq("id", user.id)
         .single();
+
       setProfile(profileData);
 
+      // ✅ Fetch jobs that are not yet assigned to a tradie
       const { data: jobsData } = await supabase
         .from("jobs")
         .select("*")
-        .is("tradie_id", null) // Only jobs not yet purchased
+        .is("tradie_id", null)
         .not("status", "in", "('completed', 'cancelled')")
         .order("created_at", { ascending: false });
 
@@ -46,6 +49,7 @@ const FindJobsPage = () => {
       return;
     }
 
+    // ✅ Assign tradie to job
     const { error: updateJobError } = await supabase
       .from("jobs")
       .update({ tradie_id: profile.id })
@@ -56,11 +60,13 @@ const FindJobsPage = () => {
       return;
     }
 
+    // ✅ Deduct credits
     await supabase
-      .from("profile_centra_resident")
+      .from("profile_centra_tradie")
       .update({ credits: profile.credits - cost })
       .eq("id", profile.id);
 
+    // ✅ Refresh jobs list
     const { data: updatedJobs } = await supabase
       .from("jobs")
       .select("*")
