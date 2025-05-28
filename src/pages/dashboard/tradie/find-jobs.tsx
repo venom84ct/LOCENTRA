@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Badge } from "@/components/ui/badge";
@@ -27,12 +28,12 @@ const FindJobsPage = () => {
 
       setProfile(profileData);
 
-      // ✅ Fetch jobs that are not yet assigned to a tradie
+      // ✅ Fetch available jobs
       const { data: jobsData } = await supabase
         .from("jobs")
         .select("*")
         .is("tradie_id", null)
-        .not("status", "in", "('completed', 'cancelled')")
+        .in("status", ["pending", "in_progress"]) // Adjust as needed
         .order("created_at", { ascending: false });
 
       setJobs(jobsData || []);
@@ -71,7 +72,7 @@ const FindJobsPage = () => {
       .from("jobs")
       .select("*")
       .is("tradie_id", null)
-      .not("status", "in", "('completed', 'cancelled')")
+      .in("status", ["pending", "in_progress"])
       .order("created_at", { ascending: false });
 
     setJobs(updatedJobs || []);
@@ -83,6 +84,10 @@ const FindJobsPage = () => {
       <div className="px-4 py-6 max-w-5xl mx-auto">
         <h1 className="text-2xl font-bold mb-6">Available Job Leads</h1>
         <div className="space-y-6">
+          {jobs.length === 0 && (
+            <p className="text-center text-gray-500">No available jobs right now.</p>
+          )}
+
           {jobs.map((job) => {
             const cost = getCreditCost(job);
             return (
