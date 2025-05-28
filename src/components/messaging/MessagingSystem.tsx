@@ -1,77 +1,82 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { useUser } from "@/hooks/useUser";
 import ChatWindow from "./ChatWindow";
+import { Input } from "@/components/ui/input";
 
-interface MessagingSystemProps {
-  user: any;
-  userType: "tradie" | "homeowner";
-}
-
-const MessagingSystem: React.FC<MessagingSystemProps> = ({ user, userType }) => {
+const MessagingSystem = ({ userType }: { userType: "homeowner" | "tradie" }) => {
+  const { user } = useUser();
   const [conversations, setConversations] = useState<any[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<any | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [selected, setSelected] = useState<any>(null);
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
-    const loadConversations = async () => {
+    const fetchConversations = async () => {
+      if (!user) return;
+
       const { data, error } = await supabase
         .from("conversations")
-        .select("*, tradie:tradie_id(*), homeowner:homeowner_id(*)")
+        .select("*")
         .or(`tradie_id.eq.${user.id},homeowner_id.eq.${user.id}`)
         .order("updated_at", { ascending: false });
 
       if (error) {
-        console.error("Failed to load conversations:", error);
+        console.error("Error fetching conversations:", error.message);
       } else {
         setConversations(data);
-        if (data.length > 0) setSelectedConversation(data[0]);
+        if (data.length > 0) setSelected(data[0]);
       }
-      setLoading(false);
     };
 
-    loadConversations();
-  }, [user.id]);
+    fetchConversations();
+  }, [user]);
 
-  if (loading) return <div>Loading conversation...</div>;
-  if (conversations.length === 0) return <div>No conversations yet.</div>;
+  const filteredConvos = conversations.filter((c) =>
+    (c.title || "")
+      .toLowerCase()
+      .includes(search.toLowerCase())
+  );
 
   return (
-    <div className="flex border rounded-lg shadow-sm overflow-hidden">
-      {/* Left: Conversation List */}
-      <aside className="w-1/3 border-r bg-white">
-        <div className="p-2 font-semibold border-b">Conversations</div>
-        {conversations.map((conv) => {
-          const otherParty =
-            userType === "tradie" ? conv.homeowner : conv.tradie;
-          return (
-            <div
+    <div className="flex border rounded-lg overflow-hidden shadow bg-white">
+      <aside className="w-1/3 border-r p-4">
+        <Input
+          placeholder="Search messages..."
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          className="mb-4"
+        />
+        <ul className="space-y-2">
+          {filteredConvos.map((conv) => (
+            <li
               key={conv.id}
-              className={`p-3 border-b hover:bg-gray-100 cursor-pointer ${
-                selectedConversation?.id === conv.id ? "bg-gray-100" : ""\              }`}
-              onClick={() => setSelectedConversation(conv)}
+              className={`p-2 rounded cursor-pointer ${
+                selected?.id === conv.id ? "bg-gray-100" : "hover:bg-gray-50"
+              }`}
+              onClick={() => setSelected(conv)}
             >
-              <p className="font-medium">{otherParty?.first_name || "User"}</p>
-              <p className="text-xs text-muted-foreground truncate">
-                {conv.subject || "No subject"}
-              </p>
-            </div>
-          );
-        })}
+              <div className="font-medium">{conv.title || "Conversation"}</div>
+              <div className="text-sm text-muted-foreground">
+                Re: {conv.subject || "No subject"}
+              </div>
+            </li>
+          ))}
+        </ul>
       </aside>
 
-      {/* Right: Chat window */}
-      <main className="w-2/3 bg-gray-50">
-        {selectedConversation && (
+      <div className="w-2/3">
+        {selected ? (
           <ChatWindow
             user={user}
-            conversation={selectedConversation}
             userType={userType}
+            conversation={selected}
           />
+        ) : (
+          <div className="p-6 text-muted-foreground">Select a conversation</div>
         )}
-      </main>
+      </div>
     </div>
   );
 };
 
 export default MessagingSystem;
-
