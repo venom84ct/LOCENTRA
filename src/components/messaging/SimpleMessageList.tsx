@@ -1,9 +1,7 @@
-type MessageContact = { id: string; name: string };
+import React from "react";
 
-const contacts: MessageContact[] = [{ id: "1", name: "John" }];
-
-const handleSelectContact = (contact: MessageContact) => {
-  console.log("Selected:", contact.name);
+const SimpleMessageList = () => {
+  return <div>Message List Placeholder</div>;
 };
 
-contacts.forEach((contact) => handleSelectContact(contact));
+export default SimpleMessageList;
