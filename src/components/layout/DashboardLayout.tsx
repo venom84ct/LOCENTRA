@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
+  Home,
   User,
   LogOut,
   MessagesSquare,
@@ -57,10 +58,16 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       {/* Sidebar */}
       <aside className="w-64 bg-white shadow-md p-6 hidden md:block">
         <div className="mb-6">
-          <div className="text-lg font-bold">
-            {user.first_name} {user.last_name}
-          </div>
-          <div className="text-sm text-gray-500">{user.email}</div>
+          {user ? (
+            <>
+              <div className="text-lg font-bold">
+                {user.first_name} {user.last_name}
+              </div>
+              <div className="text-sm text-gray-500">{user.email}</div>
+            </>
+          ) : (
+            <div className="text-sm text-gray-500">Loading user...</div>
+          )}
         </div>
         <nav className="space-y-2">
           {navItems.map((item) => (
@@ -85,7 +92,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         </nav>
       </aside>
 
-      {/* Main content */}
+      {/* Main Content */}
       <main className="flex-1 bg-gray-50 p-4 md:p-8">{children}</main>
     </div>
   );
