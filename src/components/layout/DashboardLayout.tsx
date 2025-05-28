@@ -2,7 +2,6 @@ import React from "react";
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
-  Home,
   User,
   LogOut,
   MessagesSquare,
@@ -31,93 +30,26 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const navItems =
     userType === "centraResident"
       ? [
-          {
-            name: "Dashboard",
-            path: "/dashboard",
-            icon: <LayoutDashboard className="h-5 w-5 mr-2" />,
-          },
-          {
-            name: "Jobs",
-            path: "/dashboard/jobs",
-            icon: <Briefcase className="h-5 w-5 mr-2" />,
-          },
-          {
-            name: "Job History",
-            path: "/dashboard/job-history",
-            icon: <Briefcase className="h-5 w-5 mr-2" />,
-          },
-          {
-            name: "Messages",
-            path: "/dashboard/messages",
-            icon: <MessagesSquare className="h-5 w-5 mr-2" />,
-          },
-          {
-            name: "Notifications",
-            path: "/dashboard/notifications",
-            icon: <Bell className="h-5 w-5 mr-2" />,
-          },
-          {
-            name: "Rewards",
-            path: "/dashboard/rewards",
-            icon: <Gift className="h-5 w-5 mr-2" />,
-          },
-          {
-            name: "Profile",
-            path: "/dashboard/profile",
-            icon: <User className="h-5 w-5 mr-2" />,
-          },
-          {
-            name: "Settings",
-            path: "/dashboard/settings",
-            icon: <Settings className="h-5 w-5 mr-2" />,
-          },
-          {
-            name: "Help",
-            path: "/dashboard/help",
-            icon: <HelpCircle className="h-5 w-5 mr-2" />,
-          },
+          { name: "Dashboard", path: "/dashboard", icon: <LayoutDashboard className="h-5 w-5 mr-2" /> },
+          { name: "Jobs", path: "/dashboard/jobs", icon: <Briefcase className="h-5 w-5 mr-2" /> },
+          { name: "Job History", path: "/dashboard/job-history", icon: <Briefcase className="h-5 w-5 mr-2" /> },
+          { name: "Messages", path: "/dashboard/messages", icon: <MessagesSquare className="h-5 w-5 mr-2" /> },
+          { name: "Notifications", path: "/dashboard/notifications", icon: <Bell className="h-5 w-5 mr-2" /> },
+          { name: "Rewards", path: "/dashboard/rewards", icon: <Gift className="h-5 w-5 mr-2" /> },
+          { name: "Profile", path: "/dashboard/profile", icon: <User className="h-5 w-5 mr-2" /> },
+          { name: "Settings", path: "/dashboard/settings", icon: <Settings className="h-5 w-5 mr-2" /> },
+          { name: "Help", path: "/dashboard/help", icon: <HelpCircle className="h-5 w-5 mr-2" /> },
         ]
       : [
-          {
-            name: "Dashboard",
-            path: "/dashboard/tradie",
-            icon: <LayoutDashboard className="h-5 w-5 mr-2" />,
-          },
-          {
-            name: "My Jobs",
-            path: "/dashboard/tradie/my-jobs",
-            icon: <Briefcase className="h-5 w-5 mr-2" />,
-          },
-          {
-            name: "Messages",
-            path: "/dashboard/tradie/messages",
-            icon: <MessagesSquare className="h-5 w-5 mr-2" />,
-          },
-          {
-            name: "Notifications",
-            path: "/dashboard/tradie/notifications",
-            icon: <Bell className="h-5 w-5 mr-2" />,
-          },
-          {
-            name: "Top Tradies",
-            path: "/dashboard/tradie/top-tradies",
-            icon: <Award className="h-5 w-5 mr-2" />,
-          },
-          {
-            name: "Profile",
-            path: "/dashboard/tradie/profile",
-            icon: <User className="h-5 w-5 mr-2" />,
-          },
-          {
-            name: "Settings",
-            path: "/dashboard/tradie/settings",
-            icon: <Settings className="h-5 w-5 mr-2" />,
-          },
-          {
-            name: "Help",
-            path: "/dashboard/tradie/help",
-            icon: <HelpCircle className="h-5 w-5 mr-2" />,
-          },
+          { name: "Dashboard", path: "/dashboard/tradie", icon: <LayoutDashboard className="h-5 w-5 mr-2" /> },
+          { name: "Find Jobs", path: "/dashboard/tradie/find-jobs", icon: <Briefcase className="h-5 w-5 mr-2" /> },
+          { name: "My Jobs", path: "/dashboard/tradie/my-jobs", icon: <Briefcase className="h-5 w-5 mr-2" /> },
+          { name: "Messages", path: "/dashboard/tradie/messages", icon: <MessagesSquare className="h-5 w-5 mr-2" /> },
+          { name: "Notifications", path: "/dashboard/tradie/notifications", icon: <Bell className="h-5 w-5 mr-2" /> },
+          { name: "Top Tradies", path: "/dashboard/tradie/top-tradies", icon: <Award className="h-5 w-5 mr-2" /> },
+          { name: "Profile", path: "/dashboard/tradie/profile", icon: <User className="h-5 w-5 mr-2" /> },
+          { name: "Settings", path: "/dashboard/tradie/settings", icon: <Settings className="h-5 w-5 mr-2" /> },
+          { name: "Help", path: "/dashboard/tradie/help", icon: <HelpCircle className="h-5 w-5 mr-2" /> },
         ];
 
   return (
@@ -136,9 +68,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               <div
                 className={cn(
                   "flex items-center p-2 rounded hover:bg-gray-100",
-                  location.pathname === item.path
-                    ? "bg-gray-200 font-semibold"
-                    : ""
+                  location.pathname === item.path ? "bg-gray-200 font-semibold" : ""
                 )}
               >
                 {item.icon}
@@ -155,7 +85,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         </nav>
       </aside>
 
-      {/* Main Content */}
+      {/* Main content */}
       <main className="flex-1 bg-gray-50 p-4 md:p-8">{children}</main>
     </div>
   );
