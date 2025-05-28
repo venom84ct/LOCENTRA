@@ -16,8 +16,8 @@ const PostJob = lazy(() => import("./pages/post-job"));
 
 // Lazy load dashboard pages
 const DashboardJobs = lazy(() => import("./pages/dashboard/jobs"));
-const DashboardJobHistory = lazy(() => import("./pages/dashboard/JobsHistoryPage")); // ✅ Updated path
-const DashboardEditJob = lazy(() => import("./pages/dashboard/EditJobPage")); // ✅ New edit job page
+const DashboardJobHistory = lazy(() => import("./pages/dashboard/JobsHistoryPage"));
+const DashboardEditJob = lazy(() => import("./pages/dashboard/EditJobPage"));
 const DashboardMessages = lazy(() => import("./pages/dashboard/messages"));
 const DashboardNotifications = lazy(() => import("./pages/dashboard/notifications"));
 const DashboardRewards = lazy(() => import("./pages/dashboard/rewards"));
@@ -28,7 +28,7 @@ const DashboardWallet = lazy(() => import("./pages/dashboard/wallet"));
 const DashboardFindJobs = lazy(() => import("./pages/dashboard/find-jobs"));
 const DashboardFindTradie = lazy(() => import("./pages/dashboard/find-tradie"));
 
-// Lazy load tradie dashboard pages
+// ✅ Lazy load tradie dashboard pages
 const TradieMessages = lazy(() => import("./pages/dashboard/tradie/messages"));
 const TradieNotifications = lazy(() => import("./pages/dashboard/tradie/notifications"));
 const TradieProfile = lazy(() => import("./pages/dashboard/tradie/profile"));
@@ -36,6 +36,7 @@ const TradieSettings = lazy(() => import("./pages/dashboard/tradie/settings"));
 const TradieHelp = lazy(() => import("./pages/dashboard/tradie/help"));
 const TradieTopTradies = lazy(() => import("./pages/dashboard/tradie/top-tradies"));
 const TradieMyJobs = lazy(() => import("./pages/dashboard/tradie/my-jobs"));
+const TradieFindJobs = lazy(() => import("./pages/dashboard/tradie/find-jobs")); // ✅ Add this line
 
 function App() {
   return (
@@ -45,8 +46,8 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/dashboard/tradie" element={<Dashboard />} />
         <Route path="/dashboard/jobs" element={<DashboardJobs />} />
-        <Route path="/dashboard/job-history" element={<DashboardJobHistory />} /> {/* ✅ Job History route */}
-        <Route path="/dashboard/edit-job/:id" element={<DashboardEditJob />} />   {/* ✅ Edit Job route */}
+        <Route path="/dashboard/job-history" element={<DashboardJobHistory />} />
+        <Route path="/dashboard/edit-job/:id" element={<DashboardEditJob />} />
         <Route path="/dashboard/messages" element={<DashboardMessages />} />
         <Route path="/dashboard/notifications" element={<DashboardNotifications />} />
         <Route path="/dashboard/rewards" element={<DashboardRewards />} />
@@ -57,7 +58,7 @@ function App() {
         <Route path="/dashboard/find-jobs" element={<DashboardFindJobs />} />
         <Route path="/dashboard/find-tradie" element={<DashboardFindTradie />} />
 
-        {/* Tradie-specific routes */}
+        {/* ✅ Tradie-specific routes */}
         <Route path="/dashboard/tradie/messages" element={<TradieMessages />} />
         <Route path="/dashboard/tradie/notifications" element={<TradieNotifications />} />
         <Route path="/dashboard/tradie/profile" element={<TradieProfile />} />
@@ -65,6 +66,7 @@ function App() {
         <Route path="/dashboard/tradie/help" element={<TradieHelp />} />
         <Route path="/dashboard/tradie/top-tradies" element={<TradieTopTradies />} />
         <Route path="/dashboard/tradie/my-jobs" element={<TradieMyJobs />} />
+        <Route path="/dashboard/tradie/find-jobs" element={<TradieFindJobs />} /> {/* ✅ Add this line */}
 
         {/* General */}
         <Route path="/admin" element={<AdminPage />} />
