@@ -13,6 +13,7 @@ import {
   Briefcase,
   LayoutDashboard,
   Award,
+  Search,
 } from "lucide-react";
 
 interface DashboardLayoutProps {
@@ -43,7 +44,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         ]
       : [
           { name: "Dashboard", path: "/dashboard/tradie", icon: <LayoutDashboard className="h-5 w-5 mr-2" /> },
-          { name: "Find Jobs", path: "/dashboard/tradie/find-jobs", icon: <Briefcase className="h-5 w-5 mr-2" /> },
+          { name: "Find Jobs", path: "/dashboard/tradie/find-jobs", icon: <Search className="h-5 w-5 mr-2" /> },
           { name: "My Jobs", path: "/dashboard/tradie/my-jobs", icon: <Briefcase className="h-5 w-5 mr-2" /> },
           { name: "Messages", path: "/dashboard/tradie/messages", icon: <MessagesSquare className="h-5 w-5 mr-2" /> },
           { name: "Notifications", path: "/dashboard/tradie/notifications", icon: <Bell className="h-5 w-5 mr-2" /> },
@@ -58,16 +59,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       {/* Sidebar */}
       <aside className="w-64 bg-white shadow-md p-6 hidden md:block">
         <div className="mb-6">
-          {user ? (
-            <>
-              <div className="text-lg font-bold">
-                {user.first_name} {user.last_name}
-              </div>
-              <div className="text-sm text-gray-500">{user.email}</div>
-            </>
-          ) : (
-            <div className="text-sm text-gray-500">Loading user...</div>
-          )}
+          <div className="text-lg font-bold">
+            {user?.first_name ?? "Loading..."} {user?.last_name ?? ""}
+          </div>
+          <div className="text-sm text-gray-500">{user?.email ?? ""}</div>
         </div>
         <nav className="space-y-2">
           {navItems.map((item) => (
@@ -75,7 +70,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               <div
                 className={cn(
                   "flex items-center p-2 rounded hover:bg-gray-100",
-                  location.pathname === item.path ? "bg-gray-200 font-semibold" : ""
+                  location.pathname === item.path
+                    ? "bg-gray-200 font-semibold"
+                    : ""
                 )}
               >
                 {item.icon}
