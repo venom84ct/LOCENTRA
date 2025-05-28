@@ -1,39 +1,50 @@
 import React, { useEffect, useState } from "react";
-import ChatWindow from "@/components/messaging/ChatWindow";
-import MessageInput from "@/components/messaging/MessageInput";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import MessagingSystem from "@/components/messaging/MessagingSystem";
 import { supabase } from "@/lib/supabaseClient";
 
 const MessagesPage = () => {
-  const [conversationId, setConversationId] = useState<string | null>(null);
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchFirstConversation = async () => {
+    const fetchUser = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) return;
 
-      const { data } = await supabase
-        .from("conversations")
-        .select("id")
-        .or(`tradie_id.eq.${user.id},homeowner_id.eq.${user.id}`)
-        .order("created_at", { ascending: true })
-        .limit(1)
+      if (!user) {
+        setLoading(false);
+        return;
+      }
+
+      const { data: profile } = await supabase
+        .from("profile_centra_resident")
+        .select("*")
+        .eq("id", user.id)
         .single();
 
-      if (data?.id) setConversationId(data.id);
+      if (profile) {
+        setUser(profile);
+      }
+
+      setLoading(false);
     };
 
-    fetchFirstConversation();
+    fetchUser();
   }, []);
 
-  if (!conversationId) return <div className="p-4">Loading conversation...</div>;
+  if (loading) return <div className="p-4">Loading conversations...</div>;
+
+  if (!user) return <div className="p-4">You must be logged in to view messages.</div>;
 
   return (
-    <div className="max-w-3xl mx-auto mt-6 space-y-4">
-      <ChatWindow conversationId={conversationId} />
-      <MessageInput conversationId={conversationId} />
-    </div>
+    <DashboardLayout user={user} userType="centraResident">
+      <div className="p-4">
+        <h1 className="text-2xl font-bold mb-4">Messages</h1>
+        <MessagingSystem user={user} />
+      </div>
+    </DashboardLayout>
   );
 };
 
