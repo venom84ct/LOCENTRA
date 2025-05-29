@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import BasicMessagingSystem from "@/components/messaging/BasicMessagingSystem";
+import MessagingSystem from "@/components/messaging/MessagingSystem";
+import { supabase } from "@/lib/supabaseClient";
 
-const MessagesPage = () => {
+const TradieMessagesPage = () => {
   const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
@@ -13,13 +13,13 @@ const MessagesPage = () => {
       } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: profileData } = await supabase
+      const { data } = await supabase
         .from("profile_centra_tradie")
         .select("*")
         .eq("id", user.id)
         .single();
 
-      setProfile(profileData);
+      setProfile(data);
     };
 
     fetchProfile();
@@ -28,12 +28,12 @@ const MessagesPage = () => {
   if (!profile) return <div>Loading...</div>;
 
   return (
-    <DashboardLayout userType="tradie" user={profile}>
-      <BasicMessagingSystem user={profile} userType="tradie" />
+    <DashboardLayout user={profile} userType="tradie">
+      <MessagingSystem user={profile} userType="tradie" />
     </DashboardLayout>
   );
 };
 
-export default MessagesPage;
+export default TradieMessagesPage;
 
 
