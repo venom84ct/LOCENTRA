@@ -5,43 +5,39 @@ interface Job {
 }
 
 interface TradieProfile {
-  name: string;
-  email: string;
-  avatar: string;
-  trade: string;
-  license: string;
-  abn: string;
-  address: string;
-  phone: string;
-  memberSince: string;
-  credits: number;
-  rewardPoints: number;
-  rating: number;
-  reviewCount: number;
-  verificationStatus: string;
+  name?: string;
+  email?: string;
+  avatar?: string;
+  trade?: string;
+  license?: string;
+  abn?: string;
+  address?: string;
+  phone?: string;
+  memberSince?: string;
+  credits?: number;
+  rewardPoints?: number;
+  rating?: number;
+  reviewCount?: number;
+  verificationStatus?: string;
   previousJobs?: Job[];
 }
 
-const TradieDashboard = ({ user }: { user: TradieProfile }) => {
-  if (!user) return <div className="p-4 text-red-600">User not loaded.</div>;
-
+const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
   return (
-    <div>
-      <h1 className="text-2xl font-bold mb-4">Welcome, {user.name}</h1>
-      {user.previousJobs?.length ? (
-        <div>
-          <h2 className="text-lg font-semibold">Previous Jobs:</h2>
-          <ul className="list-disc list-inside">
-            {user.previousJobs.map((job, index) => (
-              <li key={index}>{job.title}</li>
-            ))}
-          </ul>
-        </div>
+    <div className="p-4">
+      <h1 className="text-2xl font-bold mb-4">Welcome, {profile?.name || "Tradie"}</h1>
+      {profile?.previousJobs?.length ? (
+        profile.previousJobs.map((job, index) => (
+          <div key={index} className="mb-2 p-2 border rounded">
+            {job.title}
+          </div>
+        ))
       ) : (
-        <p>No previous jobs listed.</p>
+        <p>No previous jobs found.</p>
       )}
     </div>
   );
 };
 
 export default TradieDashboard;
+
