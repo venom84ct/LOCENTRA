@@ -10,7 +10,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   Search,
   MapPin,
@@ -45,6 +44,7 @@ interface JobLead {
   budget: string;
   emergency?: boolean;
   creditCost: number;
+  image_urls?: string[]; // ✅ Added image support
   homeowner?: {
     id: string;
     name: string;
@@ -52,95 +52,6 @@ interface JobLead {
     rating: number;
   };
 }
-
-const mockJobLeads: JobLead[] = [
-  {
-    id: "lead1",
-    title: "Kitchen Sink Replacement",
-    description:
-      "Need to replace kitchen sink and faucet. Old sink is leaking and needs to be removed.",
-    status: "available",
-    date: "2023-06-15",
-    location: "Sydney, NSW",
-    category: "Plumbing",
-    budget: "$300 - $500",
-    creditCost: 5,
-  },
-  {
-    id: "lead2",
-    title: "Emergency Hot Water System Repair",
-    description:
-      "Hot water system not working. Need urgent repair as we have no hot water.",
-    status: "available",
-    date: "2023-06-14",
-    location: "Sydney, NSW",
-    category: "Plumbing",
-    budget: "$200 - $400",
-    emergency: true,
-    creditCost: 10,
-  },
-  {
-    id: "lead3",
-    title: "Bathroom Renovation",
-    description:
-      "Complete renovation of main bathroom including new fixtures, tiling, and plumbing.",
-    status: "available",
-    date: "2023-06-10",
-    location: "Sydney, NSW",
-    category: "Plumbing",
-    budget: "$5,000 - $8,000",
-    creditCost: 5,
-  },
-  {
-    id: "lead4",
-    title: "Toilet Installation",
-    description:
-      "Need to install a new toilet in the main bathroom. Old toilet has been removed.",
-    status: "available",
-    date: "2023-06-05",
-    location: "Brisbane, QLD",
-    category: "Plumbing",
-    budget: "$400 - $600",
-    creditCost: 5,
-  },
-  {
-    id: "lead5",
-    title: "Leaking Shower Repair",
-    description:
-      "Shower in master bathroom is leaking. Need to identify the source and repair.",
-    status: "available",
-    date: "2023-05-28",
-    location: "Melbourne, VIC",
-    category: "Plumbing",
-    budget: "$200 - $400",
-    creditCost: 5,
-  },
-  {
-    id: "lead6",
-    title: "Electrical Rewiring",
-    description:
-      "Need complete rewiring for a 3-bedroom house. Current wiring is outdated.",
-    status: "available",
-    date: "2023-06-12",
-    location: "Perth, WA",
-    category: "Electrical",
-    budget: "$3,000 - $5,000",
-    creditCost: 5,
-  },
-  {
-    id: "lead7",
-    title: "Emergency Power Outage",
-    description:
-      "Half the house has no power. Need urgent assistance to restore electricity.",
-    status: "available",
-    date: "2023-06-13",
-    location: "Adelaide, SA",
-    category: "Electrical",
-    budget: "$200 - $400",
-    emergency: true,
-    creditCost: 10,
-  },
-];
 
 const FindJobsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -150,9 +61,8 @@ const FindJobsPage = () => {
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [isBuyCreditsModalOpen, setIsBuyCreditsModalOpen] = useState(false);
-  const [jobs, setJobs] = useState<JobLead[]>(mockJobLeads);
+  const [jobs, setJobs] = useState<JobLead[]>([]); // assume jobs will be fetched with image_urls
 
-  // Mock user data - in a real app, this would come from authentication
   const user = {
     name: "Mike Johnson",
     email: "mike.johnson@example.com",
@@ -195,7 +105,6 @@ const FindJobsPage = () => {
     const leadCost = selectedJob.emergency ? 10 : 5;
 
     if (user.credits >= leadCost) {
-      // Update the job to be purchased
       setJobs(
         jobs.map((job) =>
           job.id === selectedJob.id
@@ -205,8 +114,7 @@ const FindJobsPage = () => {
                 homeowner: {
                   id: "homeowner1",
                   name: "John Smith",
-                  avatar:
-                    "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
+                  avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
                   rating: 4.8,
                 },
               }
@@ -214,31 +122,25 @@ const FindJobsPage = () => {
         ),
       );
 
-      // Close modal
       setIsPurchaseModalOpen(false);
       setIsPreviewModalOpen(false);
 
-      // Show success message
       toast({
         title: "Lead Purchased Successfully",
         description: `You have purchased the lead for ${selectedJob.title}. You can now contact the homeowner.`,
       });
 
-      // Navigate to my jobs page after a short delay
       setTimeout(() => {
         window.location.href = "/dashboard/tradie/my-jobs";
       }, 1500);
     } else {
-      // Not enough credits
       setIsPurchaseModalOpen(false);
       setIsBuyCreditsModalOpen(true);
     }
   };
 
   const handleBuyCredits = (amount: number, cost: number) => {
-    // In a real app, this would process payment
     setIsBuyCreditsModalOpen(false);
-
     toast({
       title: "Credits Purchased",
       description: `You have successfully purchased ${amount} credits for $${cost}.`,
@@ -253,9 +155,7 @@ const FindJobsPage = () => {
             <h1 className="text-2xl font-bold">Find Jobs</h1>
             <div className="flex items-center space-x-2 bg-primary/10 px-4 py-2 rounded-full">
               <CreditCard className="h-5 w-5 text-primary" />
-              <span className="font-medium">
-                {user.credits} credits available
-              </span>
+              <span className="font-medium">{user.credits} credits available</span>
             </div>
           </div>
 
@@ -290,9 +190,7 @@ const FindJobsPage = () => {
                     <label className="text-sm font-medium">Category</label>
                     <div className="flex flex-wrap gap-2">
                       <Badge
-                        variant={
-                          selectedCategory === null ? "default" : "outline"
-                        }
+                        variant={selectedCategory === null ? "default" : "outline"}
                         className="cursor-pointer"
                         onClick={() => setSelectedCategory(null)}
                       >
@@ -301,11 +199,7 @@ const FindJobsPage = () => {
                       {categories.map((category) => (
                         <Badge
                           key={category}
-                          variant={
-                            selectedCategory === category
-                              ? "default"
-                              : "outline"
-                          }
+                          variant={selectedCategory === category ? "default" : "outline"}
                           className="cursor-pointer"
                           onClick={() => setSelectedCategory(category)}
                         >
@@ -323,10 +217,7 @@ const FindJobsPage = () => {
                       onChange={() => setShowEmergencyOnly(!showEmergencyOnly)}
                       className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                     />
-                    <label
-                      htmlFor="emergency-only"
-                      className="text-sm font-medium"
-                    >
+                    <label htmlFor="emergency-only" className="text-sm font-medium">
                       Emergency jobs only
                     </label>
                   </div>
@@ -358,9 +249,7 @@ const FindJobsPage = () => {
                         <div className="flex justify-between items-start">
                           <div>
                             <div className="flex items-center">
-                              <CardTitle className="text-lg">
-                                {job.title}
-                              </CardTitle>
+                              <CardTitle className="text-lg">{job.title}</CardTitle>
                               {job.emergency && (
                                 <Badge variant="destructive" className="ml-2">
                                   Emergency
@@ -375,31 +264,39 @@ const FindJobsPage = () => {
                         </div>
                       </CardHeader>
                       <CardContent>
+                        {/* ✅ Display job images */}
+                        {job.image_urls && job.image_urls.length > 0 && (
+                          <div className="mb-4 flex gap-2 overflow-x-auto">
+                            {job.image_urls.map((url, idx) => (
+                              <img
+                                key={idx}
+                                src={url}
+                                alt={`Job image ${idx + 1}`}
+                                className="w-32 h-32 object-cover rounded border"
+                              />
+                            ))}
+                          </div>
+                        )}
+
                         <p className="text-sm mb-4">{job.description}</p>
 
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
                           <div>
-                            <p className="text-xs text-muted-foreground">
-                              Location
-                            </p>
+                            <p className="text-xs text-muted-foreground">Location</p>
                             <div className="flex items-center">
                               <MapPin className="h-3 w-3 mr-1 text-muted-foreground" />
                               <p className="text-sm">{job.location}</p>
                             </div>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground">
-                              Date Posted
-                            </p>
+                            <p className="text-xs text-muted-foreground">Date Posted</p>
                             <div className="flex items-center">
                               <Calendar className="h-3 w-3 mr-1 text-muted-foreground" />
                               <p className="text-sm">{job.date}</p>
                             </div>
                           </div>
                           <div>
-                            <p className="text-xs text-muted-foreground">
-                              Budget
-                            </p>
+                            <p className="text-xs text-muted-foreground">Budget</p>
                             <div className="flex items-center">
                               <DollarSign className="h-3 w-3 mr-1 text-muted-foreground" />
                               <p className="text-sm">{job.budget}</p>
@@ -430,8 +327,7 @@ const FindJobsPage = () => {
                             <Button
                               size="sm"
                               onClick={() =>
-                                (window.location.href =
-                                  "/dashboard/tradie/messages")
+                                (window.location.href = "/dashboard/tradie/messages")
                               }
                             >
                               <MessageSquare className="h-4 w-4 mr-2" />
@@ -446,9 +342,7 @@ const FindJobsPage = () => {
                   <Card className="bg-white">
                     <CardContent className="flex flex-col items-center justify-center py-12">
                       <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-medium mb-2">
-                        No jobs found
-                      </h3>
+                      <h3 className="text-lg font-medium mb-2">No jobs found</h3>
                       <p className="text-muted-foreground text-center mb-4">
                         We couldn't find any jobs matching your search criteria.
                       </p>
@@ -499,3 +393,4 @@ const FindJobsPage = () => {
 };
 
 export default FindJobsPage;
+
