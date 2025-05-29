@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
   Card,
@@ -12,57 +12,26 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import {
   Search,
-  MapPin,
-  Calendar,
-  DollarSign,
-  Filter,
   CreditCard,
+  Filter,
   AlertCircle,
-  Eye,
-  ShoppingCart,
-  MessageSquare,
 } from "lucide-react";
 import { toast } from "@/components/ui/use-toast";
+import { supabase } from "@/lib/supabaseClient";
 import PurchaseLeadModal from "@/components/dashboard/PurchaseLeadModal";
 import JobPreviewModal from "@/components/dashboard/JobPreviewModal";
 import BuyCreditsModal from "@/components/wallet/BuyCreditsModal";
 import JobCard from "@/components/jobs/JobCard";
 
-interface JobLead {
-  id: string;
-  title: string;
-  description: string;
-  status:
-    | "available"
-    | "purchased"
-    | "quoted"
-    | "in_progress"
-    | "completed"
-    | "expired";
-  date: string;
-  location: string;
-  category: string;
-  budget: string;
-  emergency?: boolean;
-  creditCost: number;
-  image_urls?: string[];
-  homeowner?: {
-    id: string;
-    name: string;
-    avatar: string;
-    rating: number;
-  };
-}
-
 const FindJobsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showEmergencyOnly, setShowEmergencyOnly] = useState(false);
-  const [selectedJob, setSelectedJob] = useState<JobLead | null>(null);
+  const [selectedJob, setSelectedJob] = useState<any>(null);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [isBuyCreditsModalOpen, setIsBuyCreditsModalOpen] = useState(false);
-  const [jobs, setJobs] = useState<JobLead[]>([]);
+  const [jobs, setJobs] = useState<any[]>([]);
 
   const user = {
     name: "Mike Johnson",
@@ -74,6 +43,19 @@ const FindJobsPage = () => {
     unreadNotifications: 3,
   };
 
+  useEffect(() => {
+    const fetchJobs = async () => {
+      const { data, error } = await supabase
+        .from("jobs")
+        .select("*")
+        .eq("status", "open");
+
+      if (!error && data) setJobs(data);
+    };
+
+    fetchJobs();
+  }, []);
+
   const filteredJobs = jobs.filter((job) => {
     const matchesSearch =
       job.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -83,27 +65,26 @@ const FindJobsPage = () => {
     const matchesCategory = selectedCategory
       ? job.category === selectedCategory
       : true;
-    const matchesEmergency = showEmergencyOnly ? job.emergency === true : true;
+    const matchesEmergency = showEmergencyOnly ? job.is_emergency === true : true;
 
     return matchesSearch && matchesCategory && matchesEmergency;
   });
 
   const categories = Array.from(new Set(jobs.map((job) => job.category)));
 
-  const handlePreviewJob = (job: JobLead) => {
+  const handlePreviewJob = (job: any) => {
     setSelectedJob(job);
     setIsPreviewModalOpen(true);
   };
 
-  const handlePurchaseClick = (job: JobLead) => {
+  const handlePurchaseClick = (job: any) => {
     setSelectedJob(job);
     setIsPurchaseModalOpen(true);
   };
 
   const handlePurchaseLead = () => {
     if (!selectedJob) return;
-
-    const leadCost = selectedJob.emergency ? 10 : 5;
+    const leadCost = selectedJob.is_emergency ? 10 : 5;
 
     if (user.credits >= leadCost) {
       setJobs(
