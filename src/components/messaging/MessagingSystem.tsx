@@ -3,47 +3,38 @@ import { supabase } from "@/lib/supabaseClient";
 import ChatList from "./ChatList";
 import ChatWindow from "./ChatWindow";
 
-interface MessagingSystemProps {
-  user: any;
-  userType: "tradie" | "centraResident";
-}
-
-const MessagingSystem: React.FC<MessagingSystemProps> = ({ user, userType }) => {
+const MessagingSystem = ({ user, userType }: { user: any; userType: string }) => {
   const [conversations, setConversations] = useState<any[]>([]);
-  const [activeConversation, setActiveConversation] = useState<any>(null);
+  const [selectedConversation, setSelectedConversation] = useState<any>(null);
 
   useEffect(() => {
     const fetchConversations = async () => {
-      const { data } = await supabase
+      const column = userType === "tradie" ? "tradie_id" : "homeowner_id";
+      const { data, error } = await supabase
         .from("conversations")
-        .select("*")
-        .or(`homeowner_id.eq.${user.id},tradie_id.eq.${user.id}`);
+        .select("*, jobs(title)")
+        .eq(column, user.id);
 
-      setConversations(data || []);
+      if (!error) setConversations(data);
     };
 
     fetchConversations();
-  }, [user.id]);
+  }, [user, userType]);
 
   return (
-    <div className="flex gap-6">
+    <div className="flex h-full">
       <ChatList
         conversations={conversations}
-        currentUserId={user.id}
-        setActiveConversation={setActiveConversation}
-        activeConversation={activeConversation}
+        onSelect={setSelectedConversation}
+        selectedId={selectedConversation?.id}
       />
-      <div className="flex-1">
-        {activeConversation ? (
-          <ChatWindow
-            conversation={activeConversation}
-            currentUserId={user.id}
-            userType={userType}
-          />
-        ) : (
-          <div className="p-6 text-gray-500">Select a conversation</div>
-        )}
-      </div>
+      {selectedConversation ? (
+        <ChatWindow user={user} conversation={selectedConversation} userType={userType} />
+      ) : (
+        <div className="flex-1 flex items-center justify-center text-gray-500">
+          Select a conversation
+        </div>
+      )}
     </div>
   );
 };
