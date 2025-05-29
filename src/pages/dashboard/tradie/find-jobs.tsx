@@ -1,3 +1,4 @@
+// src/pages/dashboard/tradie/find-jobs.tsx
 
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
@@ -19,7 +20,7 @@ const FindJobsPage = () => {
       } = await supabase.auth.getUser();
       if (!user) return;
 
-      // ✅ Get tradie profile
+      // Get tradie profile
       const { data: profileData } = await supabase
         .from("profile_centra_tradie")
         .select("*")
@@ -28,12 +29,12 @@ const FindJobsPage = () => {
 
       setProfile(profileData);
 
-      // ✅ Fetch available jobs
+      // Fetch available jobs where no tradie is assigned
       const { data: jobsData } = await supabase
         .from("jobs")
         .select("*")
-        .is("tradie_id", null)
-        .in("status", ["pending", "in_progress"]) // Adjust as needed
+        .is("assigned_tradie", null)
+        .in("status", ["pending", "in_progress"])
         .order("created_at", { ascending: false });
 
       setJobs(jobsData || []);
@@ -50,10 +51,10 @@ const FindJobsPage = () => {
       return;
     }
 
-    // ✅ Assign tradie to job
+    // Assign tradie to job
     const { error: updateJobError } = await supabase
       .from("jobs")
-      .update({ tradie_id: profile.id })
+      .update({ assigned_tradie: profile.id })
       .eq("id", jobId);
 
     if (updateJobError) {
@@ -61,17 +62,17 @@ const FindJobsPage = () => {
       return;
     }
 
-    // ✅ Deduct credits
+    // Deduct credits from tradie
     await supabase
       .from("profile_centra_tradie")
       .update({ credits: profile.credits - cost })
       .eq("id", profile.id);
 
-    // ✅ Refresh jobs list
+    // Refresh available jobs
     const { data: updatedJobs } = await supabase
       .from("jobs")
       .select("*")
-      .is("tradie_id", null)
+      .is("assigned_tradie", null)
       .in("status", ["pending", "in_progress"])
       .order("created_at", { ascending: false });
 
@@ -103,9 +104,7 @@ const FindJobsPage = () => {
                     <p className="text-sm text-muted-foreground">{job.category}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1">
-                    {job.is_emergency && (
-                      <Badge variant="destructive">Emergency</Badge>
-                    )}
+                    {job.is_emergency && <Badge variant="destructive">Emergency</Badge>}
                     <Badge variant="secondary">{cost} credits</Badge>
                   </div>
                 </div>
@@ -130,7 +129,9 @@ const FindJobsPage = () => {
                 <div className="flex justify-end gap-2 mt-4">
                   <Button
                     variant="outline"
-                    onClick={() => navigate(`/dashboard/tradie/preview-job/${job.id}`)}
+                    onClick={() =>
+                      navigate(`/dashboard/tradie/preview-job/${job.id}`)
+                    }
                   >
                     Preview
                   </Button>
@@ -148,3 +149,4 @@ const FindJobsPage = () => {
 };
 
 export default FindJobsPage;
+
