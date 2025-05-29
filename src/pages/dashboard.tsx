@@ -21,36 +21,42 @@ const Dashboard = () => {
         return;
       }
 
-      // Check if the user is a tradie
-      const { data: tradieProfile, error: tradieError } = await supabase
-        .from("profile_centra_tradie")
-        .select("*")
-        .eq("id", userId)
-        .single();
+      try {
+        // Attempt to fetch tradie profile
+        const { data: tradieProfile, error: tradieError } = await supabase
+          .from("profile_centra_tradie")
+          .select("*")
+          .eq("id", userId)
+          .single();
 
-      if (tradieProfile) {
-        setUser(tradieProfile);
-        setUserType("tradie");
+        if (tradieProfile) {
+          setUser(tradieProfile);
+          setUserType("tradie");
+          return;
+        }
+
+        // Attempt to fetch homeowner profile
+        const { data: residentProfile, error: residentError } = await supabase
+          .from("profile_centra_resident")
+          .select("*")
+          .eq("id", userId)
+          .single();
+
+        if (residentProfile) {
+          setUser(residentProfile);
+          setUserType("centraResident");
+          return;
+        }
+
+        // If neither profile is found, redirect to login
+        console.error("User not found in either profile table.");
+        navigate("/login");
+      } catch (error) {
+        console.error("Error fetching user profile:", error);
+        navigate("/login");
+      } finally {
         setLoading(false);
-        return;
       }
-
-      // If not a tradie, check if the user is a homeowner
-      const { data: residentProfile, error: residentError } = await supabase
-        .from("profile_centra_resident")
-        .select("*")
-        .eq("id", userId)
-        .single();
-
-      if (residentProfile) {
-        setUser(residentProfile);
-        setUserType("centraResident");
-        setLoading(false);
-        return;
-      }
-
-      console.error("User not found in either profile table.");
-      navigate("/login");
     };
 
     fetchUserProfile();
@@ -61,10 +67,11 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout userType={userType} user={user}>
-      {userType === "tradie" ? <TradieDashboard /> : <CentraResidentDashboard />}
+      {userType === "tradie" ? <TradieDashboard profile={user} /> : <CentraResidentDashboard profile={user} />}
     </DashboardLayout>
   );
 };
 
 export default Dashboard;
+
 
