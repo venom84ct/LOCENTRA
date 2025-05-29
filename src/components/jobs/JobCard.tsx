@@ -22,6 +22,13 @@ interface JobCardProps {
 }
 
 const JobCard: React.FC<JobCardProps> = ({ job, onEdit }) => {
+  // Normalize image_urls safely
+  const imageUrls = Array.isArray(job.image_urls)
+    ? job.image_urls
+    : typeof job.image_urls === "string"
+    ? job.image_urls.split(",")
+    : [];
+
   return (
     <Card
       className={`bg-white ${job.is_emergency ? "border-4 border-red-600" : "border"}`}
@@ -46,13 +53,13 @@ const JobCard: React.FC<JobCardProps> = ({ job, onEdit }) => {
       </CardHeader>
 
       <CardContent>
-        {/* ✅ Image Grid */}
-        {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
+        {/* ✅ Responsive Grid of Job Images */}
+        {imageUrls.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
-            {job.image_urls.map((url: string, idx: number) => (
+            {imageUrls.map((url: string, idx: number) => (
               <img
                 key={idx}
-                src={url}
+                src={url.trim()}
                 alt={`Job image ${idx + 1}`}
                 className="w-full h-28 object-cover rounded border"
               />
