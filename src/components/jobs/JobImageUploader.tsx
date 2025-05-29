@@ -21,12 +21,11 @@ const JobImageUploader: React.FC<JobImageUploaderProps> = ({ onUploadComplete })
     const uploadedUrls: string[] = [];
 
     for (const file of files) {
-      const fileExt = file.name.split(".").pop();
       const fileName = `${Date.now()}-${file.name}`;
-      const filePath = `job-uploads/${fileName}`;
+      const filePath = `jobs/${fileName}`; // ✅ use correct path here
 
       const { error } = await supabase.storage
-        .from("job-images")
+        .from("job-images") // ✅ this must match the bucket you're using
         .upload(filePath, file);
 
       if (!error) {
@@ -54,3 +53,4 @@ const JobImageUploader: React.FC<JobImageUploaderProps> = ({ onUploadComplete })
 };
 
 export default JobImageUploader;
+
