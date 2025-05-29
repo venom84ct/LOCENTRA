@@ -1,5 +1,3 @@
-// src/pages/dashboard/tradie/find-jobs.tsx
-
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Badge } from "@/components/ui/badge";
@@ -29,12 +27,12 @@ const FindJobsPage = () => {
 
       setProfile(profileData);
 
-      // Fetch available jobs where no tradie is assigned
+      // Fetch available jobs (only unassigned and open)
       const { data: jobsData } = await supabase
         .from("jobs")
         .select("*")
-        .is("assigned_tradie", null)
-        .in("status", ["pending", "in_progress"])
+        .is("tradie_id", null)
+        .in("status", ["open", "pending", "in_progress"])
         .order("created_at", { ascending: false });
 
       setJobs(jobsData || []);
@@ -54,7 +52,7 @@ const FindJobsPage = () => {
     // Assign tradie to job
     const { error: updateJobError } = await supabase
       .from("jobs")
-      .update({ assigned_tradie: profile.id })
+      .update({ tradie_id: profile.id })
       .eq("id", jobId);
 
     if (updateJobError) {
@@ -62,18 +60,18 @@ const FindJobsPage = () => {
       return;
     }
 
-    // Deduct credits from tradie
+    // Deduct credits
     await supabase
       .from("profile_centra_tradie")
       .update({ credits: profile.credits - cost })
       .eq("id", profile.id);
 
-    // Refresh available jobs
+    // Refresh job list
     const { data: updatedJobs } = await supabase
       .from("jobs")
       .select("*")
-      .is("assigned_tradie", null)
-      .in("status", ["pending", "in_progress"])
+      .is("tradie_id", null)
+      .in("status", ["open", "pending", "in_progress"])
       .order("created_at", { ascending: false });
 
     setJobs(updatedJobs || []);
@@ -104,7 +102,9 @@ const FindJobsPage = () => {
                     <p className="text-sm text-muted-foreground">{job.category}</p>
                   </div>
                   <div className="flex flex-col items-end gap-1">
-                    {job.is_emergency && <Badge variant="destructive">Emergency</Badge>}
+                    {job.is_emergency && (
+                      <Badge variant="destructive">Emergency</Badge>
+                    )}
                     <Badge variant="secondary">{cost} credits</Badge>
                   </div>
                 </div>
@@ -149,4 +149,3 @@ const FindJobsPage = () => {
 };
 
 export default FindJobsPage;
-
