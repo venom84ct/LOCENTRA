@@ -19,12 +19,13 @@ import {
 interface JobCardProps {
   job: any;
   onEdit?: (jobId: string) => void;
-  hideEdit?: boolean;
 }
 
-const JobCard: React.FC<JobCardProps> = ({ job, onEdit, hideEdit }) => {
+const JobCard: React.FC<JobCardProps> = ({ job, onEdit }) => {
   return (
-    <Card className={`bg-white ${job.is_emergency ? "border-4 border-red-600" : "border"}`}>
+    <Card
+      className={`bg-white ${job.is_emergency ? "border-4 border-red-600" : "border"}`}
+    >
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div>
@@ -92,18 +93,16 @@ const JobCard: React.FC<JobCardProps> = ({ job, onEdit, hideEdit }) => {
           </div>
         </div>
 
-        {!hideEdit && (
-          <div className="flex justify-end">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => onEdit?.(job.id)}
-            >
-              <Pencil className="w-4 h-4 mr-2" />
-              Edit
-            </Button>
-          </div>
-        )}
+        <div className="flex justify-end">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onEdit?.(job.id)}
+          >
+            <Pencil className="w-4 h-4 mr-2" />
+            Edit
+          </Button>
+        </div>
       </CardContent>
     </Card>
   );
