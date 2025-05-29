@@ -21,35 +21,20 @@ const Dashboard = () => {
         return;
       }
 
-      // Try to fetch tradie profile first
-      const { data: tradieProfile } = await supabase
-        .from("profile_centra_tradie")
-        .select("*")
-        .eq("id", userId)
-        .single();
-
-      if (tradieProfile) {
-        setUser(tradieProfile);
-        setUserType("tradie");
-        setLoading(false);
-        return;
-      }
-
-      // If not tradie, try to fetch homeowner profile
-      const { data: residentProfile, error } = await supabase
+      const { data, error } = await supabase
         .from("profile_centra_resident")
         .select("*")
         .eq("id", userId)
         .single();
 
-      if (residentProfile) {
-        setUser(residentProfile);
-        setUserType("centraResident");
-      } else {
+      if (error || !data) {
         console.error("Error fetching profile:", error);
         navigate("/login");
+        return;
       }
 
+      setUser(data);
+      setUserType(data.role === "tradie" ? "tradie" : "centraResident");
       setLoading(false);
     };
 
