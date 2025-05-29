@@ -22,13 +22,24 @@ interface TradieProfile {
   previousJobs?: Job[];
 }
 
-const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
+const TradieDashboard = ({ user }: { user: TradieProfile }) => {
+  if (!user) return <div className="p-4 text-red-600">User not loaded.</div>;
+
   return (
     <div>
-      <h1>Welcome, {profile.name}</h1>
-      {profile.previousJobs?.map((job, index) => (
-        <div key={index}>{job.title}</div>
-      ))}
+      <h1 className="text-2xl font-bold mb-4">Welcome, {user.name}</h1>
+      {user.previousJobs?.length ? (
+        <div>
+          <h2 className="text-lg font-semibold">Previous Jobs:</h2>
+          <ul className="list-disc list-inside">
+            {user.previousJobs.map((job, index) => (
+              <li key={index}>{job.title}</li>
+            ))}
+          </ul>
+        </div>
+      ) : (
+        <p>No previous jobs listed.</p>
+      )}
     </div>
   );
 };
