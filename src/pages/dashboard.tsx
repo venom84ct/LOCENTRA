@@ -21,36 +21,36 @@ const Dashboard = () => {
         return;
       }
 
-      // First, try to fetch as a tradie
-      const { data: tradieData } = await supabase
+      // Check if the user is a tradie
+      const { data: tradieProfile, error: tradieError } = await supabase
         .from("profile_centra_tradie")
         .select("*")
         .eq("id", userId)
         .single();
 
-      if (tradieData) {
-        setUser(tradieData);
+      if (tradieProfile) {
+        setUser(tradieProfile);
         setUserType("tradie");
         setLoading(false);
         return;
       }
 
-      // Fallback to homeowner profile
-      const { data: residentData, error: residentError } = await supabase
+      // If not a tradie, check if the user is a homeowner
+      const { data: residentProfile, error: residentError } = await supabase
         .from("profile_centra_resident")
         .select("*")
         .eq("id", userId)
         .single();
 
-      if (residentError || !residentData) {
-        console.error("Profile fetch error:", residentError);
-        navigate("/login");
+      if (residentProfile) {
+        setUser(residentProfile);
+        setUserType("centraResident");
+        setLoading(false);
         return;
       }
 
-      setUser(residentData);
-      setUserType("centraResident");
-      setLoading(false);
+      console.error("User not found in either profile table.");
+      navigate("/login");
     };
 
     fetchUserProfile();
@@ -61,7 +61,7 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout userType={userType} user={user}>
-      {userType === "tradie" ? <TradieDashboard profile={user} /> : <CentraResidentDashboard profile={user} />}
+      {userType === "tradie" ? <TradieDashboard /> : <CentraResidentDashboard />}
     </DashboardLayout>
   );
 };
