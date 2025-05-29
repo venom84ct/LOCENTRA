@@ -3,7 +3,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import MessagingSystem from "@/components/messaging/MessagingSystem";
 import { supabase } from "@/lib/supabaseClient";
 
-const HomeownerMessagesPage = () => {
+const MessagesPage = () => {
   const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
@@ -34,4 +34,4 @@ const HomeownerMessagesPage = () => {
   );
 };
 
-export default HomeownerMessagesPage;
+export default MessagesPage;
