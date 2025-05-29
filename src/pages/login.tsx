@@ -26,24 +26,36 @@ const LoginPage = () => {
     }
 
     const { user } = data.session
-    const { data: profile, error: profileError } = await supabase
-      .from("profile_centra_resident")
-      .select("role")
+
+    // Check if user is tradie
+    const { data: tradieProfile } = await supabase
+      .from("profile_centra_tradie")
+      .select("id")
       .eq("id", user.id)
       .single()
 
-    if (profileError || !profile) {
-      setError("Could not find user role")
+    if (tradieProfile) {
+      localStorage.setItem("userType", "tradie")
+      localStorage.setItem("isLoggedIn", "true")
+      navigate("/dashboard")
       return
     }
 
-    const role = profile.role
-    localStorage.setItem("userType", role)
-    localStorage.setItem("isLoggedIn", "true")
+    // Check if user is homeowner
+    const { data: residentProfile } = await supabase
+      .from("profile_centra_resident")
+      .select("id")
+      .eq("id", user.id)
+      .single()
 
-    if (role === "tradie") navigate("/dashboard/tradie")
-    else if (role === "homeowner") navigate("/dashboard")
-    else navigate("/dashboard")
+    if (residentProfile) {
+      localStorage.setItem("userType", "homeowner")
+      localStorage.setItem("isLoggedIn", "true")
+      navigate("/dashboard")
+      return
+    }
+
+    setError("User profile not found.")
   }
 
   return (
