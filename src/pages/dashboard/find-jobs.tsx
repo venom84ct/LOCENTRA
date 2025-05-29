@@ -26,6 +26,7 @@ import { toast } from "@/components/ui/use-toast";
 import PurchaseLeadModal from "@/components/dashboard/PurchaseLeadModal";
 import JobPreviewModal from "@/components/dashboard/JobPreviewModal";
 import BuyCreditsModal from "@/components/wallet/BuyCreditsModal";
+import JobCard from "@/components/jobs/JobCard";
 
 interface JobLead {
   id: string;
@@ -242,98 +243,7 @@ const FindJobsPage = () => {
               <div className="grid grid-cols-1 gap-4">
                 {filteredJobs.length > 0 ? (
                   filteredJobs.map((job) => (
-                    <Card key={job.id} className="bg-white">
-                      <CardHeader className="pb-2">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <div className="flex items-center">
-                              <CardTitle className="text-lg">{job.title}</CardTitle>
-                              {job.emergency && (
-                                <Badge variant="destructive" className="ml-2">
-                                  Emergency
-                                </Badge>
-                              )}
-                            </div>
-                            <CardDescription>{job.category}</CardDescription>
-                          </div>
-                          <Badge variant="outline" className="bg-primary/10">
-                            {job.creditCost} credits
-                          </Badge>
-                        </div>
-                      </CardHeader>
-                      <CardContent>
-                        {job.image_urls && job.image_urls.length > 0 && (
-                          <div className="mb-4 flex gap-2 overflow-x-auto">
-                            {job.image_urls.map((url, idx) => (
-                              <img
-                                key={idx}
-                                src={url}
-                                alt={`Job image ${idx + 1}`}
-                                className="w-32 h-32 object-cover rounded border"
-                              />
-                            ))}
-                          </div>
-                        )}
-
-                        <p className="text-sm mb-4">{job.description}</p>
-
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
-                          <div>
-                            <p className="text-xs text-muted-foreground">Location</p>
-                            <div className="flex items-center">
-                              <MapPin className="h-3 w-3 mr-1 text-muted-foreground" />
-                              <p className="text-sm">{job.location}</p>
-                            </div>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">Date Posted</p>
-                            <div className="flex items-center">
-                              <Calendar className="h-3 w-3 mr-1 text-muted-foreground" />
-                              <p className="text-sm">{job.date}</p>
-                            </div>
-                          </div>
-                          <div>
-                            <p className="text-xs text-muted-foreground">Budget</p>
-                            <div className="flex items-center">
-                              <DollarSign className="h-3 w-3 mr-1 text-muted-foreground" />
-                              <p className="text-sm">{job.budget}</p>
-                            </div>
-                          </div>
-                        </div>
-
-                        <div className="flex justify-end space-x-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            disabled={user.credits < job.creditCost}
-                            onClick={() => handlePreviewJob(job)}
-                          >
-                            <Eye className="h-4 w-4 mr-2" />
-                            Preview
-                          </Button>
-                          {job.status === "available" ? (
-                            <Button
-                              size="sm"
-                              disabled={user.credits < job.creditCost}
-                              onClick={() => handlePurchaseClick(job)}
-                            >
-                              <ShoppingCart className="h-4 w-4 mr-2" />
-                              Purchase Lead ({job.creditCost} credits)
-                            </Button>
-                          ) : (
-                            <Button
-                              size="sm"
-                              onClick={() =>
-                                (window.location.href = "/dashboard/tradie/messages")
-                              }
-                            >
-                              <MessageSquare className="h-4 w-4 mr-2" />
-                              Message Centra Resident
-                            </Button>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
+                    <JobCard key={job.id} job={job} />
                   ))
                 ) : (
                   <Card className="bg-white">
