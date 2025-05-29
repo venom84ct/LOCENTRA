@@ -13,6 +13,7 @@ import {
   Award,
   Search,
   LogOut,
+  PlusCircle,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -41,7 +42,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       ? [
           { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
           { name: "Jobs", path: "/dashboard/jobs", icon: Briefcase },
-          { name: "Job History", path: "/dashboard/job-history", icon: Briefcase },
+          { name: "Post Job", path: "/dashboard/post-job", icon: PlusCircle }, // ✅ Added
+          { name: "Job History", path: "/dashboard/jobs-history", icon: Briefcase },
           { name: "Messages", path: "/dashboard/messages", icon: MessagesSquare },
           { name: "Notifications", path: "/dashboard/notifications", icon: Bell },
           { name: "Rewards", path: "/dashboard/rewards", icon: Gift },
