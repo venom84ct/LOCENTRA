@@ -13,7 +13,6 @@ import {
   Award,
   Search,
   LogOut,
-  PlusCircle,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -42,8 +41,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       ? [
           { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
           { name: "Jobs", path: "/dashboard/jobs", icon: Briefcase },
-          { name: "Post Job", path: "/dashboard/post-job", icon: PlusCircle }, // ✅ Added
-          { name: "Job History", path: "/dashboard/jobs-history", icon: Briefcase },
+          { name: "Post a Job", path: "/dashboard/post-job", icon: Briefcase },
+          { name: "Job History", path: "/dashboard/job-history", icon: Briefcase },
           { name: "Messages", path: "/dashboard/messages", icon: MessagesSquare },
           { name: "Notifications", path: "/dashboard/notifications", icon: Bell },
           { name: "Rewards", path: "/dashboard/rewards", icon: Gift },
@@ -65,6 +64,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   return (
     <div className="min-h-screen flex bg-gray-50">
+      {/* Sidebar */}
       <aside className="w-64 bg-white shadow-md p-6 hidden md:block">
         <div className="mb-6">
           <div className="text-lg font-bold">
@@ -72,15 +72,17 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           </div>
           <div className="text-sm text-gray-500">{user?.email}</div>
         </div>
+
         <nav className="space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
+
             return (
               <Link to={item.path} key={item.name}>
                 <div
                   className={cn(
-                    "flex items-center p-2 rounded hover:bg-gray-100",
+                    "flex items-center p-2 rounded hover:bg-gray-100 transition-colors",
                     isActive ? "bg-gray-200 font-semibold" : ""
                   )}
                 >
@@ -90,9 +92,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               </Link>
             );
           })}
+
           <button
             onClick={handleLogout}
-            className="flex items-center p-2 mt-4 text-red-600 hover:bg-red-50 rounded w-full"
+            className="flex items-center p-2 mt-4 text-red-600 hover:bg-red-50 rounded w-full transition-colors"
           >
             <LogOut className="h-5 w-5 mr-2" />
             Logout
@@ -100,6 +103,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         </nav>
       </aside>
 
+      {/* Main Content */}
       <main className="flex-1 p-4 md:p-8">{children}</main>
     </div>
   );
