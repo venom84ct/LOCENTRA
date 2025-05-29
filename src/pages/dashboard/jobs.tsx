@@ -4,13 +4,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Calendar,
-  DollarSign,
-  MapPin,
-  Clock,
-  User,
-} from "lucide-react";
+import { Calendar, DollarSign, MapPin, Clock, User, Plus } from "lucide-react";
 
 const DashboardJobs = () => {
   const [jobs, setJobs] = useState<any[]>([]);
@@ -32,8 +26,8 @@ const DashboardJobs = () => {
       .from("jobs")
       .select("*")
       .eq("homeowner_id", profileData.id)
-      .not("status", "eq", "completed") // ✅ proper filter
-      .not("status", "eq", "cancelled") // ✅ proper filter
+      .not("status", "eq", "completed")
+      .not("status", "eq", "cancelled")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -60,18 +54,15 @@ const DashboardJobs = () => {
       data: { user },
     } = await supabase.auth.getUser();
 
-    const lowercaseStatus = newStatus.toLowerCase();
-
     const { error } = await supabase
       .from("jobs")
-      .update({ status: lowercaseStatus })
+      .update({ status: newStatus.toLowerCase() })
       .eq("id", jobId)
       .eq("homeowner_id", user.id);
 
     if (error) {
       console.error("❌ Failed to update job:", error.message);
     } else {
-      console.log("✅ Job status updated to:", lowercaseStatus);
       await refetchJobs(user.id);
     }
   };
@@ -95,8 +86,15 @@ const DashboardJobs = () => {
 
   return (
     <DashboardLayout user={profile} userType="centraResident">
-      <div className="px-4 py-6 max-w-4xl mx-auto space-y-4">
-        <h1 className="text-2xl font-bold mb-4">My Jobs</h1>
+      <div className="px-4 py-6 max-w-4xl mx-auto space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">My Jobs</h1>
+          <Button onClick={() => navigate("/dashboard/post-job")}>
+            <Plus className="h-4 w-4 mr-2" />
+            Post a New Job
+          </Button>
+        </div>
+
         {jobs.length === 0 ? (
           <p>No active jobs found.</p>
         ) : (
