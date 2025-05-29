@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -14,6 +14,7 @@ import {
   Search,
   LogOut,
 } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 
 interface DashboardLayoutProps {
   userType: "centraResident" | "tradie";
@@ -27,6 +28,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   children,
 }) => {
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    localStorage.clear();
+    navigate("/");
+  };
 
   const navItems =
     userType === "centraResident"
@@ -55,19 +63,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   return (
     <div className="min-h-screen flex bg-gray-50">
-      {/* Sidebar */}
       <aside className="w-64 bg-white shadow-md p-6 hidden md:block">
         <div className="mb-6">
-          {user ? (
-            <>
-              <div className="text-lg font-bold">
-                {user.first_name} {user.last_name}
-              </div>
-              <div className="text-sm text-gray-500">{user.email}</div>
-            </>
-          ) : (
-            <div className="text-sm text-gray-400">Loading user...</div>
-          )}
+          <div className="text-lg font-bold">
+            {user?.first_name} {user?.last_name}
+          </div>
+          <div className="text-sm text-gray-500">{user?.email}</div>
         </div>
         <nav className="space-y-2">
           {navItems.map((item) => {
@@ -87,20 +88,19 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               </Link>
             );
           })}
-          <Link to="/logout">
-            <div className="flex items-center p-2 mt-4 text-red-600 hover:bg-red-50 rounded">
-              <LogOut className="h-5 w-5 mr-2" />
-              Logout
-            </div>
-          </Link>
+          <button
+            onClick={handleLogout}
+            className="flex items-center p-2 mt-4 text-red-600 hover:bg-red-50 rounded w-full"
+          >
+            <LogOut className="h-5 w-5 mr-2" />
+            Logout
+          </button>
         </nav>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 p-4 md:p-8">{children}</main>
     </div>
   );
 };
 
 export default DashboardLayout;
-
