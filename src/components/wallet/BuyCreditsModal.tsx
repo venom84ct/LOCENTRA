@@ -1,3 +1,5 @@
+import React from "react";
+import { Wallet, Banknote } from "lucide-react";
 import React, { useState } from "react";
 import {
   Dialog,
