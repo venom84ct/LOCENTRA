@@ -29,10 +29,11 @@ const MessagesPage = () => {
 
   return (
     <DashboardLayout userType="tradie" user={profile}>
-      <BasicMessagingSystem userId={profile.id} userType="tradie" />
+      <BasicMessagingSystem user={profile} userType="tradie" />
     </DashboardLayout>
   );
 };
 
 export default MessagesPage;
+
 
