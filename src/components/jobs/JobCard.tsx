@@ -49,18 +49,20 @@ const JobCard: React.FC<JobCardProps> = ({ job, onEdit }) => {
       </CardHeader>
       <CardContent>
         {/* ✅ Image Grid */}
-        {job.image_urls && job.image_urls.length > 0 && (
-          <div className="mb-4 grid grid-cols-3 gap-2">
-            {job.image_urls.map((url: string, idx: number) => (
-              <img
-                key={idx}
-                src={url}
-                alt={`Job image ${idx + 1}`}
-                className="w-full h-24 object-cover rounded border"
-              />
-            ))}
-          </div>
-        )}
+        {job.image_urls &&
+          Array.isArray(job.image_urls) &&
+          job.image_urls.length > 0 && (
+            <div className="mb-4 grid grid-cols-3 gap-2">
+              {job.image_urls.map((url: string, idx: number) => (
+                <img
+                  key={idx}
+                  src={url}
+                  alt={`Job image ${idx + 1}`}
+                  className="w-full h-24 object-cover rounded border"
+                />
+              ))}
+            </div>
+          )}
 
         <p className="text-sm mb-4">{job.description}</p>
 
@@ -107,4 +109,3 @@ const JobCard: React.FC<JobCardProps> = ({ job, onEdit }) => {
 };
 
 export default JobCard;
-
