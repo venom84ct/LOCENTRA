@@ -21,7 +21,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
-import { Upload } from "lucide-react";
 
 const PostJobForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }) => {
   const navigate = useNavigate();
@@ -52,7 +51,9 @@ const PostJobForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }) => {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files) {
-      setImages(Array.from(e.target.files));
+      const fileArray = Array.from(e.target.files);
+      const filtered = fileArray.filter(file => file.size < 5 * 1024 * 1024); // limit size to 5MB
+      setImages(filtered);
     }
   };
 
@@ -74,6 +75,7 @@ const PostJobForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }) => {
     }
 
     const uploadedUrls: string[] = [];
+
     for (const file of images) {
       const path = `jobs/${Date.now()}-${file.name}`;
       const { error: uploadError } = await supabase.storage
@@ -103,7 +105,7 @@ const PostJobForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }) => {
         is_emergency: isEmergency,
         image_urls: uploadedUrls,
         created_at: new Date().toISOString(),
-        status: "open", // ✅ Corrected here
+        status: "open",
       },
     ]);
 
@@ -200,7 +202,32 @@ const PostJobForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }) => {
           )}
 
           <Label>Upload Images</Label>
-          <Input type="file" multiple onChange={handleFileChange} />
+          <Input type="file" accept="image/*" multiple onChange={handleFileChange} />
+
+          {images.length > 0 && (
+            <div className="flex flex-wrap gap-4 mt-4">
+              {images.map((file, index) => (
+                <div key={index} className="relative w-32 h-32 border rounded overflow-hidden">
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt={`preview-${index}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const updated = [...images];
+                      updated.splice(index, 1);
+                      setImages(updated);
+                    }}
+                    className="absolute top-1 right-1 bg-red-600 text-white w-5 h-5 flex items-center justify-center rounded-full text-xs"
+                  >
+                    ×
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
 
           {error && <p className="text-red-600 text-sm">{error}</p>}
           {success && <p className="text-green-600 text-sm">{success}</p>}
@@ -217,5 +244,6 @@ const PostJobForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }) => {
 };
 
 export default PostJobForm;
+
 
     
