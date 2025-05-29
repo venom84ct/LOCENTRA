@@ -44,7 +44,7 @@ interface JobLead {
   budget: string;
   emergency?: boolean;
   creditCost: number;
-  image_urls?: string[]; // ✅ Added image support
+  image_urls?: string[];
   homeowner?: {
     id: string;
     name: string;
@@ -61,7 +61,7 @@ const FindJobsPage = () => {
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
   const [isBuyCreditsModalOpen, setIsBuyCreditsModalOpen] = useState(false);
-  const [jobs, setJobs] = useState<JobLead[]>([]); // assume jobs will be fetched with image_urls
+  const [jobs, setJobs] = useState<JobLead[]>([]);
 
   const user = {
     name: "Mike Johnson",
@@ -118,8 +118,8 @@ const FindJobsPage = () => {
                   rating: 4.8,
                 },
               }
-            : job,
-        ),
+            : job
+        )
       );
 
       setIsPurchaseModalOpen(false);
@@ -160,7 +160,6 @@ const FindJobsPage = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {/* Filters */}
             <div className="md:col-span-1">
               <Card className="bg-white sticky top-24">
                 <CardHeader>
@@ -239,7 +238,6 @@ const FindJobsPage = () => {
               </Card>
             </div>
 
-            {/* Job Listings */}
             <div className="md:col-span-3">
               <div className="grid grid-cols-1 gap-4">
                 {filteredJobs.length > 0 ? (
@@ -264,7 +262,6 @@ const FindJobsPage = () => {
                         </div>
                       </CardHeader>
                       <CardContent>
-                        {/* ✅ Display job images */}
                         {job.image_urls && job.image_urls.length > 0 && (
                           <div className="mb-4 flex gap-2 overflow-x-auto">
                             {job.image_urls.map((url, idx) => (
@@ -364,7 +361,6 @@ const FindJobsPage = () => {
         </div>
       </div>
 
-      {/* Modals */}
       <PurchaseLeadModal
         isOpen={isPurchaseModalOpen}
         onClose={() => setIsPurchaseModalOpen(false)}
@@ -393,4 +389,3 @@ const FindJobsPage = () => {
 };
 
 export default FindJobsPage;
-
