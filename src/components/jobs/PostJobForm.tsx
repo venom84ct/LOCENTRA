@@ -88,8 +88,13 @@ const PostJobForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }) => {
         return;
       }
 
-      const { data } = supabase.storage.from("job-images").getPublicUrl(path);
-      uploadedUrls.push(data.publicUrl);
+      const { data: urlData } = await supabase.storage
+        .from("job-images")
+        .getPublicUrl(path);
+
+      if (urlData?.publicUrl) {
+        uploadedUrls.push(urlData.publicUrl);
+      }
     }
 
     const { error: insertError } = await supabase.from("jobs").insert([
