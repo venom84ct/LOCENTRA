@@ -21,21 +21,36 @@ const Dashboard = () => {
         return;
       }
 
-      const { data, error } = await supabase
+      // Try to get as homeowner first
+      const { data: residentData, error: residentError } = await supabase
         .from("profile_centra_resident")
         .select("*")
         .eq("id", userId)
         .single();
 
-      if (error || !data) {
-        console.error("Error fetching profile:", error);
-        navigate("/login");
+      if (residentData) {
+        setUserType(residentData.role === "tradie" ? "tradie" : "centraResident");
+        setUser(residentData);
+        setLoading(false);
         return;
       }
 
-      setUser(data);
-      setUserType(data.role === "tradie" ? "tradie" : "centraResident");
-      setLoading(false);
+      // If not in resident, try tradie profile
+      const { data: tradieData, error: tradieError } = await supabase
+        .from("profile_centra_tradie")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      if (tradieData) {
+        setUserType("tradie");
+        setUser(tradieData);
+        setLoading(false);
+        return;
+      }
+
+      console.error("Error fetching user profile:", residentError || tradieError);
+      navigate("/login");
     };
 
     fetchUserProfile();
@@ -46,10 +61,9 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout userType={userType} user={user}>
-      {userType === "tradie" ? <TradieDashboard /> : <CentraResidentDashboard />}
+      {userType === "tradie" ? <TradieDashboard profile={user} /> : <CentraResidentDashboard />}
     </DashboardLayout>
   );
 };
 
 export default Dashboard;
-
