@@ -3,35 +3,48 @@ import { supabase } from "@/lib/supabaseClient";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import PostJobForm from "@/components/jobs/PostJobForm";
 
-const PostJobDashboardPage = () => {
+const PostJobPage = () => {
   const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-      const { data, error } = await supabase
+      if (userError || !user) {
+        setLoading(false);
+        return;
+      }
+
+      const { data: profileData } = await supabase
         .from("profile_centra_resident")
         .select("*")
         .eq("id", user.id)
         .single();
 
-      if (!error && data) setProfile(data);
+      if (profileData) {
+        setProfile(profileData);
+      }
+
+      setLoading(false);
     };
 
     fetchProfile();
   }, []);
 
-  if (!profile) return <div className="p-6">Loading...</div>;
+  if (loading) return <div className="p-6">Loading...</div>;
+  if (!profile) return <div className="p-6 text-red-600">❌ Profile not found</div>;
 
   return (
     <DashboardLayout user={profile} userType="centraResident">
-      <div className="max-w-2xl mx-auto py-8">
+      <div className="max-w-2xl mx-auto">
         <PostJobForm />
       </div>
     </DashboardLayout>
   );
 };
 
-export default PostJobDashboardPage;
+export default PostJobPage;
