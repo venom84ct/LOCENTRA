@@ -24,9 +24,7 @@ interface JobCardProps {
 const JobCard: React.FC<JobCardProps> = ({ job, onEdit }) => {
   return (
     <Card
-      className={`bg-white ${
-        job.is_emergency ? "border-4 border-red-600" : "border"
-      }`}
+      className={`bg-white ${job.is_emergency ? "border-4 border-red-600" : "border"}`}
     >
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
@@ -46,9 +44,10 @@ const JobCard: React.FC<JobCardProps> = ({ job, onEdit }) => {
           </Badge>
         </div>
       </CardHeader>
+
       <CardContent>
         {/* ✅ Image Grid */}
-        {job.image_urls && Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
+        {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
             {job.image_urls.map((url: string, idx: number) => (
               <img
