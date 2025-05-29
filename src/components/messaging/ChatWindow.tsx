@@ -1,55 +1,45 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
 interface ChatWindowProps {
-  user: any;
   conversation: any;
-  userType: "tradie" | "homeowner";
+  currentUserId: string;
+  userType: "tradie" | "centraResident";
 }
 
-const ChatWindow: React.FC<ChatWindowProps> = ({ user, conversation, userType }) => {
+const ChatWindow: React.FC<ChatWindowProps> = ({
+  conversation,
+  currentUserId,
+  userType,
+}) => {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const [canSend, setCanSend] = useState(false);
-  const bottomRef = useRef<HTMLDivElement>(null);
-
-  const isTradie = userType === "tradie";
+  const bottomRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const loadMessages = async () => {
-      const { data, error } = await supabase
+    const fetchMessages = async () => {
+      const { data } = await supabase
         .from("messages")
         .select("*")
         .eq("conversation_id", conversation.id)
-        .order("timestamp", { ascending: true });
+        .order("created_at");
 
-      if (error) {
-        console.error("Failed to fetch messages:", error);
-      } else {
-        setMessages(data);
-
-        if (!isTradie) {
-          const tradieStarted = data.some(
-            (msg) => msg.sender_id === conversation.tradie_id
-          );
-          setCanSend(tradieStarted);
-        } else {
-          setCanSend(true);
-        }
-      }
+      setMessages(data || []);
     };
 
-    loadMessages();
+    fetchMessages();
 
     const channel = supabase
-      .channel(`conversation-${conversation.id}`)
+      .channel("messages")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conversation.id}` },
+        { event: "INSERT", schema: "public", table: "messages" },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new]);
+          if (payload.new.conversation_id === conversation.id) {
+            setMessages((prev) => [...prev, payload.new]);
+          }
         }
       )
       .subscribe();
@@ -57,7 +47,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, conversation, userType })
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [conversation.id, user.id]);
+  }, [conversation.id]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -65,47 +55,41 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ user, conversation, userType })
 
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
-    const { error } = await supabase.from("messages").insert({
+
+    await supabase.from("messages").insert({
       conversation_id: conversation.id,
-      sender_id: user.id,
-      content: newMessage.trim(),
+      sender_id: currentUserId,
+      text: newMessage,
     });
-    if (!error) {
-      setNewMessage("");
-    }
+
+    setNewMessage("");
   };
 
   return (
-    <div className="flex flex-col h-full p-4 space-y-4">
-      <div className="flex-1 overflow-y-auto space-y-2">
+    <div className="flex flex-col h-full">
+      <div className="flex-1 overflow-y-auto p-4 space-y-2">
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className={`p-2 rounded-md max-w-md ${
-              msg.sender_id === user.id ? "bg-blue-100 self-end" : "bg-gray-100 self-start"
+            className={`p-2 rounded-md max-w-sm ${
+              msg.sender_id === currentUserId
+                ? "bg-blue-100 self-end"
+                : "bg-gray-100 self-start"
             }`}
           >
-            {msg.content}
+            {msg.text}
           </div>
         ))}
         <div ref={bottomRef} />
       </div>
-      <div className="flex gap-2">
+      <div className="p-4 border-t flex gap-2">
         <Input
-          placeholder="Type your message..."
           value={newMessage}
           onChange={(e) => setNewMessage(e.target.value)}
-          disabled={!canSend}
+          placeholder="Type your message..."
         />
-        <Button onClick={sendMessage} disabled={!canSend || !newMessage.trim()}>
-          Send
-        </Button>
+        <Button onClick={sendMessage}>Send</Button>
       </div>
-      {!canSend && (
-        <p className="text-xs text-muted-foreground">
-          You can reply once the tradie sends the first message.
-        </p>
-      )}
     </div>
   );
 };
