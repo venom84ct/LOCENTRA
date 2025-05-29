@@ -4,7 +4,7 @@ import { supabase } from "@/lib/supabaseClient";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, DollarSign, MapPin, Clock, User } from "lucide-react";
+import { Calendar, DollarSign, MapPin, Clock } from "lucide-react";
 
 const JobPreviewPage = () => {
   const { id } = useParams();
@@ -44,22 +44,30 @@ const JobPreviewPage = () => {
   const handlePurchaseLead = async () => {
     if (!job || !profile) return;
 
-    // Deduct credits (simplified)
-    const updatedCredits = profile.credits - (job.is_emergency ? 10 : 5);
+    const leadCost = job.is_emergency ? 10 : 5;
+    const updatedCredits = profile.credits - leadCost;
+
     if (updatedCredits < 0) {
       alert("Not enough credits");
       return;
     }
 
+    // Assign tradie to job
+    const { error: jobUpdateError } = await supabase
+      .from("jobs")
+      .update({ tradie_id: profile.id })
+      .eq("id", job.id);
+
+    if (jobUpdateError) {
+      alert("Failed to assign job.");
+      return;
+    }
+
+    // Deduct tradie's credits
     await supabase
       .from("profile_centra_tradie")
       .update({ credits: updatedCredits })
       .eq("id", profile.id);
-
-    await supabase
-      .from("jobs")
-      .update({ assigned_tradie: profile.id })
-      .eq("id", job.id);
 
     // Create conversation
     await supabase.from("conversations").insert([
@@ -70,14 +78,15 @@ const JobPreviewPage = () => {
       },
     ]);
 
+    alert("Lead purchased. You can now message the homeowner.");
     navigate("/dashboard/tradie/my-jobs");
   };
 
   if (loading) return <div className="p-8">Loading job...</div>;
-  if (!job) return <div className="p-8">Job not found.</div>;
+  if (!job) return <div className="p-8 text-red-600">Job not found.</div>;
 
   return (
-    <DashboardLayout user={profile} userType="centraTradie">
+    <DashboardLayout user={profile} userType="tradie">
       <div className="px-4 py-6 max-w-4xl mx-auto space-y-4">
         <h1 className="text-2xl font-bold mb-4">{job.title}</h1>
 
@@ -87,9 +96,7 @@ const JobPreviewPage = () => {
           }`}
         >
           <div className="flex justify-between items-start">
-            <div>
-              <p className="text-sm text-muted-foreground">{job.category}</p>
-            </div>
+            <p className="text-sm text-muted-foreground">{job.category}</p>
             <div className="flex flex-col items-end space-y-1">
               {job.is_emergency && (
                 <Badge variant="destructive" className="text-xs">Emergency</Badge>
@@ -135,7 +142,7 @@ const JobPreviewPage = () => {
 
           <div className="pt-4">
             <Button variant="success" onClick={handlePurchaseLead}>
-              Purchase Lead
+              Purchase Lead ({job.is_emergency ? 10 : 5} credits)
             </Button>
           </div>
         </div>
