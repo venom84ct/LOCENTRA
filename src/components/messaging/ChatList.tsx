@@ -1,39 +1,26 @@
 import React from "react";
 
-interface ChatListProps {
-  conversations: any[];
-  currentUserId: string;
-  setActiveConversation: (conv: any) => void;
-  activeConversation: any;
-}
-
-const ChatList: React.FC<ChatListProps> = ({
-  conversations,
-  currentUserId,
-  setActiveConversation,
-  activeConversation,
-}) => {
+const ChatList = ({ conversations, onSelect, selectedId }: any) => {
   return (
-    <div className="w-64 border-r">
-      <h2 className="text-xl font-bold p-4 border-b">Chats</h2>
+    <div className="w-1/3 border-r bg-white overflow-y-auto">
+      <h2 className="text-lg font-bold p-4">Chats</h2>
       <ul>
-        {conversations.map((conv) => {
-          const isActive = conv.id === activeConversation?.id;
-          return (
-            <li
-              key={conv.id}
-              className={`p-4 cursor-pointer border-b hover:bg-gray-100 ${
-                isActive ? "bg-gray-200" : ""
-              }`}
-              onClick={() => setActiveConversation(conv)}
-            >
-              Conversation {conv.id}
-            </li>
-          );
-        })}
+        {conversations.map((c: any) => (
+          <li
+            key={c.id}
+            onClick={() => onSelect(c)}
+            className={`p-4 cursor-pointer hover:bg-gray-100 ${
+              c.id === selectedId ? "bg-gray-200" : ""
+            }`}
+          >
+            <div className="font-semibold">{c.jobs?.title || "Job Chat"}</div>
+            <div className="text-sm text-gray-500">Chat ID: {c.id}</div>
+          </li>
+        ))}
       </ul>
     </div>
   );
 };
 
 export default ChatList;
+
