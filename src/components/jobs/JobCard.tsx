@@ -48,6 +48,20 @@ const JobCard: React.FC<JobCardProps> = ({ job, onEdit }) => {
         </div>
       </CardHeader>
       <CardContent>
+        {/* ✅ Image Grid */}
+        {job.image_urls && job.image_urls.length > 0 && (
+          <div className="mb-4 grid grid-cols-3 gap-2">
+            {job.image_urls.map((url: string, idx: number) => (
+              <img
+                key={idx}
+                src={url}
+                alt={`Job image ${idx + 1}`}
+                className="w-full h-24 object-cover rounded border"
+              />
+            ))}
+          </div>
+        )}
+
         <p className="text-sm mb-4">{job.description}</p>
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4 text-sm">
@@ -82,11 +96,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onEdit }) => {
         </div>
 
         <div className="flex justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onEdit?.(job.id)}
-          >
+          <Button variant="outline" size="sm" onClick={() => onEdit?.(job.id)}>
             <Pencil className="w-4 h-4 mr-2" />
             Edit
           </Button>
@@ -97,3 +107,4 @@ const JobCard: React.FC<JobCardProps> = ({ job, onEdit }) => {
 };
 
 export default JobCard;
+
