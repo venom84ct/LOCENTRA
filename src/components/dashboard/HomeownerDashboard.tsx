@@ -185,7 +185,7 @@ const HomeownerDashboard = () => {
             </CardHeader>
             <CardContent className="space-y-4">
               <Button asChild className="w-full">
-                <Link to="/post-job">
+                <Link to="/dashboard/post-job">
                   <PlusCircle className="mr-2 h-4 w-4" />
                   Post a New Job
                 </Link>
