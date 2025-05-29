@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   Card,
   CardContent,
@@ -22,17 +22,17 @@ interface JobCardProps {
 }
 
 const JobCard: React.FC<JobCardProps> = ({ job, onEdit }) => {
-  // Normalize image_urls safely
-  const imageUrls = Array.isArray(job.image_urls)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  // Handle images as array or comma-separated string
+  const imageUrls: string[] = Array.isArray(job.image_urls)
     ? job.image_urls
     : typeof job.image_urls === "string"
-    ? job.image_urls.split(",")
+    ? job.image_urls.split(",").map((s: string) => s.trim())
     : [];
 
   return (
-    <Card
-      className={`bg-white ${job.is_emergency ? "border-4 border-red-600" : "border"}`}
-    >
+    <Card className={`bg-white ${job.is_emergency ? "border-4 border-red-600" : "border"}`}>
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div>
@@ -53,15 +53,16 @@ const JobCard: React.FC<JobCardProps> = ({ job, onEdit }) => {
       </CardHeader>
 
       <CardContent>
-        {/* ✅ Responsive Grid of Job Images */}
+        {/* ✅ Image Grid */}
         {imageUrls.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
-            {imageUrls.map((url: string, idx: number) => (
+            {imageUrls.map((url, idx) => (
               <img
                 key={idx}
-                src={url.trim()}
+                src={url}
                 alt={`Job image ${idx + 1}`}
-                className="w-full h-28 object-cover rounded border"
+                onClick={() => setPreviewUrl(url)}
+                className="w-full h-28 object-cover rounded border cursor-pointer hover:scale-105 transition"
               />
             ))}
           </div>
@@ -101,16 +102,26 @@ const JobCard: React.FC<JobCardProps> = ({ job, onEdit }) => {
         </div>
 
         <div className="flex justify-end">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onEdit?.(job.id)}
-          >
+          <Button variant="outline" size="sm" onClick={() => onEdit?.(job.id)}>
             <Pencil className="w-4 h-4 mr-2" />
             Edit
           </Button>
         </div>
       </CardContent>
+
+      {/* 🖼️ Image Zoom Modal */}
+      {previewUrl && (
+        <div
+          onClick={() => setPreviewUrl(null)}
+          className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50"
+        >
+          <img
+            src={previewUrl}
+            alt="Preview"
+            className="max-w-[90%] max-h-[90%] rounded shadow-lg"
+          />
+        </div>
+      )}
     </Card>
   );
 };
