@@ -1,5 +1,5 @@
-import React from "react";
-import { Link, useLocation } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Logo from "@/components/ui/logo";
 import {
@@ -11,38 +11,41 @@ import {
   Menu,
   X,
   User,
+  LogOut,
 } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 
 interface PublicLayoutProps {
   children: React.ReactNode;
 }
 
 const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
-  const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [loggedIn, setLoggedIn] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
 
-  const isActive = (path: string) => {
-    return location.pathname === path;
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setLoggedIn(!!data.user);
+    });
+  }, []);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    localStorage.clear();
+    setLoggedIn(false);
+    navigate("/");
   };
+
+  const isActive = (path: string) => location.pathname === path;
 
   const navItems = [
     { name: "Home", path: "/", icon: <Home className="h-4 w-4 mr-2" /> },
-    {
-      name: "How It Works",
-      path: "/how-it-works",
-      icon: <HelpCircle className="h-4 w-4 mr-2" />,
-    },
-    {
-      name: "Pricing",
-      path: "/pricing",
-      icon: <DollarSign className="h-4 w-4 mr-2" />,
-    },
+    { name: "How It Works", path: "/how-it-works", icon: <HelpCircle className="h-4 w-4 mr-2" /> },
+    { name: "Pricing", path: "/pricing", icon: <DollarSign className="h-4 w-4 mr-2" /> },
     { name: "About", path: "/about", icon: <Info className="h-4 w-4 mr-2" /> },
-    {
-      name: "Contact",
-      path: "/contact",
-      icon: <Mail className="h-4 w-4 mr-2" />,
-    },
+    { name: "Contact", path: "/contact", icon: <Mail className="h-4 w-4 mr-2" /> },
   ];
 
   return (
@@ -74,17 +77,26 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
 
             {/* Auth Buttons */}
             <div className="hidden md:flex items-center space-x-2">
-              <Link to="/login">
-                <Button variant="outline" size="sm">
-                  Log In
+              {loggedIn ? (
+                <Button variant="destructive" size="sm" onClick={handleLogout}>
+                  <LogOut className="h-4 w-4 mr-2" />
+                  Logout
                 </Button>
-              </Link>
-              <Link to="/register">
-                <Button size="sm">
-                  <User className="h-4 w-4 mr-2" />
-                  Sign Up
-                </Button>
-              </Link>
+              ) : (
+                <>
+                  <Link to="/login">
+                    <Button variant="outline" size="sm">
+                      Log In
+                    </Button>
+                  </Link>
+                  <Link to="/register">
+                    <Button size="sm">
+                      <User className="h-4 w-4 mr-2" />
+                      Sign Up
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
 
             {/* Mobile Menu Button */}
@@ -94,11 +106,7 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
                 size="sm"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               >
-                {mobileMenuOpen ? (
-                  <X className="h-6 w-6" />
-                ) : (
-                  <Menu className="h-6 w-6" />
-                )}
+                {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
               </Button>
             </div>
           </div>
@@ -124,17 +132,34 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
                   </Link>
                 ))}
                 <div className="pt-2 border-t mt-2 space-y-2">
-                  <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
-                    <Button variant="outline" size="sm" className="w-full">
-                      Log In
+                  {loggedIn ? (
+                    <Button
+                      onClick={() => {
+                        setMobileMenuOpen(false);
+                        handleLogout();
+                      }}
+                      variant="destructive"
+                      size="sm"
+                      className="w-full"
+                    >
+                      <LogOut className="h-4 w-4 mr-2" />
+                      Logout
                     </Button>
-                  </Link>
-                  <Link to="/register" onClick={() => setMobileMenuOpen(false)}>
-                    <Button size="sm" className="w-full">
-                      <User className="h-4 w-4 mr-2" />
-                      Sign Up
-                    </Button>
-                  </Link>
+                  ) : (
+                    <>
+                      <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
+                        <Button variant="outline" size="sm" className="w-full">
+                          Log In
+                        </Button>
+                      </Link>
+                      <Link to="/register" onClick={() => setMobileMenuOpen(false)}>
+                        <Button size="sm" className="w-full">
+                          <User className="h-4 w-4 mr-2" />
+                          Sign Up
+                        </Button>
+                      </Link>
+                    </>
+                  )}
                 </div>
               </nav>
             </div>
@@ -177,26 +202,17 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
               <h3 className="text-lg font-semibold mb-4">For Tradies</h3>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link
-                    to="/register?type=tradie"
-                    className="text-gray-600 hover:text-primary"
-                  >
+                  <Link to="/register?type=tradie" className="text-gray-600 hover:text-primary">
                     Join as a Tradie
                   </Link>
                 </li>
                 <li>
-                  <Link
-                    to="/pricing"
-                    className="text-gray-600 hover:text-primary"
-                  >
+                  <Link to="/pricing" className="text-gray-600 hover:text-primary">
                     Lead Pricing
                   </Link>
                 </li>
                 <li>
-                  <Link
-                    to="/how-it-works"
-                    className="text-gray-600 hover:text-primary"
-                  >
+                  <Link to="/how-it-works" className="text-gray-600 hover:text-primary">
                     How It Works
                   </Link>
                 </li>
@@ -206,26 +222,17 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
               <h3 className="text-lg font-semibold mb-4">For Homeowners</h3>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link
-                    to="/post-job"
-                    className="text-gray-600 hover:text-primary"
-                  >
+                  <Link to="/post-job" className="text-gray-600 hover:text-primary">
                     Post a Job
                   </Link>
                 </li>
                 <li>
-                  <Link
-                    to="/how-it-works"
-                    className="text-gray-600 hover:text-primary"
-                  >
+                  <Link to="/how-it-works" className="text-gray-600 hover:text-primary">
                     How It Works
                   </Link>
                 </li>
                 <li>
-                  <Link
-                    to="/contact"
-                    className="text-gray-600 hover:text-primary"
-                  >
+                  <Link to="/contact" className="text-gray-600 hover:text-primary">
                     Get Support
                   </Link>
                 </li>
