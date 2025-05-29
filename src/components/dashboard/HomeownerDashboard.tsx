@@ -35,8 +35,8 @@ interface Job {
   is_emergency?: boolean;
 }
 
-const HomeownerDashboard = () => {
-  const [userProfile, setUserProfile] = useState<any>(null);
+const HomeownerDashboard = ({ user }: { user: any }) => {
+  const [userProfile] = useState(user);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [jobCounts, setJobCounts] = useState({
     active: 0,
@@ -45,25 +45,12 @@ const HomeownerDashboard = () => {
   });
 
   useEffect(() => {
-    const fetchUserAndJobs = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data: profile } = await supabase
-        .from("profile_centra_resident")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-
+    const fetchJobs = async () => {
       const { data: jobList } = await supabase
         .from("jobs")
         .select("*")
         .eq("homeowner_id", user.id)
         .order("created_at", { ascending: false });
-
-      if (profile) setUserProfile(profile);
 
       if (jobList) {
         const active = jobList.filter(
@@ -80,8 +67,8 @@ const HomeownerDashboard = () => {
       }
     };
 
-    fetchUserAndJobs();
-  }, []);
+    fetchJobs();
+  }, [user.id]);
 
   const renderStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
@@ -100,7 +87,6 @@ const HomeownerDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
         <div className="container mx-auto px-4 py-3 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-primary">
