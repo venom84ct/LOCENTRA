@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   Card,
   CardContent,
@@ -22,17 +22,26 @@ interface JobCardProps {
 }
 
 const JobCard: React.FC<JobCardProps> = ({ job, onEdit }) => {
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  // ✅ Safely parse image_urls whether it's an array or a string
+  let imageUrls: string[] = [];
 
-  // Handle images as array or comma-separated string
-  const imageUrls: string[] = Array.isArray(job.image_urls)
-    ? job.image_urls
-    : typeof job.image_urls === "string"
-    ? job.image_urls.split(",").map((s: string) => s.trim())
-    : [];
+  try {
+    if (Array.isArray(job.image_urls)) {
+      imageUrls = job.image_urls;
+    } else if (typeof job.image_urls === "string") {
+      const parsed = JSON.parse(job.image_urls);
+      if (Array.isArray(parsed)) {
+        imageUrls = parsed;
+      }
+    }
+  } catch (e) {
+    console.warn("Could not parse image_urls:", e);
+  }
 
   return (
-    <Card className={`bg-white ${job.is_emergency ? "border-4 border-red-600" : "border"}`}>
+    <Card
+      className={`bg-white ${job.is_emergency ? "border-4 border-red-600" : "border"}`}
+    >
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div>
@@ -53,7 +62,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onEdit }) => {
       </CardHeader>
 
       <CardContent>
-        {/* ✅ Image Grid */}
+        {/* ✅ Display images in a responsive grid */}
         {imageUrls.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
             {imageUrls.map((url, idx) => (
@@ -61,8 +70,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onEdit }) => {
                 key={idx}
                 src={url}
                 alt={`Job image ${idx + 1}`}
-                onClick={() => setPreviewUrl(url)}
-                className="w-full h-28 object-cover rounded border cursor-pointer hover:scale-105 transition"
+                className="w-full h-28 object-cover rounded border"
               />
             ))}
           </div>
@@ -102,26 +110,16 @@ const JobCard: React.FC<JobCardProps> = ({ job, onEdit }) => {
         </div>
 
         <div className="flex justify-end">
-          <Button variant="outline" size="sm" onClick={() => onEdit?.(job.id)}>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => onEdit?.(job.id)}
+          >
             <Pencil className="w-4 h-4 mr-2" />
             Edit
           </Button>
         </div>
       </CardContent>
-
-      {/* 🖼️ Image Zoom Modal */}
-      {previewUrl && (
-        <div
-          onClick={() => setPreviewUrl(null)}
-          className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50"
-        >
-          <img
-            src={previewUrl}
-            alt="Preview"
-            className="max-w-[90%] max-h-[90%] rounded shadow-lg"
-          />
-        </div>
-      )}
     </Card>
   );
 };
