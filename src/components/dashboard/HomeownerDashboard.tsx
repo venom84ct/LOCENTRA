@@ -35,8 +35,8 @@ interface Job {
   is_emergency?: boolean;
 }
 
-const HomeownerDashboard = ({ user }: { user: any }) => {
-  const [userProfile] = useState(user);
+const HomeownerDashboard = () => {
+  const [userProfile, setUserProfile] = useState<any>(null);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [jobCounts, setJobCounts] = useState({
     active: 0,
@@ -45,12 +45,25 @@ const HomeownerDashboard = ({ user }: { user: any }) => {
   });
 
   useEffect(() => {
-    const fetchJobs = async () => {
+    const fetchUserAndJobs = async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const user = userData?.user;
+
+      if (!user?.id) return;
+
+      const { data: profile } = await supabase
+        .from("profile_centra_resident")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
       const { data: jobList } = await supabase
         .from("jobs")
         .select("*")
         .eq("homeowner_id", user.id)
         .order("created_at", { ascending: false });
+
+      if (profile) setUserProfile(profile);
 
       if (jobList) {
         const active = jobList.filter(
@@ -67,8 +80,8 @@ const HomeownerDashboard = ({ user }: { user: any }) => {
       }
     };
 
-    fetchJobs();
-  }, [user.id]);
+    fetchUserAndJobs();
+  }, []);
 
   const renderStatusBadge = (status: string) => {
     switch (status.toLowerCase()) {
@@ -110,9 +123,7 @@ const HomeownerDashboard = ({ user }: { user: any }) => {
       </header>
 
       <div className="container mx-auto px-4 py-6 space-y-6">
-        {/* Info Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Profile */}
           <Card className="bg-white">
             <CardHeader className="pb-2">
               <CardTitle>Profile</CardTitle>
@@ -146,7 +157,6 @@ const HomeownerDashboard = ({ user }: { user: any }) => {
             </CardContent>
           </Card>
 
-          {/* Job Summary */}
           <Card className="bg-white">
             <CardHeader className="pb-2">
               <CardTitle>Job Summary</CardTitle>
@@ -168,7 +178,6 @@ const HomeownerDashboard = ({ user }: { user: any }) => {
             </CardContent>
           </Card>
 
-          {/* Quick Actions */}
           <Card className="bg-white">
             <CardHeader className="pb-2">
               <CardTitle>Quick Actions</CardTitle>
@@ -201,7 +210,6 @@ const HomeownerDashboard = ({ user }: { user: any }) => {
           </Card>
         </div>
 
-        {/* My Jobs Section */}
         <Tabs defaultValue="jobs">
           <TabsList>
             <TabsTrigger value="jobs">My Jobs</TabsTrigger>
@@ -210,9 +218,7 @@ const HomeownerDashboard = ({ user }: { user: any }) => {
             {jobs.map((job) => (
               <Card
                 key={job.id}
-                className={`bg-white ${
-                  job.is_emergency ? "border-4 border-red-600" : ""
-                }`}
+                className={`bg-white ${job.is_emergency ? "border-4 border-red-600" : ""}`}
               >
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start">
