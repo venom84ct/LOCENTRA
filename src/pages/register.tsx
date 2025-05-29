@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs"
-import PublicLayout from "@/components/layout/PublicLayout" // ✅ Add layout
+import PublicLayout from "@/components/layout/PublicLayout"
 
 const RegisterPage = () => {
   const navigate = useNavigate()
@@ -45,7 +45,7 @@ const RegisterPage = () => {
     const { data: { user } } = await supabase.auth.getUser()
 
     if (user) {
-      const { error: insertError } = await supabase.from("profile_centra_resident").insert({
+      const profileData = {
         id: user.id,
         email: formData.email,
         phone: formData.phone,
@@ -58,7 +58,11 @@ const RegisterPage = () => {
         role,
         status: "pending",
         created_at: new Date(),
-      })
+      }
+
+      const { error: insertError } = await supabase
+        .from(role === "tradie" ? "profile_centra_tradie" : "profile_centra_resident")
+        .insert(profileData)
 
       if (insertError) {
         setError("Profile creation failed: " + insertError.message)
