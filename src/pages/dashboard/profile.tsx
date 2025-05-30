@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
-  Card, CardContent, CardDescription, CardHeader, CardTitle
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -62,7 +66,10 @@ const ProfilePage = () => {
     if (!error) {
       const { data } = supabase.storage.from("job-images").getPublicUrl(filePath);
       setFormData(prev => ({ ...prev, avatar_url: data.publicUrl }));
+    } else {
+      alert("❌ Failed to upload image: " + error.message);
     }
+
     setUploading(false);
   };
 
@@ -70,15 +77,20 @@ const ProfilePage = () => {
     e.preventDefault();
     if (!profile) return;
 
+    console.log("Submitting form data:", formData);
+
     const { error } = await supabase
       .from("profile_centra_resident")
       .update(formData)
       .eq("id", profile.id);
 
-    if (!error) {
+    if (error) {
+      console.error("❌ Update error:", error);
+      alert("❌ Failed to update profile: " + error.message);
+    } else {
+      alert("✅ Profile updated successfully!");
       setProfile(prev => ({ ...prev, ...formData }));
       setIsEditing(false);
-      alert("✅ Profile updated successfully!");
     }
   };
 
