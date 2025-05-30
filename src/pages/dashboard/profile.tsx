@@ -1,11 +1,7 @@
 import React, { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
+  Card, CardContent, CardDescription, CardHeader, CardTitle
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -66,10 +62,7 @@ const ProfilePage = () => {
     if (!error) {
       const { data } = supabase.storage.from("job-images").getPublicUrl(filePath);
       setFormData(prev => ({ ...prev, avatar_url: data.publicUrl }));
-    } else {
-      alert("❌ Failed to upload image: " + error.message);
     }
-
     setUploading(false);
   };
 
@@ -77,20 +70,17 @@ const ProfilePage = () => {
     e.preventDefault();
     if (!profile) return;
 
-    console.log("Submitting form data:", formData);
-
     const { error } = await supabase
       .from("profile_centra_resident")
       .update(formData)
       .eq("id", profile.id);
 
-    if (error) {
-      console.error("❌ Update error:", error);
-      alert("❌ Failed to update profile: " + error.message);
-    } else {
-      alert("✅ Profile updated successfully!");
+    if (!error) {
       setProfile(prev => ({ ...prev, ...formData }));
       setIsEditing(false);
+      alert("✅ Profile updated successfully!");
+    } else {
+      alert("❌ Failed to update profile: " + error.message);
     }
   };
 
@@ -103,7 +93,7 @@ const ProfilePage = () => {
   });
 
   return (
-    <DashboardLayout userType="centraResident" user={profile}>
+    <DashboardLayout userType="centraResident" user={profile} hideTopRightUserInfo>
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-6">
