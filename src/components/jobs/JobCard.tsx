@@ -22,23 +22,6 @@ interface JobCardProps {
 }
 
 const JobCard: React.FC<JobCardProps> = ({ job, onEdit }) => {
-  // 🐞 Debug logs to check job structure
-  console.log("🧪 job:", job);
-  console.log("🧪 job.image_urls raw:", job.image_urls);
-
-  let imageUrls: string[] = [];
-
-  // 🛠 Ensure image_urls is an array
-  if (Array.isArray(job.image_urls)) {
-    imageUrls = job.image_urls;
-  } else if (typeof job.image_urls === "string") {
-    try {
-      imageUrls = JSON.parse(job.image_urls);
-    } catch (err) {
-      console.warn("Failed to parse image_urls string:", err);
-    }
-  }
-
   return (
     <Card
       className={`bg-white ${job.is_emergency ? "border-4 border-red-600" : "border"}`}
@@ -64,19 +47,14 @@ const JobCard: React.FC<JobCardProps> = ({ job, onEdit }) => {
 
       <CardContent>
         {/* ✅ Image Grid */}
-        {imageUrls.length > 0 && (
+        {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
-            {imageUrls.map((url: string, idx: number) => (
-              <a
-                key={idx}
-                href={url}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
+            {job.image_urls.map((url: string, idx: number) => (
+              <a key={idx} href={url} target="_blank" rel="noopener noreferrer">
                 <img
                   src={url}
                   alt={`Job image ${idx + 1}`}
-                  className="w-full h-28 object-cover rounded border hover:opacity-90 transition"
+                  className="w-full h-40 object-cover rounded-md border hover:opacity-90 transition"
                 />
               </a>
             ))}
