@@ -98,6 +98,8 @@ const HomeownerDashboard = () => {
     }
   };
 
+  const fullName = `${userProfile?.first_name || ""} ${userProfile?.last_name || ""}`.trim();
+
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
@@ -107,15 +109,12 @@ const HomeownerDashboard = () => {
           </h1>
           <div className="flex items-center space-x-4">
             <div className="text-right mr-2">
-              <p className="font-medium">{userProfile?.name}</p>
-              <p className="text-sm text-muted-foreground">
-                {userProfile?.email}
-              </p>
+              <p className="font-medium">{fullName}</p>
             </div>
             <Avatar>
               <AvatarImage src={userProfile?.avatar_url} />
               <AvatarFallback>
-                {userProfile?.name?.substring(0, 2) || "U"}
+                {userProfile?.first_name?.[0]}{userProfile?.last_name?.[0] || "U"}
               </AvatarFallback>
             </Avatar>
           </div>
@@ -134,11 +133,11 @@ const HomeownerDashboard = () => {
                 <Avatar className="h-16 w-16">
                   <AvatarImage src={userProfile?.avatar_url} />
                   <AvatarFallback>
-                    {userProfile?.name?.substring(0, 2)}
+                    {userProfile?.first_name?.[0]}{userProfile?.last_name?.[0]}
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="font-medium">{userProfile?.name}</h3>
+                  <h3 className="font-medium">{fullName}</h3>
                   <p className="text-sm text-muted-foreground">
                     Member since {userProfile?.created_at?.substring(0, 10)}
                   </p>
@@ -151,7 +150,7 @@ const HomeownerDashboard = () => {
                 </div>
                 <div className="flex items-center">
                   <Gift className="h-4 w-4 mr-2" />
-                  <span>{userProfile?.points || 0} reward points</span>
+                  <span>{userProfile?.reward_points || 0} reward points</span>
                 </div>
               </div>
             </CardContent>
