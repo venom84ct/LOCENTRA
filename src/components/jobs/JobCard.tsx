@@ -22,21 +22,27 @@ interface JobCardProps {
 }
 
 const JobCard: React.FC<JobCardProps> = ({ job, onEdit }) => {
-  // ✅ Convert stringified image_urls to array if necessary
+  // 🐞 Debug logs to check job structure
+  console.log("🧪 job:", job);
+  console.log("🧪 job.image_urls raw:", job.image_urls);
+
   let imageUrls: string[] = [];
 
-  if (typeof job.image_urls === "string") {
+  // 🛠 Ensure image_urls is an array
+  if (Array.isArray(job.image_urls)) {
+    imageUrls = job.image_urls;
+  } else if (typeof job.image_urls === "string") {
     try {
       imageUrls = JSON.parse(job.image_urls);
-    } catch (e) {
-      console.error("Failed to parse image_urls:", e);
+    } catch (err) {
+      console.warn("Failed to parse image_urls string:", err);
     }
-  } else if (Array.isArray(job.image_urls)) {
-    imageUrls = job.image_urls;
   }
 
   return (
-    <Card className={`bg-white ${job.is_emergency ? "border-4 border-red-600" : "border"}`}>
+    <Card
+      className={`bg-white ${job.is_emergency ? "border-4 border-red-600" : "border"}`}
+    >
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div>
@@ -61,12 +67,18 @@ const JobCard: React.FC<JobCardProps> = ({ job, onEdit }) => {
         {imageUrls.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
             {imageUrls.map((url: string, idx: number) => (
-              <img
+              <a
                 key={idx}
-                src={url}
-                alt={`Job image ${idx + 1}`}
-                className="w-full h-28 object-cover rounded border"
-              />
+                href={url}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <img
+                  src={url}
+                  alt={`Job image ${idx + 1}`}
+                  className="w-full h-28 object-cover rounded border hover:opacity-90 transition"
+                />
+              </a>
             ))}
           </div>
         )}
