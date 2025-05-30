@@ -118,18 +118,25 @@ const DashboardJobs = () => {
                 </div>
               </div>
 
+              {/* ✅ Show All Uploaded Images in Grid */}
               {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
-                <a
-                  href={job.image_urls[0]}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <img
-                    src={job.image_urls[0]}
-                    alt="Job image"
-                    className="w-full h-40 object-cover rounded-md border hover:opacity-90 transition"
-                  />
-                </a>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                  {job.image_urls.map((url: string, idx: number) => (
+                    <a
+                      key={idx}
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="block"
+                    >
+                      <img
+                        src={url}
+                        alt={`Job image ${idx + 1}`}
+                        className="w-full h-32 object-cover rounded border hover:opacity-90 transition"
+                      />
+                    </a>
+                  ))}
+                </div>
               )}
 
               <p className="text-sm">{job.description}</p>
