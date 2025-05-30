@@ -17,6 +17,8 @@ export default function ProfilePage() {
     business_website: "",
     avatar_url: "",
     status: "pending",
+    bio: "",
+    portfolio: []
   })
 
   useEffect(() => {
@@ -103,10 +105,10 @@ export default function ProfilePage() {
     <div className="max-w-3xl mx-auto p-6">
       <h1 className="text-2xl font-bold mb-4">Tradie Profile</h1>
 
-      {profile.avatar_url && (
+      {formData.avatar_url && (
         <div className="mb-4">
           <img
-            src={`https://nlgiukcwbexfxkzdvzzq.supabase.co/storage/v1/object/public/avatars/${profile.avatar_url.split("/").pop()}`}
+            src={`https://nlgiukcwbexfxkzdvzzq.supabase.co/storage/v1/object/public/avatars/${formData.avatar_url.split("/").pop()}`}
             alt="Avatar"
             className="w-32 h-32 rounded-full object-cover"
           />
@@ -120,17 +122,9 @@ export default function ProfilePage() {
 
       {editing ? (
         <div className="space-y-4">
-          {[
-            ["first_name", "First Name"],
-            ["last_name", "Last Name"],
-            ["phone", "Phone"],
-            ["abn", "ABN"],
-            ["license", "License"],
-            ["business_name", "Business Name"],
-            ["business_website", "Business Website"]
-          ].map(([field, label]) => (
+          {["first_name", "last_name", "phone", "abn", "license", "business_name", "business_website"].map((field) => (
             <div key={field}>
-              <label className="block font-medium">{label}</label>
+              <label className="block font-medium capitalize">{field.replace("_", " ")}</label>
               <input
                 className="w-full border p-2"
                 name={field}
@@ -139,6 +133,16 @@ export default function ProfilePage() {
               />
             </div>
           ))}
+          <div>
+            <label className="block font-medium">Bio</label>
+            <textarea
+              className="w-full border p-2"
+              name="bio"
+              rows={4}
+              value={formData.bio || ""}
+              onChange={handleChange}
+            />
+          </div>
           <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={handleSave}>
             Save Profile
           </button>
@@ -152,6 +156,7 @@ export default function ProfilePage() {
           <p><strong>License:</strong> {profile.license}</p>
           <p><strong>Business:</strong> {profile.business_name}</p>
           <p><strong>Website:</strong> <a className="text-blue-600 underline" href={profile.business_website} target="_blank" rel="noreferrer">{profile.business_website}</a></p>
+          <p><strong>Bio:</strong> {profile.bio || "No bio available."}</p>
           <p>
             <strong>Status:</strong> <span className={`inline-block px-2 py-1 rounded text-white text-xs ${
               profile.status === "approved"
