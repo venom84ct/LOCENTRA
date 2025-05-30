@@ -22,24 +22,21 @@ interface JobCardProps {
 }
 
 const JobCard: React.FC<JobCardProps> = ({ job, onEdit }) => {
-  console.log("🧪 job.image_urls:", job.image_urls); // Debug output
-
+  // ✅ Convert stringified image_urls to array if necessary
   let imageUrls: string[] = [];
 
-  try {
-    if (Array.isArray(job.image_urls)) {
-      imageUrls = job.image_urls;
-    } else if (typeof job.image_urls === "string") {
+  if (typeof job.image_urls === "string") {
+    try {
       imageUrls = JSON.parse(job.image_urls);
+    } catch (e) {
+      console.error("Failed to parse image_urls:", e);
     }
-  } catch (error) {
-    console.error("❌ Failed to parse image_urls", error);
+  } else if (Array.isArray(job.image_urls)) {
+    imageUrls = job.image_urls;
   }
 
   return (
-    <Card
-      className={`bg-white ${job.is_emergency ? "border-4 border-red-600" : "border"}`}
-    >
+    <Card className={`bg-white ${job.is_emergency ? "border-4 border-red-600" : "border"}`}>
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div>
