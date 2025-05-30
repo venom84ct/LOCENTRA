@@ -22,20 +22,18 @@ interface JobCardProps {
 }
 
 const JobCard: React.FC<JobCardProps> = ({ job, onEdit }) => {
-  // ✅ Safely parse image_urls whether it's an array or a string
+  console.log("🧪 job.image_urls:", job.image_urls); // Debug output
+
   let imageUrls: string[] = [];
 
   try {
     if (Array.isArray(job.image_urls)) {
       imageUrls = job.image_urls;
     } else if (typeof job.image_urls === "string") {
-      const parsed = JSON.parse(job.image_urls);
-      if (Array.isArray(parsed)) {
-        imageUrls = parsed;
-      }
+      imageUrls = JSON.parse(job.image_urls);
     }
-  } catch (e) {
-    console.warn("Could not parse image_urls:", e);
+  } catch (error) {
+    console.error("❌ Failed to parse image_urls", error);
   }
 
   return (
@@ -62,10 +60,10 @@ const JobCard: React.FC<JobCardProps> = ({ job, onEdit }) => {
       </CardHeader>
 
       <CardContent>
-        {/* ✅ Display images in a responsive grid */}
+        {/* ✅ Image Grid */}
         {imageUrls.length > 0 && (
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4">
-            {imageUrls.map((url, idx) => (
+            {imageUrls.map((url: string, idx: number) => (
               <img
                 key={idx}
                 src={url}
