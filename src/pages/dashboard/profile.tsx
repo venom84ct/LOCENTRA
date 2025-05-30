@@ -79,8 +79,6 @@ const ProfilePage = () => {
       setProfile(prev => ({ ...prev, ...formData }));
       setIsEditing(false);
       alert("✅ Profile updated successfully!");
-    } else {
-      alert("❌ Failed to update profile: " + error.message);
     }
   };
 
@@ -93,7 +91,7 @@ const ProfilePage = () => {
   });
 
   return (
-    <DashboardLayout userType="centraResident" user={profile} hideTopRightUserInfo>
+    <DashboardLayout userType="centraResident" user={{ ...profile, full_name: fullName }}>
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-6">
