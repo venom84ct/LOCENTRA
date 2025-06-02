@@ -25,21 +25,53 @@ export default function ProfilePage() {
     const fetchProfile = async () => {
       const {
         data: { user },
+        error: userError,
       } = await supabase.auth.getUser()
 
-      if (user) {
-        const { data, error } = await supabase
-          .from("profile_centra_resident")
+      if (user && !userError) {
+        let { data, error } = await supabase
+          .from("profile_centra_tradie")
           .select("*")
-          .eq("id", user.id)
-          .single()
+          .eq("user_id", user.id)
+          .maybeSingle()
 
         if (error) {
           console.error("Error fetching profile:", error)
-        } else {
+        }
+
+        // Auto-create profile if not found
+        if (!data) {
+          const { data: inserted, error: insertError } = await supabase
+            .from("profile_centra_tradie")
+            .insert({
+              user_id: user.id,
+              email: user.email,
+              status: "pending",
+              first_name: "",
+              last_name: "",
+              abn: "",
+              license: "",
+              business_name: "",
+              business_website: "",
+              avatar_url: "",
+              bio: "",
+              portfolio: []
+            })
+            .select()
+            .maybeSingle()
+
+          if (insertError) {
+            console.error("Error creating profile:", insertError)
+          } else {
+            data = inserted
+          }
+        }
+
+        if (data) {
           setProfile(data)
           setFormData(data)
         }
+
         setLoading(false)
       }
     }
@@ -58,9 +90,9 @@ export default function ProfilePage() {
     } = await supabase.auth.getUser()
 
     const { error } = await supabase
-      .from("profile_centra_resident")
+      .from("profile_centra_tradie")
       .update(formData)
-      .eq("id", user.id)
+      .eq("user_id", user.id)
 
     if (error) {
       console.error("Error saving profile:", error)
@@ -86,9 +118,9 @@ export default function ProfilePage() {
     }
 
     const { error: updateError } = await supabase
-      .from("profile_centra_resident")
+      .from("profile_centra_tradie")
       .update({ avatar_url: filePath })
-      .eq("id", profile.id)
+      .eq("user_id", profile.user_id)
 
     if (updateError) {
       alert("Failed to update avatar URL.")
