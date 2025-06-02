@@ -4,7 +4,7 @@ import { useSession } from "@supabase/auth-helpers-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import DashboardLayout from "@/components/layouts/DashboardLayout";
-import { Trash2 } from "lucide-react";
+import { Trash2, X, Loader2 } from "lucide-react";
 
 interface TradieProfile {
   id: number;
@@ -26,11 +26,13 @@ export default function TradieProfilePage() {
   const [profile, setProfile] = useState<TradieProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [newPortfolioItem, setNewPortfolioItem] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
+  // Fetch & subscribe
   useEffect(() => {
-    const fetchOrCreateProfile = async () => {
-      if (!user) return;
+    if (!user) return;
 
+    const fetchOrCreateProfile = async () => {
       const { data, error } = await supabase
         .from("profile_centra_tradie")
         .select("*")
@@ -44,21 +46,31 @@ export default function TradieProfilePage() {
           .select()
           .single();
 
-        if (insertError) {
-          console.error("Error creating profile:", insertError);
-        } else {
-          setProfile(newProfile);
-        }
+        if (!insertError) setProfile(newProfile);
       } else if (data) {
         setProfile(data);
-      } else if (error) {
-        console.error("Error fetching profile:", error);
       }
 
       setLoading(false);
     };
 
     fetchOrCreateProfile();
+
+    // Subscribe to profile updates
+    const subscription = supabase
+      .channel("profile-updates")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "profile_centra_tradie", filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          if (payload.new) setProfile(payload.new as TradieProfile);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(subscription);
+    };
   }, [user]);
 
   const handleChange = (field: keyof TradieProfile, value: string) => {
@@ -84,12 +96,8 @@ export default function TradieProfilePage() {
       .select()
       .single();
 
-    if (error) {
-      console.error("Error updating profile:", error);
-    } else {
-      setProfile(data);
-      alert("Profile updated.");
-    }
+    if (!error) alert("Profile updated.");
+    else console.error("Error saving profile:", error);
   };
 
   const uploadAvatar = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -101,17 +109,13 @@ export default function TradieProfilePage() {
       .from("tradie-avatars")
       .upload(filePath, file, { upsert: true });
 
-    if (uploadError) {
-      console.error("Avatar upload error:", uploadError);
-      return;
-    }
+    if (uploadError) return console.error("Upload error:", uploadError);
 
     const { data: urlData } = supabase.storage
       .from("tradie-avatars")
       .getPublicUrl(filePath);
 
     const avatar_url = urlData.publicUrl;
-
     setProfile((prev) => prev ? { ...prev, avatar_url } : prev);
   };
 
@@ -131,8 +135,39 @@ export default function TradieProfilePage() {
     );
   };
 
-  if (loading) return <DashboardLayout><div className="p-4">Loading...</div></DashboardLayout>;
-  if (!profile) return <DashboardLayout><div className="p-4">Profile not found.</div></DashboardLayout>;
+  const handleDeleteProfile = async () => {
+    if (!user) return;
+
+    const { error } = await supabase
+      .from("profile_centra_tradie")
+      .delete()
+      .eq("user_id", user.id);
+
+    if (error) {
+      console.error("Delete failed:", error);
+    } else {
+      setProfile(null);
+      alert("Profile deleted.");
+    }
+  };
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="p-4 flex items-center gap-2">
+          <Loader2 className="animate-spin" /> Loading...
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <DashboardLayout>
+        <div className="p-4 text-red-600 font-medium">Profile not found.</div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -193,7 +228,7 @@ export default function TradieProfilePage() {
           />
         </div>
 
-        {/* Portfolio Items */}
+        {/* Portfolio */}
         <div>
           <label>Portfolio</label>
           <div className="flex gap-2 mb-2">
@@ -204,18 +239,15 @@ export default function TradieProfilePage() {
             />
             <Button onClick={addPortfolioItem}>Add</Button>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-3">
             {(profile.portfolio || []).map((item, idx) => (
-              <div
-                key={idx}
-                className="flex items-center px-3 py-1 rounded-full bg-gray-100 border"
-              >
-                {item}
+              <div key={idx} className="relative border rounded p-2">
+                <span>{item}</span>
                 <button
-                  className="ml-2 text-red-500"
                   onClick={() => removePortfolioItem(item)}
+                  className="absolute -top-2 -right-2 bg-white rounded-full text-red-600 hover:bg-gray-100"
                 >
-                  <Trash2 size={14} />
+                  <X size={14} />
                 </button>
               </div>
             ))}
@@ -228,10 +260,29 @@ export default function TradieProfilePage() {
             ⭐ Average Rating:{" "}
             <strong>{profile.review_avg?.toFixed(1) ?? "N/A"}</strong>
           </p>
-          <p>📝 Reviews Count: <strong>{profile.review_count ?? 0}</strong></p>
+          <p>
+            📝 Reviews Count: <strong>{profile.review_count ?? 0}</strong>
+          </p>
         </div>
 
-        <Button onClick={handleSave}>Save Changes</Button>
+        {/* Actions */}
+        <div className="flex items-center gap-4 mt-6">
+          <Button onClick={handleSave}>Save Changes</Button>
+          {!confirmDelete ? (
+            <Button variant="destructive" onClick={() => setConfirmDelete(true)}>
+              Delete Profile
+            </Button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Button variant="destructive" onClick={handleDeleteProfile}>
+                Confirm Delete
+              </Button>
+              <Button variant="outline" onClick={() => setConfirmDelete(false)}>
+                Cancel
+              </Button>
+            </div>
+          )}
+        </div>
       </div>
     </DashboardLayout>
   );
