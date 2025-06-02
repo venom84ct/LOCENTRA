@@ -1,212 +1,134 @@
-import React, { useEffect, useState } from "react"
-import { supabase } from "@/lib/supabaseClient"
-import JobHistoryAndReviews from "@/components/JobHistoryAndReviews"
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import { useSession } from "@supabase/auth-helpers-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import DashboardLayout from "@/components/layouts/DashboardLayout";
 
-export default function ProfilePage() {
-  const [profile, setProfile] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [editing, setEditing] = useState(false)
-  const [formData, setFormData] = useState({
-    first_name: "",
-    last_name: "",
-    email: "",
-    phone: "",
-    abn: "",
-    license: "",
-    business_name: "",
-    business_website: "",
-    avatar_url: "",
-    status: "pending",
-    bio: "",
-    portfolio: []
-  })
+interface TradieProfile {
+  id: number;
+  user_id: string;
+  first_name: string | null;
+  last_name: string | null;
+  abn: string | null;
+  license: string | null;
+  bio: string | null;
+  portfolio: string[] | null;
+}
+
+export default function TradieProfilePage() {
+  const session = useSession();
+  const user = session?.user;
+  const [profile, setProfile] = useState<TradieProfile | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser()
+    const fetchOrCreateProfile = async () => {
+      if (!user) return;
 
-      if (user && !userError) {
-        let { data, error } = await supabase
+      // Try to fetch existing profile
+      const { data, error } = await supabase
+        .from("profile_centra_tradie")
+        .select("*")
+        .eq("user_id", user.id)
+        .single();
+
+      if (error && error.code === "PGRST116") {
+        // No profile found, create a new one
+        const { data: newProfile, error: insertError } = await supabase
           .from("profile_centra_tradie")
-          .select("*")
-          .eq("user_id", user.id)
-          .maybeSingle()
+          .insert([{ user_id: user.id }])
+          .select()
+          .single();
 
-        if (error) {
-          console.error("Error fetching profile:", error)
+        if (insertError) {
+          console.error("Error creating profile:", insertError);
+        } else {
+          setProfile(newProfile);
         }
-
-        // Auto-create profile if not found
-        if (!data) {
-          const { data: inserted, error: insertError } = await supabase
-            .from("profile_centra_tradie")
-            .insert({
-              user_id: user.id,
-              email: user.email,
-              status: "pending",
-              first_name: "",
-              last_name: "",
-              abn: "",
-              license: "",
-              business_name: "",
-              business_website: "",
-              avatar_url: "",
-              bio: "",
-              portfolio: []
-            })
-            .select()
-            .maybeSingle()
-
-          if (insertError) {
-            console.error("Error creating profile:", insertError)
-          } else {
-            data = inserted
-          }
-        }
-
-        if (data) {
-          setProfile(data)
-          setFormData(data)
-        }
-
-        setLoading(false)
+      } else if (data) {
+        setProfile(data);
+      } else if (error) {
+        console.error("Error fetching profile:", error);
       }
-    }
 
-    fetchProfile()
-  }, [])
+      setLoading(false);
+    };
 
-  const handleChange = (e) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({ ...prev, [name]: value }))
-  }
+    fetchOrCreateProfile();
+  }, [user]);
+
+  const handleChange = (field: keyof TradieProfile, value: string) => {
+    if (!profile) return;
+    setProfile({ ...profile, [field]: value });
+  };
 
   const handleSave = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
+    if (!profile || !user) return;
 
-    const { error } = await supabase
+    const { data, error } = await supabase
       .from("profile_centra_tradie")
-      .update(formData)
+      .update({
+        first_name: profile.first_name,
+        last_name: profile.last_name,
+        abn: profile.abn,
+        license: profile.license,
+        bio: profile.bio,
+      })
       .eq("user_id", user.id)
+      .select()
+      .single();
 
     if (error) {
-      console.error("Error saving profile:", error)
+      console.error("Error updating profile:", error);
     } else {
-      alert("Profile updated!")
-      setEditing(false)
+      setProfile(data);
+      alert("Profile updated successfully.");
     }
-  }
+  };
 
-  const handleAvatarUpload = async (e) => {
-    const file = e.target.files[0]
-    const fileExt = file.name.split(".").pop()
-    const fileName = `${Date.now()}.${fileExt}`
-    const filePath = `avatars/${fileName}`
-
-    const { error: uploadError } = await supabase.storage
-      .from("avatars")
-      .upload(filePath, file)
-
-    if (uploadError) {
-      alert("Avatar upload failed.")
-      return
-    }
-
-    const { error: updateError } = await supabase
-      .from("profile_centra_tradie")
-      .update({ avatar_url: filePath })
-      .eq("user_id", profile.user_id)
-
-    if (updateError) {
-      alert("Failed to update avatar URL.")
-    } else {
-      setFormData({ ...formData, avatar_url: filePath })
-      setProfile({ ...profile, avatar_url: filePath })
-      alert("Avatar updated!")
-    }
-  }
-
-  if (loading) return <div>Loading profile...</div>
+  if (loading) return <DashboardLayout><div className="p-4">Loading...</div></DashboardLayout>;
+  if (!profile) return <DashboardLayout><div className="p-4">Error loading profile.</div></DashboardLayout>;
 
   return (
-    <div className="max-w-3xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-4">Tradie Profile</h1>
+    <DashboardLayout>
+      <div className="max-w-xl mx-auto p-4 space-y-6">
+        <h1 className="text-2xl font-bold">Tradie Profile</h1>
 
-      {formData.avatar_url && (
-        <div className="mb-4">
-          <img
-            src={`https://nlgiukcwbexfxkzdvzzq.supabase.co/storage/v1/object/public/avatars/${formData.avatar_url.split("/").pop()}`}
-            alt="Avatar"
-            className="w-32 h-32 rounded-full object-cover"
+        <div className="space-y-2">
+          <label>First Name</label>
+          <Input
+            value={profile.first_name || ""}
+            onChange={(e) => handleChange("first_name", e.target.value)}
+          />
+
+          <label>Last Name</label>
+          <Input
+            value={profile.last_name || ""}
+            onChange={(e) => handleChange("last_name", e.target.value)}
+          />
+
+          <label>ABN</label>
+          <Input
+            value={profile.abn || ""}
+            onChange={(e) => handleChange("abn", e.target.value)}
+          />
+
+          <label>License</label>
+          <Input
+            value={profile.license || ""}
+            onChange={(e) => handleChange("license", e.target.value)}
+          />
+
+          <label>Bio</label>
+          <Input
+            value={profile.bio || ""}
+            onChange={(e) => handleChange("bio", e.target.value)}
           />
         </div>
-      )}
 
-      <div className="mb-4">
-        <label className="block font-medium mb-1">Change Profile Picture</label>
-        <input type="file" accept="image/*" onChange={handleAvatarUpload} />
+        <Button onClick={handleSave}>Save Changes</Button>
       </div>
-
-      {editing ? (
-        <div className="space-y-4">
-          {["first_name", "last_name", "phone", "abn", "license", "business_name", "business_website"].map((field) => (
-            <div key={field}>
-              <label className="block font-medium capitalize">{field.replace("_", " ")}</label>
-              <input
-                className="w-full border p-2"
-                name={field}
-                value={formData[field] || ""}
-                onChange={handleChange}
-              />
-            </div>
-          ))}
-          <div>
-            <label className="block font-medium">Bio</label>
-            <textarea
-              className="w-full border p-2"
-              name="bio"
-              rows={4}
-              value={formData.bio || ""}
-              onChange={handleChange}
-            />
-          </div>
-          <button className="bg-blue-500 text-white px-4 py-2 rounded" onClick={handleSave}>
-            Save Profile
-          </button>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          <p><strong>Name:</strong> {profile.first_name} {profile.last_name}</p>
-          <p><strong>Email:</strong> {profile.email}</p>
-          <p><strong>Phone:</strong> {profile.phone}</p>
-          <p><strong>ABN:</strong> {profile.abn}</p>
-          <p><strong>License:</strong> {profile.license}</p>
-          <p><strong>Business:</strong> {profile.business_name}</p>
-          <p><strong>Website:</strong> <a className="text-blue-600 underline" href={profile.business_website} target="_blank" rel="noreferrer">{profile.business_website}</a></p>
-          <p><strong>Bio:</strong> {profile.bio || "No bio available."}</p>
-          <p>
-            <strong>Status:</strong> <span className={`inline-block px-2 py-1 rounded text-white text-xs ${
-              profile.status === "approved"
-                ? "bg-green-500"
-                : profile.status === "pending"
-                ? "bg-yellow-500"
-                : "bg-red-500"
-            }`}>
-              {profile.status}
-            </span>
-          </p>
-          <button className="mt-4 bg-gray-800 text-white px-4 py-2 rounded" onClick={() => setEditing(true)}>
-            Edit Profile
-          </button>
-        </div>
-      )}
-
-      <JobHistoryAndReviews />
-    </div>
-  )
+    </DashboardLayout>
+  );
 }
