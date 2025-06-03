@@ -25,7 +25,7 @@ const FindJobsPage = () => {
       const { data, error } = await supabase
         .from("jobs")
         .select("*")
-        .or("status.eq.open,status.eq.available")
+        .in("status", ["open", "available"])
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -50,7 +50,7 @@ const FindJobsPage = () => {
     return matchesSearch && matchesCategory && matchesEmergency;
   });
 
-  const categories = Array.from(new Set(jobs.map((job) => job.category)));
+  const categories = Array.from(new Set(jobs.map((job) => job.category).filter(Boolean)));
 
   const mockUser = {
     name: "Mike Johnson",
