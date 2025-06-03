@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { supabase } from "@/lib/supabaseClient";
-import JobCard from "@/components/jobs/JobCard";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,7 +23,7 @@ const FindJobsPage = () => {
     const fetchJobs = async () => {
       const { data, error } = await supabase
         .from("jobs")
-        .select("*")
+        .select("*, profile_centra_resident(first_name, last_name, avatar_url)")
         .or("status.eq.open,status.eq.available")
         .order("created_at", { ascending: false });
 
@@ -154,7 +153,30 @@ const FindJobsPage = () => {
               <div className="grid grid-cols-1 gap-4">
                 {filteredJobs.length > 0 ? (
                   filteredJobs.map((job) => (
-                    <JobCard key={job.id} job={job} />
+                    <Card key={job.id} className="bg-white border rounded-xl shadow-sm p-6">
+                      <div className="flex justify-between items-start mb-2">
+                        <div>
+                          <h2 className="text-lg font-semibold">{job.title}</h2>
+                          <p className="text-sm text-muted-foreground">{job.category}</p>
+                          <div className="flex items-center space-x-2 mt-2">
+                            <img
+                              src={job.profile_centra_resident?.avatar_url || "https://via.placeholder.com/40"}
+                              alt="avatar"
+                              className="h-8 w-8 rounded-full border"
+                            />
+                            <span className="text-sm text-muted-foreground">
+                              Posted by: {job.profile_centra_resident?.first_name} {job.profile_centra_resident?.last_name}
+                            </span>
+                          </div>
+                        </div>
+                        {job.is_emergency && (
+                          <Badge variant="destructive" className="text-xs">
+                            Emergency
+                          </Badge>
+                        )}
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-2">{job.description}</p>
+                    </Card>
                   ))
                 ) : (
                   <Card className="bg-white">
