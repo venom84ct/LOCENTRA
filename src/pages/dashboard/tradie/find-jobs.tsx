@@ -212,7 +212,7 @@ const FindJobsPage = () => {
                           {job.profile_centra_resident?.last_name}
                         </span>
                       </div>
-                      <Button onClick={() => handleBuyLead(job)}>Buy Lead</Button>
+                      <Button onClick={() => handlePurchaseLead(job)}>Purchase Lead</Button>
                     </Card>
                   ))
                 ) : (
