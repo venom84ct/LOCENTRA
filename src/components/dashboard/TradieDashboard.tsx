@@ -1,124 +1,139 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
   Card,
-  CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
+  CardDescription,
+  CardContent,
 } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  MapPin,
-  Gift,
-  ClipboardList,
-  MessageSquare,
-  PlusCircle,
-} from "lucide-react";
+import { Star, Phone, Mail, MapPin, BadgeCheck } from "lucide-react";
 
-interface TradieProfile {
-  first_name?: string;
-  last_name?: string;
-  avatar_url?: string;
-  address?: string;
-  created_at?: string;
-  credits?: number;
-  rating_avg?: number;
-  rating_count?: number;
-  jobs?: { status: string }[];
-}
+const TradieProfilePage = () => {
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabase
+        .from("profile_centra_tradie")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      if (!error && data) {
+        setProfile({
+          ...data,
+          portfolio: Array.isArray(data.portfolio) ? data.portfolio : [],
+        });
+      }
+
+      setLoading(false);
+    };
+
+    fetchProfile();
+  }, []);
+
+  if (loading) return <div className="p-6">Loading...</div>;
+  if (!profile) return <div className="p-6 text-red-600">Profile not found.</div>;
+
   const fullName = `${profile.first_name || ""} ${profile.last_name || ""}`.trim();
-  const joinDate = profile?.created_at
+  const joinDate = profile.created_at
     ? new Date(profile.created_at).toLocaleDateString("en-AU", {
-        year: "numeric",
         month: "long",
-        day: "numeric",
+        year: "numeric",
       })
     : "Unknown";
 
-  const activeJobs = profile.jobs?.filter((j) => j.status === "open").length || 0;
-  const completedJobs = profile.jobs?.filter((j) => j.status === "completed").length || 0;
-  const totalJobs = activeJobs + completedJobs;
-
   return (
-    <div className="p-4 space-y-6 max-w-7xl mx-auto">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Profile Summary */}
+    <DashboardLayout userType="tradie">
+      <div className="p-6 max-w-4xl mx-auto space-y-6">
         <Card>
-          <CardHeader>
-            <CardTitle>Profile</CardTitle>
-            <CardDescription>Your account information</CardDescription>
-          </CardHeader>
-          <CardContent className="flex items-center space-x-4">
-            <Avatar className="h-14 w-14">
+          <CardContent className="flex flex-col items-center text-center space-y-2 py-8">
+            <Avatar className="w-20 h-20">
               <AvatarImage src={profile.avatar_url} />
-              <AvatarFallback>{fullName.slice(0, 2).toUpperCase() || "TR"}</AvatarFallback>
+              <AvatarFallback>{fullName.slice(0, 2).toUpperCase()}</AvatarFallback>
             </Avatar>
-            <div className="text-sm">
-              <p className="font-semibold">{fullName || "Tradie"}</p>
-              <p className="text-muted-foreground">Member since {joinDate}</p>
-              {profile.address && (
-                <div className="flex items-center text-xs text-muted-foreground mt-1">
-                  <MapPin className="h-4 w-4 mr-1" /> {profile.address}
-                </div>
-              )}
-              <div className="text-xs mt-1">
-                <Gift className="inline h-4 w-4 mr-1" />
-                {profile.credits || 0} credits
+            <h2 className="text-lg font-semibold">{fullName || "Tradie"}</h2>
+            <p className="text-sm text-muted-foreground">
+              {profile.bio || "No bio added."}
+            </p>
+            <div className="flex items-center text-sm text-muted-foreground space-x-1">
+              <Star className="w-4 h-4 text-yellow-500" />
+              <span>
+                {(profile.rating_avg || 0).toFixed(1)} ({profile.rating_count || 0} reviews)
+              </span>
+            </div>
+            <Button className="mt-2" variant="default" asChild>
+              <a href="/dashboard/tradie/profile?edit=true">Edit Profile</a>
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Contact Information</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm">
+            {profile.email && (
+              <div className="flex items-center">
+                <Mail className="w-4 h-4 mr-2 text-muted-foreground" />
+                {profile.email}
               </div>
+            )}
+            {profile.phone && (
+              <div className="flex items-center">
+                <Phone className="w-4 h-4 mr-2 text-muted-foreground" />
+                {profile.phone}
+              </div>
+            )}
+            {profile.address && (
+              <div className="flex items-center">
+                <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
+                {profile.address}
+              </div>
+            )}
+            <div className="flex items-center">
+              <BadgeCheck className="w-4 h-4 mr-2 text-muted-foreground" />
+              ABN: {profile.abn || "N/A"}, License: {profile.license || "N/A"}
             </div>
+            <div className="text-muted-foreground">Member since {joinDate}</div>
           </CardContent>
         </Card>
 
-        {/* Job Summary */}
         <Card>
           <CardHeader>
-            <CardTitle>Job Summary</CardTitle>
-            <CardDescription>Overview of your job activity</CardDescription>
+            <CardTitle>Portfolio</CardTitle>
+            <CardDescription>Max 6 images</CardDescription>
           </CardHeader>
-          <CardContent className="text-sm space-y-1">
-            <div className="flex justify-between">
-              <span>Active Jobs</span>
-              <span>{activeJobs}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Completed</span>
-              <span>{completedJobs}</span>
-            </div>
-            <div className="flex justify-between font-medium">
-              <span>Total Jobs</span>
-              <span>{totalJobs}</span>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
-            <CardDescription>Manage your jobs and activity</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Button className="w-full" variant="default">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Post a New Job
-            </Button>
-            <Button className="w-full" variant="outline">
-              <MessageSquare className="mr-2 h-4 w-4" />
-              Messages
-            </Button>
-            <Button className="w-full" variant="outline">
-              <ClipboardList className="mr-2 h-4 w-4" />
-              Job History
-            </Button>
+          <CardContent>
+            {profile.portfolio?.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {profile.portfolio.slice(0, 6).map((url: string, idx: number) => (
+                  <img
+                    key={idx}
+                    src={url}
+                    alt={`Portfolio ${idx + 1}`}
+                    className="w-full h-32 object-cover rounded border"
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No portfolio images uploaded.</p>
+            )}
           </CardContent>
         </Card>
       </div>
-    </div>
+    </DashboardLayout>
   );
 };
 
-export default TradieDashboard;
+export default TradieProfilePage;
