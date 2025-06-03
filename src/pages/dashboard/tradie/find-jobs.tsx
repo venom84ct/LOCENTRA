@@ -1,4 +1,3 @@
-// src/pages/dashboard/find-jobs.tsx
 import React, { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { supabase } from "@/lib/supabaseClient";
@@ -24,7 +23,7 @@ const FindJobsPage = () => {
   const fetchJobs = async () => {
     const { data, error } = await supabase
       .from("jobs")
-      .select("*, profile_centra_resident(id, first_name, last_name, avatar_url)")
+      .select("*, profile_centra_resident:homeowner_id(id, first_name, last_name, avatar_url)")
       .or("status.eq.open,status.eq.available")
       .order("created_at", { ascending: false });
 
@@ -60,7 +59,6 @@ const FindJobsPage = () => {
 
     if (!user?.id) return;
 
-    // Create a conversation (if not exists)
     const { data: existingConvo } = await supabase
       .from("conversations")
       .select("*")
@@ -106,6 +104,7 @@ const FindJobsPage = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {/* Filter Sidebar */}
             <div className="md:col-span-1">
               <Card className="bg-white sticky top-24">
                 <CardHeader>
@@ -159,58 +158,61 @@ const FindJobsPage = () => {
                       id="emergency-only"
                       checked={showEmergencyOnly}
                       onChange={() => setShowEmergencyOnly(!showEmergencyOnly)}
-                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      className="h-4 w-4"
                     />
                     <label htmlFor="emergency-only" className="text-sm font-medium">
                       Emergency jobs only
                     </label>
                   </div>
 
-                  <div className="pt-4">
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => {
-                        setSearchTerm("");
-                        setSelectedCategory(null);
-                        setShowEmergencyOnly(false);
-                      }}
-                    >
-                      Reset Filters
-                    </Button>
-                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full mt-4"
+                    onClick={() => {
+                      setSearchTerm("");
+                      setSelectedCategory(null);
+                      setShowEmergencyOnly(false);
+                    }}
+                  >
+                    Reset Filters
+                  </Button>
                 </CardContent>
               </Card>
             </div>
 
+            {/* Jobs Display */}
             <div className="md:col-span-3">
               <div className="grid grid-cols-1 gap-4">
                 {filteredJobs.length > 0 ? (
                   filteredJobs.map((job) => (
                     <Card
                       key={job.id}
-                      className={`bg-white border rounded-lg shadow-sm p-4 space-y-4 ${
-                        job.is_emergency ? "border-red-600 border-2" : "border-gray-200"
+                      className={`bg-white p-4 rounded-lg border shadow-sm space-y-4 ${
+                        job.is_emergency ? "border-red-600 border-2" : ""
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <User className="h-5 w-5 text-muted-foreground" />
-                        <span className="font-medium">
-                          {job.profile_centra_resident?.first_name || "Unknown"} {job.profile_centra_resident?.last_name || ""}
-                        </span>
-                        {job.profile_centra_resident?.avatar_url && (
+                        {job.profile_centra_resident?.avatar_url ? (
                           <img
                             src={job.profile_centra_resident.avatar_url}
                             alt="Avatar"
-                            className="h-8 w-8 rounded-full ml-auto"
+                            className="h-8 w-8 rounded-full"
                           />
+                        ) : (
+                          <User className="h-6 w-6 text-muted-foreground" />
                         )}
+                        <span className="font-medium">
+                          {job.profile_centra_resident?.first_name || "Unknown"}{" "}
+                          {job.profile_centra_resident?.last_name || ""}
+                        </span>
                       </div>
                       <div>
                         <h2 className="text-lg font-semibold">{job.title}</h2>
                         <p className="text-muted-foreground text-sm">{job.description}</p>
                       </div>
-                      <Button onClick={() => handlePurchaseLead(job)}>Purchase Lead</Button>
+                      <Button onClick={() => handlePurchaseLead(job)}>
+                        Purchase Lead
+                      </Button>
                     </Card>
                   ))
                 ) : (
