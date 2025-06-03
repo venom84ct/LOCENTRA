@@ -18,21 +18,31 @@ const JobPreviewPage = () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) return;
+      if (!user?.id) return;
 
-      const { data: profileData } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from("profile_centra_tradie")
         .select("*")
         .eq("id", user.id)
         .single();
 
+      if (profileError || !profileData) {
+        console.error("Failed to fetch tradie profile:", profileError);
+        return;
+      }
+
       setProfile(profileData);
 
-      const { data: jobData } = await supabase
+      const { data: jobData, error: jobError } = await supabase
         .from("jobs")
         .select("*")
         .eq("id", id)
         .single();
+
+      if (jobError || !jobData) {
+        console.error("Failed to fetch job:", jobError);
+        return;
+      }
 
       setJob(jobData);
       setLoading(false);
@@ -48,38 +58,73 @@ const JobPreviewPage = () => {
     const updatedCredits = profile.credits - leadCost;
 
     if (updatedCredits < 0) {
-      alert("Not enough credits");
+      alert("You do not have enough credits.");
       return;
     }
 
-    // Assign tradie to job
+    // Check if tradie already assigned
+    if (job.tradie_id) {
+      alert("This job has already been assigned to another tradie.");
+      return;
+    }
+
+    // Update job with tradie_id
     const { error: jobUpdateError } = await supabase
       .from("jobs")
       .update({ tradie_id: profile.id })
       .eq("id", job.id);
 
     if (jobUpdateError) {
-      alert("Failed to assign job.");
+      alert("Failed to assign the job.");
       return;
     }
 
-    // Deduct tradie's credits
-    await supabase
+    // Deduct credits
+    const { error: creditError } = await supabase
       .from("profile_centra_tradie")
       .update({ credits: updatedCredits })
       .eq("id", profile.id);
 
-    // Create conversation
-    await supabase.from("conversations").insert([
-      {
-        job_id: job.id,
-        homeowner_id: job.homeowner_id,
-        tradie_id: profile.id,
-      },
-    ]);
+    if (creditError) {
+      alert("Failed to deduct credits.");
+      return;
+    }
+
+    // Check if conversation already exists
+    const { data: existingConvo } = await supabase
+      .from("conversations")
+      .select("id")
+      .eq("job_id", job.id)
+      .eq("tradie_id", profile.id)
+      .maybeSingle();
+
+    if (!existingConvo) {
+      await supabase.from("conversations").insert([
+        {
+          job_id: job.id,
+          homeowner_id: job.homeowner_id,
+          tradie_id: profile.id,
+        },
+      ]);
+    }
 
     alert("Lead purchased. You can now message the homeowner.");
     navigate("/dashboard/tradie/my-jobs");
+  };
+
+  const renderStatus = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case "open":
+        return <Badge variant="outline">Open</Badge>;
+      case "in_progress":
+        return <Badge className="bg-blue-100 text-blue-800">In Progress</Badge>;
+      case "completed":
+        return <Badge className="bg-green-100 text-green-800">Completed</Badge>;
+      case "cancelled":
+        return <Badge className="bg-red-100 text-red-800">Cancelled</Badge>;
+      default:
+        return <Badge variant="outline">{status}</Badge>;
+    }
   };
 
   if (loading) return <div className="p-8">Loading job...</div>;
@@ -99,12 +144,15 @@ const JobPreviewPage = () => {
             <p className="text-sm text-muted-foreground">{job.category}</p>
             <div className="flex flex-col items-end space-y-1">
               {job.is_emergency && (
-                <Badge variant="destructive" className="text-xs">Emergency</Badge>
+                <Badge variant="destructive" className="text-xs">
+                  Emergency
+                </Badge>
               )}
-              <Badge>{job.status}</Badge>
+              {renderStatus(job.status)}
             </div>
           </div>
 
+          {/* Job Image */}
           {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
             <a
               href={job.image_urls[0]}
@@ -141,7 +189,7 @@ const JobPreviewPage = () => {
           </div>
 
           <div className="pt-4">
-            <Button variant="success" onClick={handlePurchaseLead}>
+            <Button variant="default" onClick={handlePurchaseLead}>
               Purchase Lead ({job.is_emergency ? 10 : 5} credits)
             </Button>
           </div>
