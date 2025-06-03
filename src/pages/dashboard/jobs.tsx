@@ -4,7 +4,14 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, DollarSign, MapPin, Clock, User, Plus } from "lucide-react";
+import {
+  Calendar,
+  DollarSign,
+  MapPin,
+  Clock,
+  User,
+  Plus,
+} from "lucide-react";
 
 const DashboardJobs = () => {
   const [jobs, setJobs] = useState<any[]>([]);
@@ -12,17 +19,20 @@ const DashboardJobs = () => {
   const navigate = useNavigate();
 
   const refetchJobs = async (userId: string) => {
-    const { data: profileData } = await supabase
+    const { data: profileData, error: profileError } = await supabase
       .from("profile_centra_resident")
       .select("*")
       .eq("id", userId)
       .single();
 
-    if (!profileData) return;
+    if (profileError || !profileData) {
+      console.error("❌ Failed to fetch profile:", profileError?.message);
+      return;
+    }
 
     setProfile(profileData);
 
-    const { data: jobsData, error } = await supabase
+    const { data: jobsData, error: jobsError } = await supabase
       .from("jobs")
       .select("*")
       .eq("homeowner_id", profileData.id)
@@ -30,8 +40,8 @@ const DashboardJobs = () => {
       .not("status", "eq", "cancelled")
       .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("❌ Failed to fetch jobs:", error.message);
+    if (jobsError) {
+      console.error("❌ Failed to fetch jobs:", jobsError.message);
     }
 
     setJobs(jobsData || []);
@@ -42,8 +52,10 @@ const DashboardJobs = () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) return;
-      await refetchJobs(user.id);
+
+      if (user?.id) {
+        await refetchJobs(user.id);
+      }
     };
 
     fetchData();
@@ -112,13 +124,15 @@ const DashboardJobs = () => {
                 </div>
                 <div className="flex flex-col items-end space-y-1">
                   {job.is_emergency && (
-                    <Badge variant="destructive" className="text-xs">Emergency</Badge>
+                    <Badge variant="destructive" className="text-xs">
+                      Emergency
+                    </Badge>
                   )}
                   {renderStatusLabel(job.status)}
                 </div>
               </div>
 
-              {/* ✅ Show All Uploaded Images in Grid */}
+              {/* Job Images */}
               {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                   {job.image_urls.map((url: string, idx: number) => (
@@ -177,7 +191,7 @@ const DashboardJobs = () => {
                 </Button>
                 <Button
                   size="sm"
-                  variant="success"
+                  variant="default"
                   onClick={() => updateStatus(job.id, "completed")}
                 >
                   Mark as Completed
