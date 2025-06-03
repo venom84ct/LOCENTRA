@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import TradieDashboardLayout from "@/components/layout/DashboardLayout";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 import SimpleMessagingSystem from "@/components/messaging/SimpleMessagingSystem";
 
 const TradieMessagesPage = () => {
@@ -35,7 +35,7 @@ const TradieMessagesPage = () => {
   }, []);
 
   return (
-    <TradieDashboardLayout userType="tradie">
+    <DashboardLayout userType="tradie">
       <div className="p-4">
         <h1 className="text-2xl font-bold mb-4">Messages</h1>
         <SimpleMessagingSystem
@@ -45,7 +45,7 @@ const TradieMessagesPage = () => {
           userAvatar={userAvatar}
         />
       </div>
-    </TradieDashboardLayout>
+    </DashboardLayout>
   );
 };
 
