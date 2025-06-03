@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import TradieDashboard from "@/components/dashboard/tradiedashboard";
-import DashboardLayout from "@/components/layout/tradiedashboard"; // Make sure this is the correct import
+import TradieDashboard from "@/components/dashboard/TradieDashboard"; // ✅ fixed import
+import DashboardLayout from "@/components/layout/tradiedashboard"; // ✅ make sure this file exists
 
 const TradieProfilePage = () => {
   const [profile, setProfile] = useState<any>(null);
@@ -34,14 +34,17 @@ const TradieProfilePage = () => {
         return;
       }
 
-      const parsedPortfolio = Array.isArray(data.portfolio)
-        ? data.portfolio
+      // Normalize portfolio safely
+      const parsedPortfolio = Array.isArray(data.portofolio)
+        ? data.portofolio
+        : typeof data.portofolio === "string"
+        ? JSON.parse(data.portofolio)
         : [];
 
       setProfile({
         ...data,
-        portfolio: parsedPortfolio,
-        previousJobs: data.previousJobs || [],
+        portofolio: parsedPortfolio,
+        previousJobs: data.previousJobs || [], // Only if you're tracking job history here
       });
 
       setLoading(false);
@@ -50,11 +53,11 @@ const TradieProfilePage = () => {
     fetchProfile();
   }, []);
 
-  if (loading) return <DashboardLayout><div className="p-6">Loading...</div></DashboardLayout>;
-  if (!profile) return <DashboardLayout><div className="p-6 text-red-600">Profile not found.</div></DashboardLayout>;
+  if (loading) return <div className="p-6">Loading...</div>;
+  if (!profile) return <div className="p-6 text-red-600">Profile not found.</div>;
 
   return (
-    <DashboardLayout>
+    <DashboardLayout userType="tradie" user={{ name: profile.name, avatar: profile.avatar_url }}>
       <TradieDashboard profile={profile} />
     </DashboardLayout>
   );
