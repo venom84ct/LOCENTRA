@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from "react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { MessageSquare } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabaseClient";
 
 interface Message {
@@ -39,27 +40,20 @@ const SimpleMessagingSystem: React.FC = () => {
       const uid = auth.user.id;
       setUserId(uid);
 
-      const { data: convos, error: convoErr } = await supabase
+      const { data: convos } = await supabase
         .from("conversations")
         .select("*")
         .or(`tradie_id.eq.${uid},homeowner_id.eq.${uid}`);
 
-      if (convoErr || !convos) {
-        console.error("Error loading conversations:", convoErr);
-        return;
-      }
+      if (!convos) return;
 
       const convosWithDetails: Conversation[] = await Promise.all(
         convos.map(async (convo) => {
-          const contactId =
-            convo.tradie_id === uid ? convo.homeowner_id : convo.tradie_id;
+          const isTradie = convo.tradie_id === uid;
+          const contactId = isTradie ? convo.homeowner_id : convo.tradie_id;
 
           const { data: contactProfile } = await supabase
-            .from(
-              convo.tradie_id === uid
-                ? "profile_centra_resident"
-                : "profile_centra_tradie"
-            )
+            .from(isTradie ? "profile_centra_resident" : "profile_centra_tradie")
             .select("id, first_name, avatar_url")
             .eq("id", contactId)
             .single();
@@ -68,7 +62,7 @@ const SimpleMessagingSystem: React.FC = () => {
             .from("messages")
             .select("*")
             .eq("conversation_id", convo.id)
-            .order("created_at", { ascending: true });
+            .order("created_at");
 
           return {
             id: convo.id,
@@ -77,14 +71,13 @@ const SimpleMessagingSystem: React.FC = () => {
               name: contactProfile.first_name,
               avatar_url: contactProfile.avatar_url,
             },
-            messages: (messages || []) as Message[],
+            messages: messages || [],
           };
         })
       );
 
       setConversations(convosWithDetails);
 
-      // ✅ Subscribe to new messages
       supabase
         .channel("realtime-messages")
         .on(
@@ -123,17 +116,11 @@ const SimpleMessagingSystem: React.FC = () => {
       content: newMessage.trim(),
     });
 
-    if (error) {
-      alert("Failed to send message");
-      console.error("Send error:", error);
-    } else {
-      setNewMessage("");
-    }
+    if (!error) setNewMessage("");
   };
 
   return (
     <div className="flex border rounded-lg h-[80vh] overflow-hidden">
-      {/* Contacts List */}
       <div className="w-1/3 bg-white border-r overflow-y-auto">
         {conversations.map((conv) => (
           <div
@@ -146,15 +133,12 @@ const SimpleMessagingSystem: React.FC = () => {
             <div className="flex items-center space-x-3">
               <Avatar>
                 <AvatarImage src={conv.contact.avatar_url} />
-                <AvatarFallback>
-                  {conv.contact.name?.slice(0, 2) || "??"}
-                </AvatarFallback>
+                <AvatarFallback>{conv.contact.name?.slice(0, 2)}</AvatarFallback>
               </Avatar>
               <div>
                 <p className="font-medium">{conv.contact.name}</p>
                 <p className="text-xs text-gray-500">
-                  {conv.messages[conv.messages.length - 1]?.content ||
-                    "No messages yet"}
+                  {conv.messages.at(-1)?.content || "No messages yet"}
                 </p>
               </div>
             </div>
@@ -162,15 +146,12 @@ const SimpleMessagingSystem: React.FC = () => {
         ))}
       </div>
 
-      {/* Message Thread */}
       <div className="w-2/3 flex flex-col bg-gray-50">
         <div className="flex-1 p-4 overflow-y-auto space-y-2">
           {selected?.messages.map((msg) => (
             <div
               key={msg.id}
-              className={`flex ${
-                msg.sender_id === userId ? "justify-end" : "justify-start"
-              }`}
+              className={`flex ${msg.sender_id === userId ? "justify-end" : "justify-start"}`}
             >
               <div
                 className={`p-2 rounded-lg text-sm ${
