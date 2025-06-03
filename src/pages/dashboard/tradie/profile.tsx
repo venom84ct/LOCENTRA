@@ -1,4 +1,3 @@
-
 // src/pages/dashboard/tradie/profile.tsx
 
 import React, { useEffect, useState } from "react";
@@ -14,7 +13,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Star, MapPin, Mail, Phone } from "lucide-react";
+import { Star, MapPin, Mail, Phone, Trash } from "lucide-react";
 
 const TradieProfilePage = () => {
   const [profile, setProfile] = useState<any>(null);
@@ -36,6 +35,11 @@ const TradieProfilePage = () => {
         .eq("id", user.id)
         .single();
 
+      const { data: reviews } = await supabase
+        .from("reviews")
+        .select("*")
+        .eq("tradie_id", user.id);
+
       if (!error && data) {
         setProfile({
           ...data,
@@ -44,12 +48,24 @@ const TradieProfilePage = () => {
             : typeof data.portfolio === "string"
             ? JSON.parse(data.portfolio)
             : [],
+          reviews: reviews || [],
         });
       }
       setLoading(false);
     };
     fetchProfile();
   }, []);
+
+  const handleDeleteImage = async (url: string) => {
+    const filePath = url.split("/storage/v1/object/public/portfolio/")[1];
+    await supabase.storage.from("portfolio").remove([filePath]);
+    const updatedPortfolio = profile.portfolio.filter((img: string) => img !== url);
+    setProfile({ ...profile, portfolio: updatedPortfolio });
+    await supabase
+      .from("profile_centra_tradie")
+      .update({ portfolio: updatedPortfolio })
+      .eq("id", profile.id);
+  };
 
   const handleSave = async () => {
     if (!profile) return;
@@ -191,12 +207,21 @@ const TradieProfilePage = () => {
           <CardContent>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {(profile.portfolio || []).slice(0, 6).map((url: string, idx: number) => (
-                <img
-                  key={idx}
-                  src={url}
-                  alt={`Portfolio ${idx + 1}`}
-                  className="w-full h-32 object-cover rounded border"
-                />
+                <div key={idx} className="relative group">
+                  <img
+                    src={url}
+                    alt={`Portfolio ${idx + 1}`}
+                    className="w-full h-32 object-cover rounded border"
+                  />
+                  {editing && (
+                    <button
+                      onClick={() => handleDeleteImage(url)}
+                      className="absolute top-1 right-1 bg-white rounded-full p-1 shadow hover:bg-red-100"
+                    >
+                      <Trash className="w-4 h-4 text-red-500" />
+                    </button>
+                  )}
+                </div>
               ))}
             </div>
           </CardContent>
