@@ -23,7 +23,7 @@ const FindJobsPage = () => {
     const fetchJobs = async () => {
       const { data, error } = await supabase
         .from("jobs")
-        .select("*, profile_centra_resident(first_name, last_name, avatar_url)")
+        .select("*, profile_centra_resident(id, first_name, last_name, avatar_url)")
         .or("status.eq.open,status.eq.available")
         .order("created_at", { ascending: false });
 
@@ -153,29 +153,29 @@ const FindJobsPage = () => {
               <div className="grid grid-cols-1 gap-4">
                 {filteredJobs.length > 0 ? (
                   filteredJobs.map((job) => (
-                    <Card key={job.id} className="bg-white border rounded-xl shadow-sm p-6">
-                      <div className="flex justify-between items-start mb-2">
-                        <div>
-                          <h2 className="text-lg font-semibold">{job.title}</h2>
-                          <p className="text-sm text-muted-foreground">{job.category}</p>
-                          <div className="flex items-center space-x-2 mt-2">
+                    <Card key={job.id} className={`bg-white border ${job.is_emergency ? "border-red-500" : "border-gray-200"} p-4`}>
+                      <CardHeader className="pb-2">
+                        <CardTitle className="text-lg font-semibold">{job.title}</CardTitle>
+                        <p className="text-sm text-muted-foreground">{job.category}</p>
+                      </CardHeader>
+                      <CardContent>
+                        <p className="mb-2 text-sm">{job.description}</p>
+                        <div className="text-sm text-muted-foreground mb-2">
+                          Location: {job.location} | Budget: {job.budget} | Timeline: {job.timeline}
+                        </div>
+                        {job.profile_centra_resident && (
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-4">
                             <img
-                              src={job.profile_centra_resident?.avatar_url || "https://via.placeholder.com/40"}
-                              alt="avatar"
-                              className="h-8 w-8 rounded-full border"
+                              src={job.profile_centra_resident.avatar_url}
+                              alt="Avatar"
+                              className="w-8 h-8 rounded-full border"
                             />
-                            <span className="text-sm text-muted-foreground">
-                              Posted by: {job.profile_centra_resident?.first_name} {job.profile_centra_resident?.last_name}
+                            <span>
+                              Posted by {job.profile_centra_resident.first_name} {job.profile_centra_resident.last_name}
                             </span>
                           </div>
-                        </div>
-                        {job.is_emergency && (
-                          <Badge variant="destructive" className="text-xs">
-                            Emergency
-                          </Badge>
                         )}
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-2">{job.description}</p>
+                      </CardContent>
                     </Card>
                   ))
                 ) : (
