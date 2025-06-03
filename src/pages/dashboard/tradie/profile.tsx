@@ -1,6 +1,9 @@
+// src/pages/dashboard/tradie/profile.tsx
+
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import TradieDashboard from "@/components/dashboard/TradieDashboard";
+import TradieDashboard from "@/components/dashboard/tradiedashboard";
+import DashboardLayout from "@/components/layout/tradiedashboard"; // Make sure this is the correct import
 
 const TradieProfilePage = () => {
   const [profile, setProfile] = useState<any>(null);
@@ -31,7 +34,9 @@ const TradieProfilePage = () => {
         return;
       }
 
-      const parsedPortfolio = Array.isArray(data.portfolio) ? data.portfolio : [];
+      const parsedPortfolio = Array.isArray(data.portfolio)
+        ? data.portfolio
+        : [];
 
       setProfile({
         ...data,
@@ -45,11 +50,14 @@ const TradieProfilePage = () => {
     fetchProfile();
   }, []);
 
-  if (loading) return <div className="p-6">Loading...</div>;
-  if (!profile) return <div className="p-6 text-red-600">Profile not found.</div>;
+  if (loading) return <DashboardLayout><div className="p-6">Loading...</div></DashboardLayout>;
+  if (!profile) return <DashboardLayout><div className="p-6 text-red-600">Profile not found.</div></DashboardLayout>;
 
-  return <TradieDashboard profile={profile} />;
+  return (
+    <DashboardLayout>
+      <TradieDashboard profile={profile} />
+    </DashboardLayout>
+  );
 };
 
 export default TradieProfilePage;
-
