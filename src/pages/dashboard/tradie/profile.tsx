@@ -1,11 +1,28 @@
-// src/pages/dashboard/tradie/profile.tsx
-
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import TradieDashboard from "@/components/dashboard/tradiedashboard";
+import TradieDashboard from "@/components/dashboard/TradieDashboard";
+
+interface TradieProfile {
+  name?: string;
+  email?: string;
+  avatar_url?: string;
+  trade?: string;
+  license?: string;
+  abn?: string;
+  address?: string;
+  phone?: string;
+  created_at?: string;
+  credits?: number;
+  rewards_points?: number;
+  rating_avg?: number;
+  rating_count?: number;
+  status?: string;
+  portofolio?: string[];
+  previousJobs?: { title: string }[];
+}
 
 const TradieProfilePage = () => {
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<TradieProfile | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -27,21 +44,20 @@ const TradieProfilePage = () => {
         .eq("id", user.id)
         .single();
 
-      if (error) {
-        console.error("❌ Failed to fetch tradie profile:", error.message);
+      if (error || !data) {
+        console.error("❌ Failed to fetch tradie profile:", error?.message);
         setLoading(false);
         return;
       }
 
-      // Ensure portfolio is always an array
-      const parsedPortfolio = Array.isArray(data.portofolio)
-        ? data.portofolio
-        : [];
+      // Parse fields safely
+      const parsedPortfolio = Array.isArray(data.portofolio) ? data.portofolio : [];
+      const parsedJobs = Array.isArray(data.previousJobs) ? data.previousJobs : [];
 
       setProfile({
         ...data,
         portofolio: parsedPortfolio,
-        previousJobs: data.previousJobs || [], // Optional: handle if this is stored
+        previousJobs: parsedJobs,
       });
 
       setLoading(false);
