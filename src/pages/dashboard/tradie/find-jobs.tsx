@@ -1,4 +1,4 @@
-// src/pages/dashboard/tradie/find-jobs.tsx
+// src/pages/dashboard/find-jobs.tsx
 import React, { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { supabase } from "@/lib/supabaseClient";
@@ -25,7 +25,7 @@ const FindJobsPage = () => {
       const { data, error } = await supabase
         .from("jobs")
         .select("*")
-        .in("status", ["open", "available"])
+        .or("status.eq.open,status.eq.available")
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -50,7 +50,7 @@ const FindJobsPage = () => {
     return matchesSearch && matchesCategory && matchesEmergency;
   });
 
-  const categories = Array.from(new Set(jobs.map((job) => job.category).filter(Boolean)));
+  const categories = Array.from(new Set(jobs.map((job) => job.category)));
 
   const mockUser = {
     name: "Mike Johnson",
