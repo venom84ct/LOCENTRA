@@ -3,8 +3,7 @@ import { supabase } from "@/lib/supabaseClient";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import SimpleMessagingSystem from "@/components/messaging/SimpleMessagingSystem";
 
-const MessagesPage = () => {
-  const [userType, setUserType] = useState<"centraResident" | "tradie">("centraResident");
+const ResidentMessagesPage = () => {
   const [userId, setUserId] = useState<string>("");
   const [userName, setUserName] = useState<string>("");
   const [userAvatar, setUserAvatar] = useState<string>("");
@@ -20,31 +19,15 @@ const MessagesPage = () => {
 
       setUserId(user.id);
 
-      // Try fetching as a resident
-      const { data: residentProfile } = await supabase
+      const { data: profile } = await supabase
         .from("profile_centra_resident")
         .select("first_name, avatar_url")
         .eq("id", user.id)
         .single();
 
-      if (residentProfile) {
-        setUserName(residentProfile.first_name);
-        setUserAvatar(residentProfile.avatar_url || "");
-        setUserType("centraResident");
-        return;
-      }
-
-      // Try fetching as a tradie
-      const { data: tradieProfile } = await supabase
-        .from("profile_centra_tradie")
-        .select("first_name, avatar_url")
-        .eq("id", user.id)
-        .single();
-
-      if (tradieProfile) {
-        setUserName(tradieProfile.first_name);
-        setUserAvatar(tradieProfile.avatar_url || "");
-        setUserType("tradie");
+      if (profile) {
+        setUserName(profile.first_name);
+        setUserAvatar(profile.avatar_url || "");
       }
     };
 
@@ -52,11 +35,11 @@ const MessagesPage = () => {
   }, []);
 
   return (
-    <DashboardLayout userType={userType}>
+    <DashboardLayout userType="centraResident">
       <div className="p-4">
         <h1 className="text-2xl font-bold mb-4">Messages</h1>
         <SimpleMessagingSystem
-          userType={userType}
+          userType="centraResident"
           userId={userId}
           userName={userName}
           userAvatar={userAvatar}
@@ -66,4 +49,4 @@ const MessagesPage = () => {
   );
 };
 
-export default MessagesPage;
+export default ResidentMessagesPage;
