@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { useSupabaseClient } from "@supabase/auth-helpers-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -12,15 +11,18 @@ interface Message {
   sender_id: string;
   content: string;
   created_at: string;
+  conversation_id: string;
+}
+
+interface Contact {
+  id: string;
+  name: string;
+  avatar_url: string;
 }
 
 interface Conversation {
   id: string;
-  contact: {
-    id: string;
-    name: string;
-    avatar_url: string;
-  };
+  contact: Contact;
   messages: Message[];
 }
 
@@ -38,7 +40,6 @@ const SimpleMessagingSystem: React.FC = () => {
       const uid = auth.user.id;
       setUserId(uid);
 
-      // 1. Fetch conversations involving the user
       const { data: convos, error: convoErr } = await supabase
         .from("conversations")
         .select("*")
@@ -49,18 +50,14 @@ const SimpleMessagingSystem: React.FC = () => {
         return;
       }
 
-      // 2. For each conversation, determine the contact
       const convosWithDetails: Conversation[] = await Promise.all(
         convos.map(async (convo) => {
           const contactId =
             convo.tradie_id === uid ? convo.homeowner_id : convo.tradie_id;
+          const isTradie = convo.tradie_id !== uid;
 
           const { data: contactProfile } = await supabase
-            .from(
-              convo.tradie_id === uid
-                ? "profile_centra_resident"
-                : "profile_centra_tradie"
-            )
+            .from(isTradie ? "profile_centra_resident" : "profile_centra_tradie")
             .select("id, first_name, avatar_url")
             .eq("id", contactId)
             .single();
@@ -74,9 +71,9 @@ const SimpleMessagingSystem: React.FC = () => {
           return {
             id: convo.id,
             contact: {
-              id: contactProfile.id,
-              name: contactProfile.first_name,
-              avatar_url: contactProfile.avatar_url,
+              id: contactProfile?.id || "",
+              name: contactProfile?.first_name || "Unknown",
+              avatar_url: contactProfile?.avatar_url || "",
             },
             messages: messages || [],
           };
@@ -85,10 +82,9 @@ const SimpleMessagingSystem: React.FC = () => {
 
       setConversations(convosWithDetails);
 
-      // 3. Subscribe to new messages in real time
-      supabase
+      const channel = supabase
         .channel("realtime-messages")
-        .on(
+        .on<Message>(
           "postgres_changes",
           {
             event: "INSERT",
@@ -110,6 +106,10 @@ const SimpleMessagingSystem: React.FC = () => {
           }
         )
         .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     };
 
     init();
@@ -153,8 +153,9 @@ const SimpleMessagingSystem: React.FC = () => {
               </Avatar>
               <div>
                 <p className="font-medium">{conv.contact.name}</p>
-                <p className="text-xs text-gray-500">
-                  {conv.messages[conv.messages.length - 1]?.content || "No messages yet"}
+                <p className="text-xs text-gray-500 truncate w-48">
+                  {conv.messages[conv.messages.length - 1]?.content ||
+                    "No messages yet"}
                 </p>
               </div>
             </div>
@@ -173,7 +174,7 @@ const SimpleMessagingSystem: React.FC = () => {
               }`}
             >
               <div
-                className={`p-2 rounded-lg text-sm ${
+                className={`p-2 rounded-lg text-sm max-w-xs break-words ${
                   msg.sender_id === userId
                     ? "bg-blue-500 text-white"
                     : "bg-white border"
