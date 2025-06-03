@@ -1,4 +1,3 @@
-
 import React from "react";
 import {
   Card,
@@ -31,7 +30,7 @@ interface TradieProfile {
 }
 
 const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
-  const fullName = \`\${profile.first_name || ""} \${profile.last_name || ""}\`.trim();
+  const fullName = `${profile.first_name || ""} ${profile.last_name || ""}`.trim();
   const joinDate = profile?.created_at
     ? new Date(profile.created_at).toLocaleDateString("en-AU", {
         year: "numeric",
@@ -56,7 +55,7 @@ const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
           <CardContent className="flex items-center space-x-4">
             <Avatar className="h-14 w-14">
               <AvatarImage src={profile.avatar_url} />
-              <AvatarFallback>{fullName.slice(0, 2) || "TR"}</AvatarFallback>
+              <AvatarFallback>{fullName.slice(0, 2).toUpperCase() || "TR"}</AvatarFallback>
             </Avatar>
             <div className="text-sm">
               <p className="font-semibold">{fullName || "Tradie"}</p>
@@ -90,7 +89,7 @@ const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
               <span>{completedJobs}</span>
             </div>
             <div className="flex justify-between font-medium">
-              <span>Total (Active + Completed)</span>
+              <span>Total Jobs</span>
               <span>{totalJobs}</span>
             </div>
           </CardContent>
