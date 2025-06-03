@@ -18,6 +18,7 @@ const TradieProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [portfolioFiles, setPortfolioFiles] = useState<FileList | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -107,8 +108,9 @@ const TradieProfilePage = () => {
           ? refreshed.portfolio
           : [],
       });
+      setIsEditing(false);
     } else {
-      alert("Failed to save profile changes");
+      alert("❌ Failed to save profile changes");
     }
   };
 
@@ -119,8 +121,13 @@ const TradieProfilePage = () => {
     <DashboardLayout userType="tradie">
       <div className="p-6 max-w-4xl mx-auto space-y-6">
         <Card>
-          <CardHeader>
+          <CardHeader className="flex justify-between items-center">
             <CardTitle>My Profile</CardTitle>
+            {!isEditing && (
+              <Button variant="outline" onClick={() => setIsEditing(true)}>
+                Edit Profile
+              </Button>
+            )}
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center space-x-4">
@@ -131,69 +138,82 @@ const TradieProfilePage = () => {
                   {profile.last_name?.[0]}
                 </AvatarFallback>
               </Avatar>
-              <Input
-                type="file"
-                onChange={(e) => setAvatarFile(e.target.files?.[0] || null)}
-              />
+              {isEditing && (
+                <Input type="file" onChange={(e) => setAvatarFile(e.target.files?.[0] || null)} />
+              )}
             </div>
-            <Input
-              placeholder="First Name"
-              value={profile.first_name || ""}
-              onChange={(e) =>
-                setProfile({ ...profile, first_name: e.target.value })
-              }
-            />
-            <Input
-              placeholder="Last Name"
-              value={profile.last_name || ""}
-              onChange={(e) =>
-                setProfile({ ...profile, last_name: e.target.value })
-              }
-            />
-            <Input
-              placeholder="Phone"
-              value={profile.phone || ""}
-              onChange={(e) =>
-                setProfile({ ...profile, phone: e.target.value })
-              }
-            />
-            <Input
-              placeholder="ABN"
-              value={profile.abn || ""}
-              onChange={(e) =>
-                setProfile({ ...profile, abn: e.target.value })
-              }
-            />
-            <Input
-              placeholder="License"
-              value={profile.license || ""}
-              onChange={(e) =>
-                setProfile({ ...profile, license: e.target.value })
-              }
-            />
-            <Textarea
-              placeholder="Bio"
-              value={profile.bio || ""}
-              onChange={(e) =>
-                setProfile({ ...profile, bio: e.target.value })
-              }
-            />
-            <Input
-              type="file"
-              multiple
-              onChange={(e) => setPortfolioFiles(e.target.files)}
-            />
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {(profile.portfolio || []).map((url: string, idx: number) => (
-                <img
-                  key={idx}
-                  src={url}
-                  alt={`Portfolio ${idx}`}
-                  className="w-full h-32 object-cover rounded border"
+
+            {isEditing ? (
+              <>
+                <Input
+                  placeholder="First Name"
+                  value={profile.first_name || ""}
+                  onChange={(e) => setProfile({ ...profile, first_name: e.target.value })}
                 />
-              ))}
-            </div>
-            <Button onClick={handleSave}>Save Changes</Button>
+                <Input
+                  placeholder="Last Name"
+                  value={profile.last_name || ""}
+                  onChange={(e) => setProfile({ ...profile, last_name: e.target.value })}
+                />
+                <Input
+                  placeholder="Phone"
+                  value={profile.phone || ""}
+                  onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                />
+                <Input
+                  placeholder="ABN"
+                  value={profile.abn || ""}
+                  onChange={(e) => setProfile({ ...profile, abn: e.target.value })}
+                />
+                <Input
+                  placeholder="License"
+                  value={profile.license || ""}
+                  onChange={(e) => setProfile({ ...profile, license: e.target.value })}
+                />
+                <Textarea
+                  placeholder="Bio"
+                  value={profile.bio || ""}
+                  onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+                />
+                <Input type="file" multiple onChange={(e) => setPortfolioFiles(e.target.files)} />
+                <Button onClick={handleSave}>Save Changes</Button>
+              </>
+            ) : (
+              <div className="space-y-2 text-sm">
+                <p>
+                  <strong>Name:</strong> {profile.first_name} {profile.last_name}
+                </p>
+                <p>
+                  <strong>Phone:</strong> {profile.phone}
+                </p>
+                <p>
+                  <strong>ABN:</strong> {profile.abn}
+                </p>
+                <p>
+                  <strong>License:</strong> {profile.license}
+                </p>
+                <p>
+                  <strong>Bio:</strong> {profile.bio || "N/A"}
+                </p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Portfolio</CardTitle>
+          </CardHeader>
+          <CardContent>
+            {profile.portfolio?.length ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                {profile.portfolio.map((url: string, i: number) => (
+                  <img key={i} src={url} alt={`Portfolio ${i + 1}`} className="w-full h-32 object-cover rounded border" />
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No portfolio uploaded.</p>
+            )}
           </CardContent>
         </Card>
 
@@ -202,11 +222,10 @@ const TradieProfilePage = () => {
             <CardTitle>Reviews</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            {/* Placeholder example */}
             <div className="p-3 border rounded">
               <p className="text-sm font-medium">Jane Doe</p>
               <p className="text-sm text-muted-foreground">
-                "Very professional work!"
+                "Excellent service and fast turnaround!"
               </p>
               <div className="flex items-center text-yellow-500">
                 {[...Array(5)].map((_, i) => (
