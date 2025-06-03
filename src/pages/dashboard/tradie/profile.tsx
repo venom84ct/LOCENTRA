@@ -1,19 +1,14 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Star } from "lucide-react";
+import { Briefcase, Image as ImageIcon, Calendar } from "lucide-react";
 
-const TradieProfilePage = () => {
+const TradieDashboard = () => {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
@@ -119,7 +114,70 @@ const TradieProfilePage = () => {
 
   return (
     <DashboardLayout userType="tradie">
-      <div className="p-6 max-w-4xl mx-auto space-y-6">
+      <div className="p-6 max-w-6xl mx-auto space-y-6">
+        {/* Summary Section */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardContent className="flex items-center space-x-4 p-4">
+              <Briefcase className="w-6 h-6 text-blue-500" />
+              <div>
+                <p className="text-sm text-muted-foreground">Total Jobs</p>
+                <p className="text-xl font-semibold">12</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center space-x-4 p-4">
+              <Briefcase className="w-6 h-6 text-green-500" />
+              <div>
+                <p className="text-sm text-muted-foreground">Completed Jobs</p>
+                <p className="text-xl font-semibold">8</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center space-x-4 p-4">
+              <Briefcase className="w-6 h-6 text-yellow-500" />
+              <div>
+                <p className="text-sm text-muted-foreground">Average Rating</p>
+                <p className="text-xl font-semibold">4.5</p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Quick Actions */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <Card>
+            <CardContent className="flex items-center space-x-4 p-4">
+              <Briefcase className="w-6 h-6 text-purple-500" />
+              <div>
+                <p className="text-sm text-muted-foreground">Find Jobs</p>
+                <Button variant="link">Browse</Button>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center space-x-4 p-4">
+              <ImageIcon className="w-6 h-6 text-indigo-500" />
+              <div>
+                <p className="text-sm text-muted-foreground">Manage Portfolio</p>
+                <Button variant="link">Update</Button>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="flex items-center space-x-4 p-4">
+              <Calendar className="w-6 h-6 text-teal-500" />
+              <div>
+                <p className="text-sm text-muted-foreground">Availability</p>
+                <Button variant="link">Set</Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Profile Section */}
         <Card>
           <CardHeader className="flex justify-between items-center">
             <CardTitle>My Profile</CardTitle>
@@ -139,7 +197,12 @@ const TradieProfilePage = () => {
                 </AvatarFallback>
               </Avatar>
               {isEditing && (
-                <Input type="file" onChange={(e) => setAvatarFile(e.target.files?.[0] || null)} />
+                <Input
+                  type="file"
+                  onChange={(e) =>
+                    setAvatarFile(e.target.files?.[0] || null)
+                  }
+                />
               )}
             </div>
 
@@ -148,34 +211,50 @@ const TradieProfilePage = () => {
                 <Input
                   placeholder="First Name"
                   value={profile.first_name || ""}
-                  onChange={(e) => setProfile({ ...profile, first_name: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, first_name: e.target.value })
+                  }
                 />
                 <Input
                   placeholder="Last Name"
                   value={profile.last_name || ""}
-                  onChange={(e) => setProfile({ ...profile, last_name: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, last_name: e.target.value })
+                  }
                 />
                 <Input
                   placeholder="Phone"
                   value={profile.phone || ""}
-                  onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, phone: e.target.value })
+                  }
                 />
                 <Input
                   placeholder="ABN"
                   value={profile.abn || ""}
-                  onChange={(e) => setProfile({ ...profile, abn: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, abn: e.target.value })
+                  }
                 />
                 <Input
                   placeholder="License"
                   value={profile.license || ""}
-                  onChange={(e) => setProfile({ ...profile, license: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, license: e.target.value })
+                  }
                 />
                 <Textarea
                   placeholder="Bio"
                   value={profile.bio || ""}
-                  onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+                  onChange={(e) =>
+                    setProfile({ ...profile, bio: e.target.value })
+                  }
                 />
-                <Input type="file" multiple onChange={(e) => setPortfolioFiles(e.target.files)} />
+                <Input
+                  type="file"
+                  multiple
+                  onChange={(e) => setPortfolioFiles(e.target.files)}
+                />
                 <Button onClick={handleSave}>Save Changes</Button>
               </>
             ) : (
@@ -200,44 +279,12 @@ const TradieProfilePage = () => {
           </CardContent>
         </Card>
 
+        {/* Portfolio Section */}
         <Card>
           <CardHeader>
             <CardTitle>Portfolio</CardTitle>
           </CardHeader>
           <CardContent>
-            {profile.portfolio?.length ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {profile.portfolio.map((url: string, i: number) => (
-                  <img key={i} src={url} alt={`Portfolio ${i + 1}`} className="w-full h-32 object-cover rounded border" />
-                ))}
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No portfolio uploaded.</p>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Reviews</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <div className="p-3 border rounded">
-              <p className="text-sm font-medium">Jane Doe</p>
-              <p className="text-sm text-muted-foreground">
-                "Excellent service and fast turnaround!"
-              </p>
-              <div className="flex items-center text-yellow-500">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4" />
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-    </DashboardLayout>
-  );
-};
-
-export default TradieProfilePage;
+           
+::contentReference[oaicite:0]{index=0}
+ 
