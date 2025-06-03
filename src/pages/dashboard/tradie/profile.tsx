@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import TradieDashboard from "@/components/dashboard/tradiedashboard";
+import TradieDashboard from "@/components/dashboard/TradieDashboard";
 
 const TradieProfilePage = () => {
   const [profile, setProfile] = useState<any>(null);
@@ -31,10 +31,7 @@ const TradieProfilePage = () => {
         return;
       }
 
-      // Normalize portfolio spelling and type
-      const parsedPortfolio = Array.isArray(data.portfolio || data.portofolio)
-        ? data.portfolio || data.portofolio
-        : [];
+      const parsedPortfolio = Array.isArray(data.portfolio) ? data.portfolio : [];
 
       setProfile({
         ...data,
