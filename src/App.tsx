@@ -13,10 +13,8 @@ const Contact = lazy(() => import("./pages/contact"));
 const Login = lazy(() => import("./pages/login"));
 const Register = lazy(() => import("./pages/register"));
 
-// ✅ Dashboard-only Post Job page (using DashboardLayout)
+// Dashboard-only pages
 const DashboardPostJob = lazy(() => import("./pages/dashboard/post-job"));
-
-// Lazy load homeowner dashboard pages
 const DashboardJobs = lazy(() => import("./pages/dashboard/jobs"));
 const DashboardJobHistory = lazy(() => import("./pages/dashboard/JobsHistoryPage"));
 const DashboardEditJob = lazy(() => import("./pages/dashboard/EditJobPage"));
@@ -29,8 +27,9 @@ const DashboardHelp = lazy(() => import("./pages/dashboard/help"));
 const DashboardWallet = lazy(() => import("./pages/dashboard/wallet"));
 const DashboardFindJobs = lazy(() => import("./pages/dashboard/find-jobs"));
 const DashboardFindTradie = lazy(() => import("./pages/dashboard/find-tradie"));
+const DashboardReview = lazy(() => import("./pages/dashboard/review/[jobId]")); // ✅ Dynamic review page
 
-// Lazy load tradie dashboard pages
+// Tradie dashboard pages
 const TradieMessages = lazy(() => import("./pages/dashboard/tradie/messages"));
 const TradieNotifications = lazy(() => import("./pages/dashboard/tradie/notifications"));
 const TradieProfile = lazy(() => import("./pages/dashboard/tradie/profile"));
@@ -58,7 +57,7 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/dashboard/tradie" element={<Dashboard />} />
 
-        {/* Dashboard homeowner pages */}
+        {/* Homeowner dashboard routes */}
         <Route path="/dashboard/jobs" element={<DashboardJobs />} />
         <Route path="/dashboard/job-history" element={<DashboardJobHistory />} />
         <Route path="/dashboard/edit-job/:id" element={<DashboardEditJob />} />
@@ -71,9 +70,10 @@ function App() {
         <Route path="/dashboard/wallet" element={<DashboardWallet />} />
         <Route path="/dashboard/find-jobs" element={<DashboardFindJobs />} />
         <Route path="/dashboard/find-tradie" element={<DashboardFindTradie />} />
-        <Route path="/dashboard/post-job" element={<DashboardPostJob />} /> {/* ✅ Correct route */}
+        <Route path="/dashboard/post-job" element={<DashboardPostJob />} />
+        <Route path="/dashboard/review/:jobId" element={<DashboardReview />} /> {/* ✅ Add dynamic review route */}
 
-        {/* Tradie-specific dashboard pages */}
+        {/* Tradie dashboard routes */}
         <Route path="/dashboard/tradie/messages" element={<TradieMessages />} />
         <Route path="/dashboard/tradie/notifications" element={<TradieNotifications />} />
         <Route path="/dashboard/tradie/profile" element={<TradieProfile />} />
@@ -83,13 +83,13 @@ function App() {
         <Route path="/dashboard/tradie/my-jobs" element={<TradieMyJobs />} />
         <Route path="/dashboard/tradie/find-jobs" element={<TradieFindJobs />} />
 
-        {/* Tempo route */}
+        {/* Tempo route if enabled */}
         {import.meta.env.VITE_TEMPO === "true" && (
           <Route path="/tempobook/*" element={<></>} />
         )}
       </Routes>
 
-      {/* Tempo routes (if enabled) */}
+      {/* Optional tempo route injection */}
       {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
     </Suspense>
   );
