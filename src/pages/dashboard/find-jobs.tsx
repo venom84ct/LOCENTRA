@@ -1,56 +1,38 @@
-import React, { useState, useEffect } from "react";
+// src/pages/dashboard/tradie/find-jobs.tsx
+import React, { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { supabase } from "@/lib/supabaseClient";
+import JobCard from "@/components/jobs/JobCard";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { AlertCircle, CreditCard, Filter, Search } from "lucide-react";
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
-  Search,
-  CreditCard,
-  Filter,
-  AlertCircle,
-} from "lucide-react";
-import { toast } from "@/components/ui/use-toast";
-import { supabase } from "@/lib/supabaseClient";
-import PurchaseLeadModal from "@/components/dashboard/PurchaseLeadModal";
-import JobPreviewModal from "@/components/dashboard/JobPreviewModal";
-import BuyCreditsModal from "@/components/wallet/BuyCreditsModal";
-import JobCard from "@/components/jobs/JobCard";
 
 const FindJobsPage = () => {
+  const [jobs, setJobs] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showEmergencyOnly, setShowEmergencyOnly] = useState(false);
-  const [selectedJob, setSelectedJob] = useState<any>(null);
-  const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
-  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
-  const [isBuyCreditsModalOpen, setIsBuyCreditsModalOpen] = useState(false);
-  const [jobs, setJobs] = useState<any[]>([]);
-
-  const user = {
-    name: "Mike Johnson",
-    email: "mike.johnson@example.com",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mike",
-    trade: "Plumber",
-    credits: 45,
-    unreadMessages: 2,
-    unreadNotifications: 3,
-  };
 
   useEffect(() => {
     const fetchJobs = async () => {
       const { data, error } = await supabase
         .from("jobs")
         .select("*")
-        .eq("status", "open");
+        .or("status.eq.open,status.eq.available")
+        .order("created_at", { ascending: false });
 
-      if (!error && data) setJobs(data);
+      if (error) {
+        console.error("Error fetching jobs:", error.message);
+      } else {
+        setJobs(data);
+      }
     };
 
     fetchJobs();
@@ -62,9 +44,7 @@ const FindJobsPage = () => {
       job.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
       job.location.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesCategory = selectedCategory
-      ? job.category === selectedCategory
-      : true;
+    const matchesCategory = selectedCategory ? job.category === selectedCategory : true;
     const matchesEmergency = showEmergencyOnly ? job.is_emergency === true : true;
 
     return matchesSearch && matchesCategory && matchesEmergency;
@@ -72,72 +52,28 @@ const FindJobsPage = () => {
 
   const categories = Array.from(new Set(jobs.map((job) => job.category)));
 
-  const handlePreviewJob = (job: any) => {
-    setSelectedJob(job);
-    setIsPreviewModalOpen(true);
+  const mockUser = {
+    name: "Mike Johnson",
+    email: "mike.johnson@example.com",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mike",
+    trade: "Plumber",
+    credits: 45,
   };
 
-  const handlePurchaseClick = (job: any) => {
-    setSelectedJob(job);
-    setIsPurchaseModalOpen(true);
-  };
-
-  const handlePurchaseLead = () => {
-    if (!selectedJob) return;
-    const leadCost = selectedJob.is_emergency ? 10 : 5;
-
-    if (user.credits >= leadCost) {
-      setJobs(
-        jobs.map((job) =>
-          job.id === selectedJob.id
-            ? {
-                ...job,
-                status: "purchased",
-                homeowner: {
-                  id: "homeowner1",
-                  name: "John Smith",
-                  avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-                  rating: 4.8,
-                },
-              }
-            : job
-        )
-      );
-
-      setIsPurchaseModalOpen(false);
-      setIsPreviewModalOpen(false);
-
-      toast({
-        title: "Lead Purchased Successfully",
-        description: `You have purchased the lead for ${selectedJob.title}. You can now contact the homeowner.`,
-      });
-
-      setTimeout(() => {
-        window.location.href = "/dashboard/tradie/my-jobs";
-      }, 1500);
-    } else {
-      setIsPurchaseModalOpen(false);
-      setIsBuyCreditsModalOpen(true);
-    }
-  };
-
-  const handleBuyCredits = (amount: number, cost: number) => {
-    setIsBuyCreditsModalOpen(false);
-    toast({
-      title: "Credits Purchased",
-      description: `You have successfully purchased ${amount} credits for $${cost}.`,
-    });
+  // Patch: dummy handlePurchase that accepts only one argument
+  const handlePurchase = (amount: number) => {
+    console.log(`Purchasing ${amount} credits...`);
   };
 
   return (
-    <DashboardLayout userType="tradie" user={user}>
+    <DashboardLayout userType="tradie" user={mockUser}>
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">Find Jobs</h1>
             <div className="flex items-center space-x-2 bg-primary/10 px-4 py-2 rounded-full">
               <CreditCard className="h-5 w-5 text-primary" />
-              <span className="font-medium">{user.credits} credits available</span>
+              <span className="font-medium">{mockUser.credits} credits available</span>
             </div>
           </div>
 
@@ -146,8 +82,7 @@ const FindJobsPage = () => {
               <Card className="bg-white sticky top-24">
                 <CardHeader>
                   <CardTitle className="flex items-center">
-                    <Filter className="h-5 w-5 mr-2" />
-                    Filters
+                    <Filter className="h-5 w-5 mr-2" /> Filters
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -223,9 +158,7 @@ const FindJobsPage = () => {
             <div className="md:col-span-3">
               <div className="grid grid-cols-1 gap-4">
                 {filteredJobs.length > 0 ? (
-                  filteredJobs.map((job) => (
-                    <JobCard key={job.id} job={job} />
-                  ))
+                  filteredJobs.map((job) => <JobCard key={job.id} job={job} />)
                 ) : (
                   <Card className="bg-white">
                     <CardContent className="flex flex-col items-center justify-center py-12">
@@ -251,30 +184,6 @@ const FindJobsPage = () => {
           </div>
         </div>
       </div>
-
-      <PurchaseLeadModal
-        isOpen={isPurchaseModalOpen}
-        onClose={() => setIsPurchaseModalOpen(false)}
-        job={selectedJob}
-        onPurchase={handlePurchaseLead}
-        availableCredits={user.credits}
-      />
-
-      <JobPreviewModal
-        isOpen={isPreviewModalOpen}
-        onClose={() => setIsPreviewModalOpen(false)}
-        job={selectedJob}
-        onPurchase={() => {
-          setIsPreviewModalOpen(false);
-          if (selectedJob) handlePurchaseClick(selectedJob);
-        }}
-      />
-
-      <BuyCreditsModal
-        isOpen={isBuyCreditsModalOpen}
-        onClose={() => setIsBuyCreditsModalOpen(false)}
-        onPurchase={handleBuyCredits}
-      />
     </DashboardLayout>
   );
 };
