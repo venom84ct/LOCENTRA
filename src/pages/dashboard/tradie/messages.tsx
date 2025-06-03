@@ -1,14 +1,12 @@
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import TradieDashboardLayout from "@/components/layout/TradieDashboardLayout";
+import TradieDashboardLayout from "@/components/layout/DashboardLayout";
 import SimpleMessagingSystem from "@/components/messaging/SimpleMessagingSystem";
 
 const TradieMessagesPage = () => {
-  const [userInfo, setUserInfo] = useState<{
-    userId: string;
-    userName: string;
-    userAvatar: string;
-  } | null>(null);
+  const [userId, setUserId] = useState<string>("");
+  const [userName, setUserName] = useState<string>("");
+  const [userAvatar, setUserAvatar] = useState<string>("");
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -17,47 +15,38 @@ const TradieMessagesPage = () => {
         error,
       } = await supabase.auth.getUser();
 
-      if (error || !user) {
-        console.error("Failed to fetch user:", error?.message);
-        return;
-      }
+      if (error || !user) return;
 
-      const { data: profile, error: profileError } = await supabase
+      setUserId(user.id);
+
+      const { data: profile } = await supabase
         .from("profile_centra_tradie")
         .select("first_name, avatar_url")
         .eq("id", user.id)
         .single();
 
-      if (profileError) {
-        console.error("Failed to fetch profile:", profileError.message);
-        return;
+      if (profile) {
+        setUserName(profile.first_name);
+        setUserAvatar(profile.avatar_url || "");
       }
-
-      setUserInfo({
-        userId: user.id,
-        userName: profile.first_name,
-        userAvatar: profile.avatar_url,
-      });
     };
 
     fetchUser();
   }, []);
 
-  if (!userInfo) {
-    return <div className="p-6">Loading...</div>;
-  }
-
   return (
-    <TradieDashboardLayout>
-      <SimpleMessagingSystem
-        userType="tradie"
-        userId={userInfo.userId}
-        userName={userInfo.userName}
-        userAvatar={userInfo.userAvatar}
-      />
+    <TradieDashboardLayout userType="tradie">
+      <div className="p-4">
+        <h1 className="text-2xl font-bold mb-4">Messages</h1>
+        <SimpleMessagingSystem
+          userType="tradie"
+          userId={userId}
+          userName={userName}
+          userAvatar={userAvatar}
+        />
+      </div>
     </TradieDashboardLayout>
   );
 };
 
 export default TradieMessagesPage;
-
