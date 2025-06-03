@@ -12,18 +12,28 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useNavigate } from "react-router-dom";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const FindJobsPage = () => {
   const [jobs, setJobs] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showEmergencyOnly, setShowEmergencyOnly] = useState(false);
+  const navigate = useNavigate();
 
   const fetchJobs = async () => {
     const { data, error } = await supabase
       .from("jobs")
-      .select("*, profile_centra_resident(first_name, last_name, avatar_url)")
+      .select(`
+        *,
+        profile_centra_resident:homeowner_id (
+          id,
+          first_name,
+          last_name,
+          avatar_url
+        )
+      `)
       .or("status.eq.open,status.eq.available")
       .order("created_at", { ascending: false });
 
@@ -38,23 +48,31 @@ const FindJobsPage = () => {
     fetchJobs();
   }, []);
 
-  const handleBuyLead = async (jobId: string) => {
+  const handleBuyLead = async (job: any) => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
     if (!user?.id) return;
 
-    const { error } = await supabase
-      .from("jobs")
-      .update({ status: "in_progress", assigned_tradie: user.id })
-      .eq("id", jobId);
+    const { data: existing } = await supabase
+      .from("conversations")
+      .select("*")
+      .eq("job_id", job.id)
+      .eq("tradie_id", user.id)
+      .single();
 
-    if (error) {
-      console.error("Error buying lead:", error.message);
-    } else {
-      fetchJobs(); // Refresh job list
+    if (!existing) {
+      await supabase.from("conversations").insert([
+        {
+          job_id: job.id,
+          tradie_id: user.id,
+          homeowner_id: job.homeowner_id,
+        },
+      ]);
     }
+
+    navigate("/dashboard/tradie/messages");
   };
 
   const filteredJobs = jobs.filter((job) => {
@@ -92,6 +110,7 @@ const FindJobsPage = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {/* Filters */}
             <div className="md:col-span-1">
               <Card className="bg-white sticky top-24">
                 <CardHeader>
@@ -101,9 +120,7 @@ const FindJobsPage = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <label htmlFor="search" className="text-sm font-medium">
-                      Search
-                    </label>
+                    <label htmlFor="search" className="text-sm font-medium">Search</label>
                     <div className="relative">
                       <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -169,54 +186,35 @@ const FindJobsPage = () => {
               </Card>
             </div>
 
+            {/* Jobs List */}
             <div className="md:col-span-3">
               <div className="grid grid-cols-1 gap-4">
                 {filteredJobs.length > 0 ? (
-                  filteredJobs.map((job) => {
-                    const poster = job.profile_centra_resident;
-                    const fullName = `${poster?.first_name || ""} ${poster?.last_name || ""}`.trim();
-
-                    return (
-                      <Card
-                        key={job.id}
-                        className={`bg-white ${job.is_emergency ? "border-4 border-red-600" : ""}`}
-                      >
-                        <CardHeader>
-                          <CardTitle className="text-lg">{job.title}</CardTitle>
+                  filteredJobs.map((job) => (
+                    <Card key={job.id} className="bg-white p-4">
+                      <div className="flex justify-between items-center mb-2">
+                        <div>
+                          <h2 className="text-lg font-semibold">{job.title}</h2>
                           <p className="text-sm text-muted-foreground">{job.category}</p>
-                        </CardHeader>
-                        <CardContent className="space-y-2">
-                          <div className="flex items-center space-x-3">
-                            <Avatar>
-                              <AvatarImage src={poster?.avatar_url} />
-                              <AvatarFallback>
-                                {poster?.first_name?.[0]}
-                                {poster?.last_name?.[0]}
-                              </AvatarFallback>
-                            </Avatar>
-                            <span className="text-sm font-medium">{fullName}</span>
-                          </div>
-
-                          <p className="text-sm">{job.description}</p>
-                          <p className="text-sm text-muted-foreground">{job.location}</p>
-                          <p className="text-sm text-muted-foreground">
-                            Budget: {job.budget} | Timeline: {job.timeline}
-                          </p>
-
-                          {job.assigned_tradie ? (
-                            <Badge variant="secondary">Lead Already Purchased</Badge>
-                          ) : (
-                            <Button
-                              size="sm"
-                              onClick={() => handleBuyLead(job.id)}
-                            >
-                              Buy Lead
-                            </Button>
-                          )}
-                        </CardContent>
-                      </Card>
-                    );
-                  })
+                        </div>
+                        {job.is_emergency && <Badge variant="destructive">Emergency</Badge>}
+                      </div>
+                      <p className="text-sm mb-2">{job.description}</p>
+                      <div className="flex items-center space-x-2 text-sm text-muted-foreground mb-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarImage src={job.profile_centra_resident?.avatar_url || ""} />
+                          <AvatarFallback>
+                            {job.profile_centra_resident?.first_name?.[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <span>
+                          {job.profile_centra_resident?.first_name}{" "}
+                          {job.profile_centra_resident?.last_name}
+                        </span>
+                      </div>
+                      <Button onClick={() => handleBuyLead(job)}>Buy Lead</Button>
+                    </Card>
+                  ))
                 ) : (
                   <Card className="bg-white">
                     <CardContent className="flex flex-col items-center justify-center py-12">
@@ -225,13 +223,11 @@ const FindJobsPage = () => {
                       <p className="text-muted-foreground text-center mb-4">
                         We couldn't find any jobs matching your search criteria.
                       </p>
-                      <Button
-                        onClick={() => {
-                          setSearchTerm("");
-                          setSelectedCategory(null);
-                          setShowEmergencyOnly(false);
-                        }}
-                      >
+                      <Button onClick={() => {
+                        setSearchTerm("");
+                        setSelectedCategory(null);
+                        setShowEmergencyOnly(false);
+                      }}>
                         Reset Filters
                       </Button>
                     </CardContent>
