@@ -38,14 +38,10 @@ const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
         <CardHeader className="flex items-center space-x-4">
           <Avatar className="h-20 w-20">
             <AvatarImage src={profile?.avatar_url} />
-            <AvatarFallback>
-              {profile?.name?.substring(0, 2) || "T"}
-            </AvatarFallback>
+            <AvatarFallback>{profile?.name?.substring(0, 2) || "T"}</AvatarFallback>
           </Avatar>
           <div>
-            <CardTitle className="text-xl font-semibold">
-              {profile?.name || "Tradie"}
-            </CardTitle>
+            <CardTitle className="text-xl font-semibold">{profile?.name || "Tradie"}</CardTitle>
             <p className="text-sm text-muted-foreground">{profile?.trade || "Your Trade"}</p>
             <p className="text-sm text-muted-foreground">Member since {joinDate}</p>
           </div>
@@ -72,9 +68,7 @@ const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
             {profile?.rating_avg?.toFixed(1) || "0.0"} ({profile?.rating_count || 0} reviews)
           </div>
           <div className="text-sm">
-            <Badge variant="outline">
-              Status: {profile?.status || "pending"}
-            </Badge>
+            <Badge variant="outline">Status: {profile?.status || "pending"}</Badge>
           </div>
         </CardContent>
       </Card>
@@ -84,7 +78,7 @@ const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
           <CardTitle>Portfolio</CardTitle>
         </CardHeader>
         <CardContent>
-          {profile?.portfolio?.length ? (
+          {Array.isArray(profile?.portfolio) && profile.portfolio.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {profile.portfolio.map((url, idx) => (
                 <img
