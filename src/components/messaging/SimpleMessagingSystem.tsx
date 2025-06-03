@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { MessageSquare } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 
 interface Message {
   id: string;
@@ -13,69 +14,122 @@ interface Message {
   created_at: string;
 }
 
-interface Contact {
-  id: string;
-  name: string;
-  avatar_url: string;
-}
-
 interface Conversation {
   id: string;
-  contact: Contact;
+  contact: {
+    id: string;
+    name: string;
+    avatar_url: string;
+  };
   messages: Message[];
 }
 
 const SimpleMessagingSystem: React.FC = () => {
-  const supabase = useSupabaseClient();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [selected, setSelected] = useState<Conversation | null>(null);
   const [newMessage, setNewMessage] = useState("");
+  const [userId, setUserId] = useState<string>("");
 
   useEffect(() => {
-    // Simulated fetch logic
-    const fetchConversations = async () => {
-      // Replace this with real Supabase fetch logic
-      setConversations([
-        {
-          id: "1",
-          contact: {
-            id: "u1",
-            name: "John Smith",
-            avatar_url: "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-          },
-          messages: [
-            {
-              id: "m1",
-              sender_id: "u1",
-              content: "Hi, can you quote me?",
-              created_at: new Date().toISOString(),
+    const init = async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      if (!auth.user) return;
+
+      const uid = auth.user.id;
+      setUserId(uid);
+
+      // 1. Fetch conversations involving the user
+      const { data: convos, error: convoErr } = await supabase
+        .from("conversations")
+        .select("*")
+        .or(`tradie_id.eq.${uid},homeowner_id.eq.${uid}`);
+
+      if (convoErr || !convos) {
+        console.error("Error loading conversations:", convoErr);
+        return;
+      }
+
+      // 2. For each conversation, determine the contact
+      const convosWithDetails: Conversation[] = await Promise.all(
+        convos.map(async (convo) => {
+          const contactId =
+            convo.tradie_id === uid ? convo.homeowner_id : convo.tradie_id;
+
+          const { data: contactProfile } = await supabase
+            .from(
+              convo.tradie_id === uid
+                ? "profile_centra_resident"
+                : "profile_centra_tradie"
+            )
+            .select("id, first_name, avatar_url")
+            .eq("id", contactId)
+            .single();
+
+          const { data: messages } = await supabase
+            .from("messages")
+            .select("*")
+            .eq("conversation_id", convo.id)
+            .order("created_at", { ascending: true });
+
+          return {
+            id: convo.id,
+            contact: {
+              id: contactProfile.id,
+              name: contactProfile.first_name,
+              avatar_url: contactProfile.avatar_url,
             },
-          ],
-        },
-      ]);
+            messages: messages || [],
+          };
+        })
+      );
+
+      setConversations(convosWithDetails);
+
+      // 3. Subscribe to new messages in real time
+      supabase
+        .channel("realtime-messages")
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "messages",
+          },
+          (payload) => {
+            const msg = payload.new;
+            setConversations((prev) =>
+              prev.map((conv) =>
+                conv.id === msg.conversation_id
+                  ? {
+                      ...conv,
+                      messages: [...conv.messages, msg],
+                    }
+                  : conv
+              )
+            );
+          }
+        )
+        .subscribe();
     };
-    fetchConversations();
+
+    init();
   }, []);
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !selected) return;
+    if (!newMessage.trim() || !selected || !userId) return;
 
-    const msg: Message = {
-      id: Date.now().toString(),
-      sender_id: "current_user_id", // Replace with actual sender ID
+    const { error } = await supabase.from("messages").insert({
+      conversation_id: selected.id,
+      sender_id: userId,
       content: newMessage.trim(),
-      created_at: new Date().toISOString(),
-    };
+    });
 
-    const updated = {
-      ...selected,
-      messages: [...selected.messages, msg],
-    };
-
-    setConversations((prev) =>
-      prev.map((conv) => (conv.id === updated.id ? updated : conv))
-    );
-    setNewMessage("");
+    if (error) {
+      alert("Failed to send message");
+      console.error("Send error:", error);
+    } else {
+      setNewMessage("");
+    }
   };
 
   return (
@@ -93,12 +147,14 @@ const SimpleMessagingSystem: React.FC = () => {
             <div className="flex items-center space-x-3">
               <Avatar>
                 <AvatarImage src={conv.contact.avatar_url} />
-                <AvatarFallback>{conv.contact.name.slice(0, 2)}</AvatarFallback>
+                <AvatarFallback>
+                  {conv.contact.name?.slice(0, 2) || "??"}
+                </AvatarFallback>
               </Avatar>
               <div>
                 <p className="font-medium">{conv.contact.name}</p>
                 <p className="text-xs text-gray-500">
-                  {conv.messages[conv.messages.length - 1]?.content}
+                  {conv.messages[conv.messages.length - 1]?.content || "No messages yet"}
                 </p>
               </div>
             </div>
@@ -113,14 +169,12 @@ const SimpleMessagingSystem: React.FC = () => {
             <div
               key={msg.id}
               className={`flex ${
-                msg.sender_id === "current_user_id"
-                  ? "justify-end"
-                  : "justify-start"
+                msg.sender_id === userId ? "justify-end" : "justify-start"
               }`}
             >
               <div
                 className={`p-2 rounded-lg text-sm ${
-                  msg.sender_id === "current_user_id"
+                  msg.sender_id === userId
                     ? "bg-blue-500 text-white"
                     : "bg-white border"
                 }`}
