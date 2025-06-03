@@ -1,0 +1,102 @@
+import React, { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { supabase } from "@/lib/supabaseClient";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+
+const ReviewJobPage = () => {
+  const { jobId } = useParams();
+  const navigate = useNavigate();
+
+  const [profile, setProfile] = useState<any>(null);
+  const [rating, setRating] = useState<number>(0);
+  const [comment, setComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) return;
+
+      const { data: profileData } = await supabase
+        .from("profile_centra_resident")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      setProfile(profileData);
+    };
+
+    fetchUserProfile();
+  }, []);
+
+  const handleSubmit = async () => {
+    if (!rating || rating < 1 || rating > 5) {
+      alert("Please provide a rating between 1 and 5.");
+      return;
+    }
+
+    setSubmitting(true);
+
+    const { error: insertError } = await supabase.from("reviews").insert({
+      job_id: jobId,
+      rating,
+      comment,
+      created_at: new Date().toISOString(),
+    });
+
+    if (insertError) {
+      alert("Failed to submit review.");
+      setSubmitting(false);
+      return;
+    }
+
+    // Redirect back to dashboard
+    navigate("/dashboard");
+  };
+
+  if (!profile) return <div className="p-6">Loading...</div>;
+
+  return (
+    <DashboardLayout user={profile} userType="centraResident">
+      <div className="max-w-2xl mx-auto p-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Leave a Review</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <label className="block mb-1 font-medium">Rating (1 to 5)</label>
+              <Input
+                type="number"
+                min={1}
+                max={5}
+                value={rating}
+                onChange={(e) => setRating(Number(e.target.value))}
+              />
+            </div>
+            <div>
+              <label className="block mb-1 font-medium">Comment (optional)</label>
+              <Textarea
+                placeholder="Write a comment..."
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+              />
+            </div>
+            <Button onClick={handleSubmit} disabled={submitting}>
+              {submitting ? "Submitting..." : "Submit Review"}
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    </DashboardLayout>
+  );
+};
+
+export default ReviewJobPage;
