@@ -1,16 +1,11 @@
+// src/pages/dashboard/tradie/profile.tsx
+
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import DashboardLayout from "@/components/layout/DashboardLayout";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardContent,
-} from "@/components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Star, Phone, Mail, MapPin, BadgeCheck } from "lucide-react";
+import { Star } from "lucide-react";
 
 const TradieProfilePage = () => {
   const [profile, setProfile] = useState<any>(null);
@@ -35,7 +30,6 @@ const TradieProfilePage = () => {
           portfolio: Array.isArray(data.portfolio) ? data.portfolio : [],
         });
       }
-
       setLoading(false);
     };
 
@@ -48,91 +42,79 @@ const TradieProfilePage = () => {
   const fullName = `${profile.first_name || ""} ${profile.last_name || ""}`.trim();
   const joinDate = profile.created_at
     ? new Date(profile.created_at).toLocaleDateString("en-AU", {
-        month: "long",
         year: "numeric",
+        month: "long",
       })
     : "Unknown";
 
   return (
-    <DashboardLayout userType="tradie">
-      <div className="p-6 max-w-4xl mx-auto space-y-6">
-        <Card>
-          <CardContent className="flex flex-col items-center text-center space-y-2 py-8">
-            <Avatar className="w-20 h-20">
-              <AvatarImage src={profile.avatar_url} />
-              <AvatarFallback>{fullName.slice(0, 2).toUpperCase()}</AvatarFallback>
-            </Avatar>
-            <h2 className="text-lg font-semibold">{fullName || "Tradie"}</h2>
-            <p className="text-sm text-muted-foreground">
-              {profile.bio || "No bio added."}
-            </p>
-            <div className="flex items-center text-sm text-muted-foreground space-x-1">
-              <Star className="w-4 h-4 text-yellow-500" />
-              <span>
-                {(profile.rating_avg || 0).toFixed(1)} ({profile.rating_count || 0} reviews)
-              </span>
-            </div>
-            <Button className="mt-2" variant="default" asChild>
-              <a href="/dashboard/tradie/profile?edit=true">Edit Profile</a>
-            </Button>
-          </CardContent>
-        </Card>
+    <div className="p-6 max-w-4xl mx-auto space-y-6">
+      <Card>
+        <CardContent className="flex flex-col items-center py-8">
+          <Avatar className="h-20 w-20 mb-4">
+            <AvatarImage src={profile.avatar_url} />
+            <AvatarFallback>{profile.first_name?.[0] || "T"}</AvatarFallback>
+          </Avatar>
+          <h2 className="text-xl font-bold">{fullName}</h2>
+          <p className="text-sm text-muted-foreground mb-1">
+            {profile.bio || "No bio added."}
+          </p>
+          <div className="flex items-center text-sm text-muted-foreground mb-4">
+            <Star className="h-4 w-4 text-yellow-500 mr-1" />
+            {profile.rating_avg?.toFixed(1) || "0.0"} (
+            {profile.rating_count || 0} reviews)
+          </div>
+          <Button variant="default" onClick={() => location.href = "/dashboard/tradie/profile/edit"}>
+            Edit Profile
+          </Button>
+        </CardContent>
+      </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Contact Information</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2 text-sm">
-            {profile.email && (
-              <div className="flex items-center">
-                <Mail className="w-4 h-4 mr-2 text-muted-foreground" />
-                {profile.email}
-              </div>
-            )}
-            {profile.phone && (
-              <div className="flex items-center">
-                <Phone className="w-4 h-4 mr-2 text-muted-foreground" />
-                {profile.phone}
-              </div>
-            )}
-            {profile.address && (
-              <div className="flex items-center">
-                <MapPin className="w-4 h-4 mr-2 text-muted-foreground" />
-                {profile.address}
-              </div>
-            )}
-            <div className="flex items-center">
-              <BadgeCheck className="w-4 h-4 mr-2 text-muted-foreground" />
-              ABN: {profile.abn || "N/A"}, License: {profile.license || "N/A"}
+      <Card>
+        <CardHeader>
+          <CardTitle>Portfolio</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {profile.portfolio?.length ? (
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {profile.portfolio.slice(0, 6).map((url: string, idx: number) => (
+                <img
+                  key={idx}
+                  src={url}
+                  alt={`Portfolio ${idx + 1}`}
+                  className="w-full h-32 object-cover rounded border"
+                />
+              ))}
             </div>
-            <div className="text-muted-foreground">Member since {joinDate}</div>
-          </CardContent>
-        </Card>
+          ) : (
+            <p className="text-sm text-muted-foreground">No portfolio images uploaded.</p>
+          )}
+        </CardContent>
+      </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Portfolio</CardTitle>
-            <CardDescription>Max 6 images</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {profile.portfolio?.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {profile.portfolio.slice(0, 6).map((url: string, idx: number) => (
-                  <img
-                    key={idx}
-                    src={url}
-                    alt={`Portfolio ${idx + 1}`}
-                    className="w-full h-32 object-cover rounded border"
-                  />
-                ))}
+      <Card>
+        <CardHeader>
+          <CardTitle>Reviews</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {profile.reviews?.length ? (
+            profile.reviews.map((review: any, idx: number) => (
+              <div key={idx} className="p-4 border rounded-md space-y-1">
+                <p className="font-medium">{review.reviewer_name}</p>
+                <p className="text-sm text-muted-foreground italic">"{review.comment}"</p>
+                <div className="flex text-yellow-500">
+                  {[...Array(review.rating || 0)].map((_, i) => (
+                    <Star key={i} className="w-4 h-4" />
+                  ))}
+                </div>
               </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No portfolio images uploaded.</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-    </DashboardLayout>
+            ))
+          ) : (
+            <p className="text-sm text-muted-foreground">No reviews yet.</p>
+          )}
+        </CardContent>
+      </Card>
+    </div>
   );
 };
 
