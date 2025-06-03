@@ -23,7 +23,7 @@ interface TradieProfile {
   rating_avg?: number;
   rating_count?: number;
   status?: string;
-  portofolio?: string[];
+  portfolio?: string[];
   previousJobs?: Job[];
 }
 
@@ -84,9 +84,9 @@ const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
           <CardTitle>Portfolio</CardTitle>
         </CardHeader>
         <CardContent>
-          {profile?.portofolio?.length ? (
+          {profile?.portfolio?.length ? (
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {profile.portofolio.map((url, idx) => (
+              {profile.portfolio.map((url, idx) => (
                 <img
                   key={idx}
                   src={url}
