@@ -1,36 +1,28 @@
+// src/pages/dashboard/tradie/profile.tsx
+
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Mail, Phone, MapPin, BadgeCheck } from "lucide-react";
+import { Star } from "lucide-react";
 
 const TradieProfilePage = () => {
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [portfolioFiles, setPortfolioFiles] = useState<FileList | null>(null);
 
   useEffect(() => {
     const fetchProfile = async () => {
       const {
         data: { user },
-        error: userError,
       } = await supabase.auth.getUser();
-
-      if (userError || !user) {
-        console.error("Failed to get user:", userError?.message);
-        setLoading(false);
-        return;
-      }
+      if (!user) return;
 
       const { data, error } = await supabase
         .from("profile_centra_tradie")
@@ -38,109 +30,149 @@ const TradieProfilePage = () => {
         .eq("id", user.id)
         .single();
 
-      if (error) {
-        console.error("Failed to fetch profile:", error.message);
-        setLoading(false);
-        return;
+      if (!error && data) {
+        setProfile({
+          ...data,
+          portfolio: Array.isArray(data.portfolio) ? data.portfolio : [],
+        });
       }
-
-      setProfile(data);
       setLoading(false);
     };
 
     fetchProfile();
   }, []);
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setProfile({ ...profile, [e.target.name]: e.target.value });
-  };
-
   const handleSave = async () => {
-    setSaving(true);
+    if (!profile) return;
+
+    const updates: any = { ...profile };
+
+    if (avatarFile) {
+      const { data, error } = await supabase.storage
+        .from("avatars")
+        .upload(`${profile.id}/avatar.png`, avatarFile, {
+          upsert: true,
+        });
+      if (!error) {
+        const { data: urlData } = supabase.storage.from("avatars").getPublicUrl(data.path);
+        updates.avatar_url = urlData.publicUrl;
+      }
+    }
+
+    if (portfolioFiles) {
+      const newPortfolioUrls: string[] = [];
+      for (const file of Array.from(portfolioFiles)) {
+        const { data, error } = await supabase.storage
+          .from("portfolio")
+          .upload(`${profile.id}/${file.name}`, file, {
+            upsert: false,
+          });
+        if (!error && data?.path) {
+          const { data: urlData } = supabase.storage.from("portfolio").getPublicUrl(data.path);
+          newPortfolioUrls.push(urlData.publicUrl);
+        }
+      }
+      updates.portfolio = [...(profile.portfolio || []), ...newPortfolioUrls];
+    }
+
     const { error } = await supabase
       .from("profile_centra_tradie")
-      .update({
-        first_name: profile.first_name,
-        phone: profile.phone,
-        address: profile.address,
-        abn: profile.abn,
-        license: profile.license,
-        bio: profile.bio,
-      })
+      .update(updates)
       .eq("id", profile.id);
 
-    setSaving(false);
-    if (error) {
-      alert("❌ Failed to update profile");
-    } else {
-      alert("✅ Profile updated");
+    if (!error) {
+      setProfile(updates);
       setEditing(false);
+    } else {
+      alert("Failed to save profile changes");
     }
   };
 
-  if (loading) return <div className="p-6">Loading profile...</div>;
+  if (loading) return <div className="p-6">Loading...</div>;
   if (!profile) return <div className="p-6 text-red-600">Profile not found.</div>;
-
-  const joinDate = profile.created_at
-    ? new Date(profile.created_at).toLocaleDateString("en-AU", { month: "long", year: "numeric" })
-    : "Unknown";
 
   return (
     <DashboardLayout userType="tradie">
-      <div className="max-w-3xl mx-auto p-4 space-y-6">
+      <div className="p-6 max-w-4xl mx-auto space-y-6">
         <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
+          <CardHeader>
+            <CardTitle>Edit Profile</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="flex items-center space-x-4">
-              <Avatar className="h-20 w-20">
+              <Avatar className="w-20 h-20">
                 <AvatarImage src={profile.avatar_url} />
-                <AvatarFallback>{profile.first_name?.[0] || "T"}</AvatarFallback>
+                <AvatarFallback>
+                  {profile.first_name?.[0]}
+                  {profile.last_name?.[0]}
+                </AvatarFallback>
               </Avatar>
-              <div>
-                <CardTitle className="text-xl">{profile.first_name || "Tradie"}</CardTitle>
-                <p className="text-sm text-muted-foreground">{profile.trade}</p>
-                <p className="text-sm text-muted-foreground">Member since {joinDate}</p>
+              <Input type="file" onChange={(e) => setAvatarFile(e.target.files?.[0] || null)} />
+            </div>
+            <Input
+              placeholder="First Name"
+              value={profile.first_name || ""}
+              onChange={(e) => setProfile({ ...profile, first_name: e.target.value })}
+            />
+            <Input
+              placeholder="Last Name"
+              value={profile.last_name || ""}
+              onChange={(e) => setProfile({ ...profile, last_name: e.target.value })}
+            />
+            <Input
+              placeholder="Phone"
+              value={profile.phone || ""}
+              onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+            />
+            <Input
+              placeholder="ABN"
+              value={profile.abn || ""}
+              onChange={(e) => setProfile({ ...profile, abn: e.target.value })}
+            />
+            <Input
+              placeholder="License"
+              value={profile.license || ""}
+              onChange={(e) => setProfile({ ...profile, license: e.target.value })}
+            />
+            <Textarea
+              placeholder="Bio"
+              value={profile.bio || ""}
+              onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+            />
+            <Input
+              type="file"
+              multiple
+              onChange={(e) => setPortfolioFiles(e.target.files)}
+            />
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {(profile.portfolio || []).map((url: string, idx: number) => (
+                <img
+                  key={idx}
+                  src={url}
+                  alt={`Portfolio ${idx}`}
+                  className="w-full h-32 object-cover rounded border"
+                />
+              ))}
+            </div>
+            <Button onClick={handleSave}>Save Changes</Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Reviews</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {/* Example review section; fetch real data in production */}
+            <div className="p-3 border rounded">
+              <p className="text-sm font-medium">Jane Doe</p>
+              <p className="text-sm text-muted-foreground">"Excellent work on the plumbing!"</p>
+              <div className="flex items-center text-yellow-500">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="w-4 h-4" />
+                ))}
               </div>
             </div>
-            <Button variant="outline" onClick={() => setEditing(!editing)}>
-              {editing ? "Cancel" : "Edit Profile"}
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-3 mt-4">
-            {editing ? (
-              <>
-                <Input name="first_name" value={profile.first_name || ""} onChange={handleChange} placeholder="Name" />
-                <Input name="phone" value={profile.phone || ""} onChange={handleChange} placeholder="Phone" />
-                <Input name="address" value={profile.address || ""} onChange={handleChange} placeholder="Address" />
-                <Input name="abn" value={profile.abn || ""} onChange={handleChange} placeholder="ABN" />
-                <Input name="license" value={profile.license || ""} onChange={handleChange} placeholder="License" />
-                <Textarea name="bio" value={profile.bio || ""} onChange={handleChange} placeholder="Bio / About" />
-                <Button onClick={handleSave} disabled={saving}>
-                  {saving ? "Saving..." : "Save Changes"}
-                </Button>
-              </>
-            ) : (
-              <>
-                <div className="flex items-center text-sm">
-                  <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
-                  {profile.email}
-                </div>
-                <div className="flex items-center text-sm">
-                  <Phone className="h-4 w-4 mr-2 text-muted-foreground" />
-                  {profile.phone || "No phone provided"}
-                </div>
-                <div className="flex items-center text-sm">
-                  <MapPin className="h-4 w-4 mr-2 text-muted-foreground" />
-                  {profile.address || "No address provided"}
-                </div>
-                <div className="flex items-center text-sm">
-                  <BadgeCheck className="h-4 w-4 mr-2 text-muted-foreground" />
-                  ABN: {profile.abn || "N/A"} | License: {profile.license || "N/A"}
-                </div>
-                {profile.bio && (
-                  <div className="text-sm text-muted-foreground italic">{profile.bio}</div>
-                )}
-              </>
-            )}
           </CardContent>
         </Card>
       </div>
