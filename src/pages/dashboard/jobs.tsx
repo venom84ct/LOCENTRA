@@ -11,6 +11,7 @@ import {
   Clock,
   User,
   Plus,
+  AlertCircle,
 } from "lucide-react";
 
 const DashboardJobs = () => {
@@ -36,15 +37,19 @@ const DashboardJobs = () => {
       .from("jobs")
       .select("*")
       .eq("homeowner_id", profileData.id)
-      .not("status", "eq", "completed")
-      .not("status", "eq", "cancelled")
       .order("created_at", { ascending: false });
 
     if (jobsError) {
       console.error("❌ Failed to fetch jobs:", jobsError.message);
     }
 
-    setJobs(jobsData || []);
+    const visibleJobs = (jobsData || []).filter(
+      (j) =>
+        j.status !== "cancelled" &&
+        !(j.status === "completed" && j.review_submitted === true)
+    );
+
+    setJobs(visibleJobs);
   };
 
   useEffect(() => {
@@ -75,12 +80,19 @@ const DashboardJobs = () => {
     if (error) {
       console.error("❌ Failed to update job:", error.message);
     } else {
-      await refetchJobs(user.id);
+      navigate(`/dashboard/review/${jobId}`);
     }
   };
 
-  const renderStatusLabel = (status: string) => {
-    switch (status?.toLowerCase()) {
+  const renderStatusLabel = (job: any) => {
+    if (job.status === "completed" && !job.review_submitted) {
+      return (
+        <Badge className="bg-yellow-100 text-yellow-800 flex items-center">
+          <AlertCircle className="h-4 w-4 mr-1" /> Awaiting Review
+        </Badge>
+      );
+    }
+    switch (job.status?.toLowerCase()) {
       case "open":
         return <Badge variant="outline">Open</Badge>;
       case "in_progress":
@@ -128,11 +140,10 @@ const DashboardJobs = () => {
                       Emergency
                     </Badge>
                   )}
-                  {renderStatusLabel(job.status)}
+                  {renderStatusLabel(job)}
                 </div>
               </div>
 
-              {/* Job Images */}
               {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                   {job.image_urls.map((url: string, idx: number) => (
