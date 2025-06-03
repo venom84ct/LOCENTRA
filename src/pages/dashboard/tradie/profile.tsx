@@ -4,20 +4,16 @@ import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
-  Avatar,
-  AvatarFallback,
-  AvatarImage,
-} from "@/components/ui/avatar";
-import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Star } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Star, MapPin, Mail, Phone } from "lucide-react";
 
 const TradieProfilePage = () => {
   const [profile, setProfile] = useState<any>(null);
@@ -42,57 +38,44 @@ const TradieProfilePage = () => {
       if (!error && data) {
         setProfile({
           ...data,
-          portfolio: Array.isArray(data.portfolio) ? data.portfolio : [],
+          portfolio: Array.isArray(data.portfolio)
+            ? data.portfolio
+            : typeof data.portfolio === "string"
+            ? JSON.parse(data.portfolio)
+            : [],
         });
       }
       setLoading(false);
     };
-
     fetchProfile();
   }, []);
 
   const handleSave = async () => {
     if (!profile) return;
-
-    const updates: any = {
-      first_name: profile.first_name,
-      last_name: profile.last_name,
-      phone: profile.phone,
-      abn: profile.abn,
-      license: profile.license,
-      bio: profile.bio,
-    };
+    const updates: any = { ...profile };
 
     if (avatarFile) {
       const { data, error } = await supabase.storage
         .from("tradie-avatars")
         .upload(`${profile.id}/avatar.png`, avatarFile, { upsert: true });
-      if (!error && data?.path) {
-        const { data: urlData } = supabase.storage
-          .from("tradie-avatars")
-          .getPublicUrl(data.path);
-        updates.avatar_url = urlData.publicUrl;
+      if (!error && data) {
+        const { data: url } = supabase.storage.from("tradie-avatars").getPublicUrl(data.path);
+        updates.avatar_url = url.publicUrl;
       }
     }
 
     if (portfolioFiles) {
-      const newUrls: string[] = [];
-      const currentCount = profile.portfolio?.length || 0;
-      const remainingSlots = 6 - currentCount;
-      const filesToUpload = Array.from(portfolioFiles).slice(0, remainingSlots);
-
-      for (const file of filesToUpload) {
+      const uploadedUrls: string[] = [];
+      for (const file of Array.from(portfolioFiles).slice(0, 6)) {
         const { data, error } = await supabase.storage
           .from("portfolio")
-          .upload(`${profile.id}/${Date.now()}-${file.name}`, file);
-        if (!error && data?.path) {
-          const { data: urlData } = supabase.storage
-            .from("portfolio")
-            .getPublicUrl(data.path);
-          newUrls.push(urlData.publicUrl);
+          .upload(`${profile.id}/${file.name}`, file, { upsert: false });
+        if (!error && data) {
+          const { data: url } = supabase.storage.from("portfolio").getPublicUrl(data.path);
+          uploadedUrls.push(url.publicUrl);
         }
       }
-      updates.portfolio = [...(profile.portfolio || []), ...newUrls];
+      updates.portfolio = [...(profile.portfolio || []), ...uploadedUrls];
     }
 
     const { error } = await supabase
@@ -101,22 +84,10 @@ const TradieProfilePage = () => {
       .eq("id", profile.id);
 
     if (!error) {
-      const { data: updatedProfile } = await supabase
-        .from("profile_centra_tradie")
-        .select("*")
-        .eq("id", profile.id)
-        .single();
-      setProfile({
-        ...updatedProfile,
-        portfolio: Array.isArray(updatedProfile?.portfolio)
-          ? updatedProfile.portfolio
-          : [],
-      });
+      setProfile(updates);
       setEditing(false);
-      setAvatarFile(null);
-      setPortfolioFiles(null);
     } else {
-      alert("Failed to save profile changes");
+      alert("Failed to update profile.");
     }
   };
 
@@ -124,87 +95,131 @@ const TradieProfilePage = () => {
   if (!profile) return <div className="p-6 text-red-600">Profile not found.</div>;
 
   const fullName = `${profile.first_name || ""} ${profile.last_name || ""}`.trim();
+  const joinDate = profile?.created_at
+    ? new Date(profile.created_at).toLocaleDateString("en-AU", {
+        month: "long",
+        year: "numeric",
+      })
+    : "Unknown";
 
   return (
-    <DashboardLayout userType="tradie">
-      <div className="max-w-4xl mx-auto p-6 space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Profile</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center space-x-4">
-              <Avatar className="w-20 h-20">
+    <DashboardLayout userType="tradie" user={profile}>
+      <div className="p-6 max-w-6xl mx-auto space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">My Profile</h1>
+          {!editing && <Button onClick={() => setEditing(true)}>Edit Profile</Button>}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <Card>
+            <CardHeader className="text-center">
+              <Avatar className="w-20 h-20 mx-auto">
                 <AvatarImage src={profile.avatar_url} />
                 <AvatarFallback>{fullName.slice(0, 2)}</AvatarFallback>
               </Avatar>
-              <div className="text-sm">
-                <p className="font-semibold">{fullName}</p>
-                <p className="text-muted-foreground">{profile.bio || "No bio provided."}</p>
-                <p className="text-muted-foreground">Phone: {profile.phone || "N/A"}</p>
-                <p className="text-muted-foreground">ABN: {profile.abn || "N/A"}</p>
-                <p className="text-muted-foreground">License: {profile.license || "N/A"}</p>
+              <CardTitle className="text-xl font-bold mt-2">{fullName}</CardTitle>
+              <p className="text-muted-foreground">{profile.email}</p>
+              <div className="text-sm mt-2 space-y-1">
+                <div className="flex items-center justify-center">
+                  <Phone className="h-4 w-4 mr-2" /> {profile.phone || "N/A"}
+                </div>
+                <div className="flex items-center justify-center">
+                  <MapPin className="h-4 w-4 mr-2" /> {profile.address || "No address"}
+                </div>
+                <div className="text-xs text-muted-foreground">
+                  Member since {joinDate}
+                </div>
               </div>
-              <Button onClick={() => setEditing(!editing)}>Edit Profile</Button>
-            </div>
-            {editing && (
-              <div className="space-y-4">
-                <Input
-                  placeholder="First Name"
-                  value={profile.first_name || ""}
-                  onChange={(e) => setProfile({ ...profile, first_name: e.target.value })}
-                />
-                <Input
-                  placeholder="Last Name"
-                  value={profile.last_name || ""}
-                  onChange={(e) => setProfile({ ...profile, last_name: e.target.value })}
-                />
-                <Input
-                  placeholder="Phone"
-                  value={profile.phone || ""}
-                  onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
-                />
-                <Input
-                  placeholder="ABN"
-                  value={profile.abn || ""}
-                  onChange={(e) => setProfile({ ...profile, abn: e.target.value })}
-                />
-                <Input
-                  placeholder="License"
-                  value={profile.license || ""}
-                  onChange={(e) => setProfile({ ...profile, license: e.target.value })}
-                />
-                <Textarea
-                  placeholder="Bio"
-                  value={profile.bio || ""}
-                  onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
-                />
+              <div className="flex items-center justify-center mt-2 text-yellow-500">
+                <Star className="w-4 h-4 mr-1" />
+                {profile.rating_avg?.toFixed(1) || "0.0"} ({profile.rating_count || 0} reviews)
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {editing && (
                 <Input type="file" onChange={(e) => setAvatarFile(e.target.files?.[0] || null)} />
-                <Input type="file" multiple onChange={(e) => setPortfolioFiles(e.target.files)} />
-                <Button onClick={handleSave}>Save Changes</Button>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Profile Details</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {editing ? (
+                <>
+                  <Textarea
+                    placeholder="About Me"
+                    value={profile.bio || ""}
+                    onChange={(e) => setProfile({ ...profile, bio: e.target.value })}
+                  />
+                  <Input
+                    placeholder="ABN"
+                    value={profile.abn || ""}
+                    onChange={(e) => setProfile({ ...profile, abn: e.target.value })}
+                  />
+                  <Input
+                    placeholder="License"
+                    value={profile.license || ""}
+                    onChange={(e) => setProfile({ ...profile, license: e.target.value })}
+                  />
+                  <Input
+                    type="file"
+                    multiple
+                    accept="image/*"
+                    onChange={(e) => setPortfolioFiles(e.target.files)}
+                  />
+                  <Button onClick={handleSave}>Save Changes</Button>
+                </>
+              ) : (
+                <>
+                  <p><strong>About Me:</strong> {profile.bio || "N/A"}</p>
+                  <p><strong>ABN:</strong> {profile.abn || "N/A"}</p>
+                  <p><strong>License:</strong> {profile.license || "N/A"}</p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         <Card>
           <CardHeader>
             <CardTitle>Portfolio</CardTitle>
           </CardHeader>
           <CardContent>
-            {profile.portfolio && profile.portfolio.length > 0 ? (
-              <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {profile.portfolio.map((url: string, idx: number) => (
-                  <img
-                    key={idx}
-                    src={url}
-                    alt={`Portfolio ${idx + 1}`}
-                    className="w-full h-32 object-cover rounded border"
-                  />
-                ))}
-              </div>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {(profile.portfolio || []).slice(0, 6).map((url: string, idx: number) => (
+                <img
+                  key={idx}
+                  src={url}
+                  alt={`Portfolio ${idx + 1}`}
+                  className="w-full h-32 object-cover rounded border"
+                />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Reviews</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {profile.reviews?.length ? (
+              profile.reviews.map((r: any, i: number) => (
+                <div key={i} className="p-3 border rounded">
+                  <p className="text-sm font-medium">{r.reviewer_name}</p>
+                  <p className="text-sm text-muted-foreground">{r.comment}</p>
+                  <div className="flex items-center text-yellow-500">
+                    {[...Array(r.rating)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4" />
+                    ))}
+                  </div>
+                </div>
+              ))
             ) : (
-              <p className="text-muted-foreground text-sm">No portfolio images uploaded.</p>
+              <p className="text-muted-foreground text-sm">No reviews available.</p>
             )}
           </CardContent>
         </Card>
