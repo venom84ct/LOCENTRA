@@ -1,3 +1,5 @@
+// src/pages/dashboard/messages/index.tsx
+
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import DashboardLayout from "@/components/layout/dashboard";
@@ -8,7 +10,9 @@ const MessagesPage = () => {
 
   useEffect(() => {
     const loadUserProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
       const { data, error } = await supabase
@@ -48,3 +52,4 @@ const MessagesPage = () => {
 };
 
 export default MessagesPage;
+
