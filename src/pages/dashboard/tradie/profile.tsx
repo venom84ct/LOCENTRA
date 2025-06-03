@@ -1,11 +1,7 @@
-// src/pages/dashboard/tradie/profile.tsx
-
-// File: src/pages/dashboard/tradie/profile.tsx
-
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import TradieDashboardLayout from "@/components/layout/TradieDashboardLayout";
 import TradieDashboard from "@/components/dashboard/TradieDashboard";
-import DashboardLayout from "@/components/layout/TradieDashboard";
 
 const TradieProfilePage = () => {
   const [profile, setProfile] = useState<any>(null);
@@ -36,11 +32,9 @@ const TradieProfilePage = () => {
         return;
       }
 
-      const parsedPortfolio = Array.isArray(data.portfolio) ? data.portfolio : [];
-
       setProfile({
         ...data,
-        portfolio: parsedPortfolio,
+        portfolio: Array.isArray(data.portfolio) ? data.portfolio : [],
         previousJobs: data.previousJobs || [],
       });
 
@@ -54,9 +48,9 @@ const TradieProfilePage = () => {
   if (!profile) return <div className="p-6 text-red-600">Profile not found.</div>;
 
   return (
-    <DashboardLayout>
+    <TradieDashboardLayout>
       <TradieDashboard profile={profile} />
-    </DashboardLayout>
+    </TradieDashboardLayout>
   );
 };
 
