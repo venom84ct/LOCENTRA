@@ -1,11 +1,10 @@
-// src/pages/dashboard/find-jobs.tsx
 import React, { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { supabase } from "@/lib/supabaseClient";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, CreditCard, Filter, Search, User } from "lucide-react";
+import { AlertCircle, Calendar, Clock, CreditCard, DollarSign, Filter, MapPin, Search } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -21,29 +20,21 @@ const FindJobsPage = () => {
   const [showEmergencyOnly, setShowEmergencyOnly] = useState(false);
   const navigate = useNavigate();
 
-  const fetchJobs = async () => {
-    const { data, error } = await supabase
-      .from("jobs")
-      .select(`
-        *,
-        profile_centra_resident:homeowner_id (
-          id,
-          first_name,
-          last_name,
-          avatar_url
-        )
-      `)
-      .or("status.eq.open,status.eq.available")
-      .order("created_at", { ascending: false });
-
-    if (error) {
-      console.error("Error fetching jobs:", error.message);
-    } else {
-      setJobs(data);
-    }
-  };
-
   useEffect(() => {
+    const fetchJobs = async () => {
+      const { data, error } = await supabase
+        .from("jobs")
+        .select("*, profile_centra_resident(id, first_name, last_name, avatar_url)")
+        .or("status.eq.open,status.eq.available")
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.error("Error fetching jobs:", error.message);
+      } else {
+        setJobs(data);
+      }
+    };
+
     fetchJobs();
   }, []);
 
@@ -113,6 +104,7 @@ const FindJobsPage = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {/* Filters */}
             <div className="md:col-span-1">
               <Card className="bg-white sticky top-24">
                 <CardHeader>
@@ -122,9 +114,7 @@ const FindJobsPage = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <label htmlFor="search" className="text-sm font-medium">
-                      Search
-                    </label>
+                    <label htmlFor="search" className="text-sm font-medium">Search</label>
                     <div className="relative">
                       <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -166,7 +156,7 @@ const FindJobsPage = () => {
                       id="emergency-only"
                       checked={showEmergencyOnly}
                       onChange={() => setShowEmergencyOnly(!showEmergencyOnly)}
-                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      className="h-4 w-4 rounded border-gray-300 text-primary"
                     />
                     <label htmlFor="emergency-only" className="text-sm font-medium">
                       Emergency jobs only
@@ -190,61 +180,70 @@ const FindJobsPage = () => {
               </Card>
             </div>
 
-            <div className="md:col-span-3">
-              <div className="grid grid-cols-1 gap-4">
-                {filteredJobs.length > 0 ? (
-                  filteredJobs.map((job) => (
+            {/* Job Results */}
+            <div className="md:col-span-3 space-y-4">
+              {filteredJobs.length > 0 ? (
+                filteredJobs.map((job) => {
+                  const user = job.profile_centra_resident;
+                  const fullName = `${user?.first_name || "Unknown"} ${user?.last_name || ""}`;
+                  return (
                     <Card
                       key={job.id}
-                      className={`bg-white border rounded-lg shadow-sm p-4 space-y-4 ${
-                        job.is_emergency ? "border-red-600 border-2" : "border-gray-200"
-                      }`}
+                      className={`bg-white p-4 border rounded-md shadow-sm space-y-3 ${job.is_emergency ? "border-red-500" : ""}`}
                     >
                       <div className="flex items-center gap-3">
-                        {job.profile_centra_resident?.avatar_url ? (
-                          <img
-                            src={job.profile_centra_resident.avatar_url}
-                            alt="Avatar"
-                            className="h-8 w-8 rounded-full"
-                          />
-                        ) : (
-                          <div className="h-8 w-8 rounded-full bg-gray-300 flex items-center justify-center">
-                            <User className="h-4 w-4 text-white" />
-                          </div>
-                        )}
-                        <span className="font-medium">
-                          {job.profile_centra_resident?.first_name || "Unknown"} {" "}
-                          {job.profile_centra_resident?.last_name || ""}
-                        </span>
+                        <img
+                          src={user?.avatar_url || "https://api.dicebear.com/7.x/avataaars/svg?seed=placeholder"}
+                          alt="Avatar"
+                          className="h-8 w-8 rounded-full"
+                        />
+                        <span className="font-medium">{fullName}</span>
                       </div>
+
                       <div>
                         <h2 className="text-lg font-semibold">{job.title}</h2>
-                        <p className="text-muted-foreground text-sm">{job.description}</p>
+                        <p className="text-sm text-muted-foreground">{job.description}</p>
                       </div>
+
+                      {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 pt-2">
+                          {job.image_urls.map((url: string, idx: number) => (
+                            <img key={idx} src={url} alt={`job-${idx}`} className="rounded border h-28 w-full object-cover" />
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm text-muted-foreground pt-2">
+                        <div className="flex items-center"><MapPin className="w-4 h-4 mr-1" />{job.location}</div>
+                        <div className="flex items-center"><DollarSign className="w-4 h-4 mr-1" />{job.budget}</div>
+                        <div className="flex items-center"><Clock className="w-4 h-4 mr-1" />{job.timeline}</div>
+                        <div className="flex items-center"><Calendar className="w-4 h-4 mr-1" />{new Date(job.created_at).toLocaleDateString()}</div>
+                      </div>
+
                       <Button onClick={() => handlePurchaseLead(job)}>Purchase Lead</Button>
                     </Card>
-                  ))
-                ) : (
-                  <Card className="bg-white">
-                    <CardContent className="flex flex-col items-center justify-center py-12">
-                      <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-medium mb-2">No jobs found</h3>
-                      <p className="text-muted-foreground text-center mb-4">
-                        We couldn't find any jobs matching your search criteria.
-                      </p>
-                      <Button
-                        onClick={() => {
-                          setSearchTerm("");
-                          setSelectedCategory(null);
-                          setShowEmergencyOnly(false);
-                        }}
-                      >
-                        Reset Filters
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
+                  );
+                })
+              ) : (
+                <Card className="bg-white">
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium mb-2">No jobs found</h3>
+                    <p className="text-muted-foreground text-center mb-4">
+                      We couldn't find any jobs matching your search criteria.
+                    </p>
+                    <Button
+                      onClick={() => {
+                        setSearchTerm("");
+                        setSelectedCategory(null);
+                        setShowEmergencyOnly(false);
+                      }}
+                    >
+                      Reset Filters
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         </div>
