@@ -1,201 +1,166 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { MessageSquare } from "lucide-react";
 
 interface Message {
   id: string;
   conversation_id: string;
   sender_id: string;
-  content: string;
+  message: string;
   created_at: string;
-}
-
-interface Contact {
-  id: string;
-  name: string;
-  avatar_url: string;
 }
 
 interface Conversation {
   id: string;
-  contact: Contact;
-  messages: Message[];
+  job_id: string;
+  homeowner_id: string;
+  tradie_id: string;
 }
 
-const SimpleMessagingSystem: React.FC = () => {
+interface Props {
+  userId: string;
+  userType: "tradie" | "homeowner";
+  userName: string;
+  userAvatar?: string;
+}
+
+const SimpleMessagingSystem = ({ userId, userType, userName, userAvatar }: Props) => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
-  const [selected, setSelected] = useState<Conversation | null>(null);
+  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const [userId, setUserId] = useState<string>("");
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const init = async () => {
-      const { data: auth } = await supabase.auth.getUser();
-      if (!auth.user) return;
+    if (!userId) return;
 
-      const uid = auth.user.id;
-      setUserId(uid);
-
-      // Fetch conversations
-      const { data: convos, error: convoErr } = await supabase
+    const loadConversations = async () => {
+      const { data, error } = await supabase
         .from("conversations")
         .select("*")
-        .or(`tradie_id.eq.${uid},homeowner_id.eq.${uid}`);
+        .or(`homeowner_id.eq.${userId},tradie_id.eq.${userId}`)
+        .order("created_at", { ascending: false });
 
-      if (convoErr || !convos) {
-        console.error("Error loading conversations:", convoErr);
-        return;
-      }
-
-      const convosWithDetails: Conversation[] = await Promise.all(
-        convos.map(async (convo) => {
-          const contactId =
-            convo.tradie_id === uid ? convo.homeowner_id : convo.tradie_id;
-
-          const { data: contactProfile } = await supabase
-            .from(
-              convo.tradie_id === uid
-                ? "profile_centra_resident"
-                : "profile_centra_tradie"
-            )
-            .select("id, first_name, avatar_url")
-            .eq("id", contactId)
-            .single();
-
-          const { data: messages } = await supabase
-            .from("messages")
-            .select("*")
-            .eq("conversation_id", convo.id)
-            .order("created_at", { ascending: true });
-
-          return {
-            id: convo.id,
-            contact: {
-              id: contactProfile.id,
-              name: contactProfile.first_name,
-              avatar_url: contactProfile.avatar_url,
-            },
-            messages: messages || [],
-          };
-        })
-      );
-
-      setConversations(convosWithDetails);
-
-      // Subscribe to realtime new messages
-      supabase
-        .channel("realtime-messages")
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "messages",
-          },
-          (payload) => {
-            const msg = payload.new as Message;
-            setConversations((prev) =>
-              prev.map((conv) =>
-                conv.id === msg.conversation_id
-                  ? { ...conv, messages: [...conv.messages, msg] }
-                  : conv
-              )
-            );
-          }
-        )
-        .subscribe();
+      if (!error && data) setConversations(data);
     };
 
-    init();
-  }, []);
+    loadConversations();
+  }, [userId]);
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !selected || !userId) return;
+  useEffect(() => {
+    if (!selectedConversation) return;
 
-    const { error } = await supabase.from("messages").insert({
-      conversation_id: selected.id,
+    const fetchMessages = async () => {
+      const { data, error } = await supabase
+        .from("messages")
+        .select("*")
+        .eq("conversation_id", selectedConversation.id)
+        .order("created_at", { ascending: true });
+
+      if (!error && data) {
+        setMessages(data);
+        setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+      }
+    };
+
+    fetchMessages();
+
+    const channel = supabase
+      .channel(`conversation-${selectedConversation.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${selectedConversation.id}`,
+        },
+        (payload) => {
+          setMessages((prev) => [...prev, payload.new as Message]);
+          setTimeout(() => bottomRef.current?.scrollIntoView({ behavior: "smooth" }), 100);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [selectedConversation]);
+
+  const handleSend = async () => {
+    if (!newMessage.trim() || !selectedConversation) return;
+
+    await supabase.from("messages").insert({
+      conversation_id: selectedConversation.id,
       sender_id: userId,
-      content: newMessage.trim(),
+      message: newMessage.trim(),
     });
 
-    if (error) {
-      alert("Failed to send message");
-      console.error("Send error:", error);
-    } else {
-      setNewMessage("");
-    }
+    setNewMessage("");
   };
 
+  const isFirstMessageOnly = messages.length === 1 && messages[0]?.sender_id === userId;
+
   return (
-    <div className="flex border rounded-lg h-[80vh] overflow-hidden">
-      {/* Contacts List */}
-      <div className="w-1/3 bg-white border-r overflow-y-auto">
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="bg-white border rounded p-4 h-[500px] overflow-y-auto">
+        <h2 className="text-lg font-semibold mb-2">Conversations</h2>
         {conversations.map((conv) => (
           <div
             key={conv.id}
-            className={`p-4 border-b cursor-pointer hover:bg-gray-50 ${
-              selected?.id === conv.id ? "bg-gray-100" : ""
+            onClick={() => setSelectedConversation(conv)}
+            className={`cursor-pointer p-2 rounded mb-2 border ${
+              selectedConversation?.id === conv.id ? "bg-primary/10" : "hover:bg-muted"
             }`}
-            onClick={() => setSelected(conv)}
           >
-            <div className="flex items-center space-x-3">
-              <Avatar>
-                <AvatarImage src={conv.contact.avatar_url} />
-                <AvatarFallback>
-                  {conv.contact.name?.slice(0, 2) || "??"}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <p className="font-medium">{conv.contact.name}</p>
-                <p className="text-xs text-gray-500">
-                  {conv.messages[conv.messages.length - 1]?.content ||
-                    "No messages yet"}
-                </p>
-              </div>
-            </div>
+            Job #{conv.job_id}
           </div>
         ))}
       </div>
 
-      {/* Message Thread */}
-      <div className="w-2/3 flex flex-col bg-gray-50">
-        <div className="flex-1 p-4 overflow-y-auto space-y-2">
-          {selected?.messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={`flex ${
-                msg.sender_id === userId ? "justify-end" : "justify-start"
-              }`}
-            >
-              <div
-                className={`p-2 rounded-lg text-sm ${
-                  msg.sender_id === userId
-                    ? "bg-blue-500 text-white"
-                    : "bg-white border"
-                }`}
-              >
-                {msg.content}
+      <div className="md:col-span-2">
+        <div className="bg-white border rounded p-4 h-[500px] flex flex-col">
+          {selectedConversation ? (
+            <>
+              <div className="flex-1 overflow-y-auto">
+                {messages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`my-2 max-w-sm px-4 py-2 rounded-lg ${
+                      msg.sender_id === userId ? "bg-blue-100 ml-auto" : "bg-gray-100"
+                    }`}
+                  >
+                    {msg.message}
+                  </div>
+                ))}
+                {isFirstMessageOnly && (
+                  <div className="text-center text-muted-foreground text-sm mt-4">
+                    You've sent a message. Wait for the Centra Resident to reply to unlock the chat.
+                  </div>
+                )}
+                <div ref={bottomRef} />
               </div>
-            </div>
-          ))}
+
+              <div className="flex gap-2 mt-4">
+                <Input
+                  value={newMessage}
+                  onChange={(e) => setNewMessage(e.target.value)}
+                  placeholder="Type a message..."
+                  disabled={isFirstMessageOnly && userType === "tradie"}
+                />
+                <Button
+                  onClick={handleSend}
+                  disabled={!newMessage.trim() || (isFirstMessageOnly && userType === "tradie")}
+                >
+                  Send
+                </Button>
+              </div>
+            </>
+          ) : (
+            <p className="text-muted-foreground text-sm">Select a conversation to view messages.</p>
+          )}
         </div>
-        {selected && (
-          <div className="p-4 border-t flex space-x-2">
-            <Textarea
-              className="flex-1"
-              placeholder="Type your message..."
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-            />
-            <Button onClick={sendMessage}>
-              <MessageSquare className="mr-1 h-4 w-4" />
-              Send
-            </Button>
-          </div>
-        )}
       </div>
     </div>
   );
