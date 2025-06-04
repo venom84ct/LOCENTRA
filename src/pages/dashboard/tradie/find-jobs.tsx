@@ -5,7 +5,17 @@ import { supabase } from "@/lib/supabaseClient";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, CreditCard, Filter, Search, User, MapPin, Calendar, DollarSign, Clock } from "lucide-react";
+import {
+  AlertCircle,
+  CreditCard,
+  Filter,
+  Search,
+  User,
+  MapPin,
+  Calendar,
+  DollarSign,
+  Clock,
+} from "lucide-react";
 import {
   Card,
   CardContent,
@@ -57,9 +67,35 @@ const FindJobsPage = () => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
-
     if (!user?.id) return;
 
+    const { data: existingLeads, error: leadErr } = await supabase
+      .from("job_leads")
+      .select("*")
+      .eq("job_id", job.id);
+
+    if (leadErr || existingLeads.length >= 10) {
+      alert("Lead limit reached or error occurred.");
+      return;
+    }
+
+    // Check if this tradie already purchased
+    const alreadyPurchased = existingLeads.some((l) => l.tradie_id === user.id);
+    if (alreadyPurchased) {
+      alert("You already purchased this lead.");
+      return;
+    }
+
+    // Fetch tradie profile
+    const { data: tradieProfile } = await supabase
+      .from("profile_centra_tradie")
+      .select("id, abn, license, rating, portfolio")
+      .eq("id", user.id)
+      .single();
+
+    await supabase.from("job_leads").insert({ job_id: job.id, tradie_id: user.id });
+
+    // Create conversation if not exist
     const { data: existingConvo } = await supabase
       .from("conversations")
       .select("*")
@@ -68,18 +104,27 @@ const FindJobsPage = () => {
       .maybeSingle();
 
     let conversationId = existingConvo?.id;
-
     if (!conversationId) {
       const { data: newConvo } = await supabase
         .from("conversations")
         .insert({ homeowner_id: job.homeowner_id, tradie_id: user.id })
         .select()
         .single();
-
       conversationId = newConvo?.id;
     }
 
     if (conversationId) {
+      const introMessage = `Hi, I'm interested in your job. Here are my details:\n\nABN: ${tradieProfile.abn || "N/A"}\nLicense: ${tradieProfile.license || "N/A"}\nRating: ${tradieProfile.rating || "N/A"}`;
+
+      await supabase.from("messages").insert({
+        conversation_id: conversationId,
+        sender_id: user.id,
+        content: introMessage,
+        metadata: {
+          portfolio: tradieProfile.portfolio?.slice(0, 3) || [],
+        },
+      });
+
       navigate(`/dashboard/tradie/messages?conversationId=${conversationId}`);
     }
   };
@@ -114,7 +159,9 @@ const FindJobsPage = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <label htmlFor="search" className="text-sm font-medium">Search</label>
+                    <label htmlFor="search" className="text-sm font-medium">
+                      Search
+                    </label>
                     <div className="relative">
                       <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -186,57 +233,44 @@ const FindJobsPage = () => {
                   filteredJobs.map((job) => (
                     <Card
                       key={job.id}
-                      className={`bg-white rounded-xl border-4 p-6 shadow-sm space-y-4 ${job.is_emergency ? "border-red-600" : "border-gray-200"}`}
+                      className={`bg-white border shadow p-4 space-y-4 rounded-xl ${job.is_emergency ? "border-red-600 border-4" : "border-gray-200"}`}
                     >
                       <div className="flex items-center gap-3">
-                        {job.profile_centra_resident?.avatar_url ? (
-                          <img
-                            src={job.profile_centra_resident.avatar_url}
-                            alt="Avatar"
-                            className="h-8 w-8 rounded-full"
-                          />
-                        ) : (
-                          <User className="h-5 w-5 text-muted-foreground" />
-                        )}
+                        <User className="h-5 w-5 text-muted-foreground" />
                         <span className="font-medium">
                           {job.profile_centra_resident?.first_name || "Unknown"} {job.profile_centra_resident?.last_name || ""}
                         </span>
+                        {job.profile_centra_resident?.avatar_url && (
+                          <img
+                            src={job.profile_centra_resident.avatar_url}
+                            alt="Avatar"
+                            className="h-8 w-8 rounded-full ml-auto"
+                          />
+                        )}
                       </div>
                       <div>
                         <h2 className="text-lg font-semibold">{job.title}</h2>
-                        <p className="text-sm text-muted-foreground">Category: {job.category}</p>
+                        <p className="text-muted-foreground text-sm">{job.category}</p>
                         <p className="text-muted-foreground text-sm mt-1">{job.description}</p>
                       </div>
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm text-muted-foreground">
                         <div className="flex items-center">
-                          <MapPin className="h-4 w-4 mr-1 text-muted-foreground" />
-                          {job.location || "N/A"}
+                          <MapPin className="h-4 w-4 mr-1" />
+                          {job.location}
                         </div>
                         <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-1 text-muted-foreground" />
+                          <Calendar className="h-4 w-4 mr-1" />
                           {new Date(job.created_at).toLocaleDateString()}
                         </div>
                         <div className="flex items-center">
-                          <DollarSign className="h-4 w-4 mr-1 text-muted-foreground" />
-                          {job.budget || "-"}
+                          <DollarSign className="h-4 w-4 mr-1" />
+                          {job.budget}
                         </div>
                         <div className="flex items-center">
-                          <Clock className="h-4 w-4 mr-1 text-muted-foreground" />
-                          {job.timeline || "-"}
+                          <Clock className="h-4 w-4 mr-1" />
+                          {job.timeline}
                         </div>
                       </div>
-                      {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
-                          {job.image_urls.map((url: string, idx: number) => (
-                            <img
-                              key={idx}
-                              src={url}
-                              alt={`Job image ${idx + 1}`}
-                              className="w-full h-24 object-cover rounded border"
-                            />
-                          ))}
-                        </div>
-                      )}
                       <Button onClick={() => handlePurchaseLead(job)}>Purchase Lead</Button>
                     </Card>
                   ))
