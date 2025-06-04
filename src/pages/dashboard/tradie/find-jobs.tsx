@@ -5,8 +5,13 @@ import { supabase } from "@/lib/supabaseClient";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, CreditCard, Filter, Search, MapPin, Clock, DollarSign } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AlertCircle, CreditCard, Filter, Search, User, Clock, MapPin, Calendar, DollarSign } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
 
 const FindJobsPage = () => {
@@ -19,7 +24,7 @@ const FindJobsPage = () => {
   const fetchJobs = async () => {
     const { data, error } = await supabase
       .from("jobs")
-      .select("*, profile_centra_resident(id, first_name, last_name, avatar_url)")
+      .select(`*, profile_centra_resident(first_name, last_name, avatar_url)`)
       .or("status.eq.open,status.eq.available")
       .order("created_at", { ascending: false });
 
@@ -68,7 +73,7 @@ const FindJobsPage = () => {
 
     const { data: existingConvo } = await supabase
       .from("conversations")
-      .select("*")
+      .select("id")
       .eq("homeowner_id", job.homeowner_id)
       .eq("tradie_id", user.id)
       .maybeSingle();
@@ -83,21 +88,21 @@ const FindJobsPage = () => {
         .single();
 
       conversationId = newConvo?.id;
-
-      const introMessage = `Hi, I'm ${tradieProfile.first_name}. Here's my info:\n\n- ABN: ${tradieProfile.abn}\n- License: ${tradieProfile.license}\n- Rating: ${tradieProfile.rating}\n- Portfolio: ${tradieProfile.portfolio?.slice(0, 3).join(", ")}`;
-
-      if (conversationId) {
-        await supabase.from("messages").insert({
-          conversation_id: conversationId,
-          sender_id: user.id,
-          message: introMessage,
-        });
-      }
     }
 
-    if (conversationId) {
-      navigate(`/dashboard/tradie/messages?conversationId=${conversationId}`);
-    }
+    // Send first standardized message
+    const messageContent = `Hi, I'm ${tradieProfile.first_name}.\n\nHere are my credentials:\n• ABN: ${tradieProfile.abn}\n• License: ${tradieProfile.license}\n• Rating: ${tradieProfile.rating ?? "N/A"}\n\nHere’s a preview of my work:`;
+
+    const thumbnails = (tradieProfile.portfolio || []).slice(0, 3);
+
+    await supabase.from("messages").insert({
+      conversation_id: conversationId,
+      sender_id: user.id,
+      content: messageContent,
+      image_urls: thumbnails,
+    });
+
+    navigate(`/dashboard/tradie/messages?conversationId=${conversationId}`);
   };
 
   const mockUser = {
@@ -129,30 +134,43 @@ const FindJobsPage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Input
-                    placeholder="Search jobs..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
+                  <div className="space-y-2">
+                    <label htmlFor="search" className="text-sm font-medium">
+                      Search
+                    </label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="search"
+                        placeholder="Search jobs..."
+                        className="pl-10"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                    </div>
+                  </div>
 
-                  <div className="flex flex-wrap gap-2">
-                    <Badge
-                      variant={selectedCategory === null ? "default" : "outline"}
-                      className="cursor-pointer"
-                      onClick={() => setSelectedCategory(null)}
-                    >
-                      All
-                    </Badge>
-                    {categories.map((cat) => (
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Category</label>
+                    <div className="flex flex-wrap gap-2">
                       <Badge
-                        key={cat}
-                        variant={selectedCategory === cat ? "default" : "outline"}
+                        variant={selectedCategory === null ? "default" : "outline"}
                         className="cursor-pointer"
-                        onClick={() => setSelectedCategory(cat)}
+                        onClick={() => setSelectedCategory(null)}
                       >
-                        {cat}
+                        All
                       </Badge>
-                    ))}
+                      {categories.map((category) => (
+                        <Badge
+                          key={category}
+                          variant={selectedCategory === category ? "default" : "outline"}
+                          className="cursor-pointer"
+                          onClick={() => setSelectedCategory(category)}
+                        >
+                          {category}
+                        </Badge>
+                      ))}
+                    </div>
                   </div>
 
                   <div className="flex items-center space-x-2">
@@ -161,8 +179,25 @@ const FindJobsPage = () => {
                       id="emergency-only"
                       checked={showEmergencyOnly}
                       onChange={() => setShowEmergencyOnly(!showEmergencyOnly)}
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                     />
-                    <label htmlFor="emergency-only">Emergency jobs only</label>
+                    <label htmlFor="emergency-only" className="text-sm font-medium">
+                      Emergency jobs only
+                    </label>
+                  </div>
+
+                  <div className="pt-4">
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        setSearchTerm("");
+                        setSelectedCategory(null);
+                        setShowEmergencyOnly(false);
+                      }}
+                    >
+                      Reset Filters
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -174,59 +209,65 @@ const FindJobsPage = () => {
                   filteredJobs.map((job) => (
                     <Card
                       key={job.id}
-                      className={`bg-white border rounded-lg shadow p-4 space-y-3 ${
+                      className={`bg-white border rounded-xl shadow-sm p-6 space-y-4 ${
                         job.is_emergency ? "border-red-600 border-2" : "border-gray-200"
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          {job.profile_centra_resident?.avatar_url ? (
-                            <img
-                              src={job.profile_centra_resident.avatar_url}
-                              alt="Avatar"
-                              className="h-8 w-8 rounded-full"
-                            />
-                          ) : (
-                            <div className="h-8 w-8 rounded-full bg-gray-300" />
-                          )}
+                        <div className="flex items-center gap-3">
+                          <User className="h-5 w-5 text-muted-foreground" />
                           <span className="font-medium">
                             {job.profile_centra_resident?.first_name || "Unknown"} {job.profile_centra_resident?.last_name || ""}
                           </span>
                         </div>
-                        {job.is_emergency && (
-                          <Badge variant="destructive" className="text-xs">Emergency</Badge>
+                        {job.profile_centra_resident?.avatar_url && (
+                          <img
+                            src={job.profile_centra_resident.avatar_url}
+                            alt="Avatar"
+                            className="h-10 w-10 rounded-full"
+                          />
                         )}
                       </div>
-                      <h2 className="text-lg font-bold">{job.title}</h2>
-                      <p className="text-sm text-muted-foreground">{job.description}</p>
-                      <p className="text-xs text-muted-foreground italic">Category: {job.category}</p>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm text-muted-foreground">
-                        <div className="flex items-center">
-                          <MapPin className="w-4 h-4 mr-1" /> {job.location}
-                        </div>
-                        <div className="flex items-center">
-                          <DollarSign className="w-4 h-4 mr-1" /> ${job.budget}
-                        </div>
-                        <div className="flex items-center">
-                          <Clock className="w-4 h-4 mr-1" /> {job.timeline}
-                        </div>
-                      </div>
+                      <h2 className="text-lg font-semibold">{job.title}</h2>
+                      <p className="text-sm text-muted-foreground">{job.description}</p>
+                      <Badge variant="secondary">{job.category}</Badge>
 
                       {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                          {job.image_urls.map((url: string, i: number) => (
+                          {job.image_urls.map((url: string, idx: number) => (
                             <img
-                              key={i}
+                              key={idx}
                               src={url}
-                              alt={`Job img ${i + 1}`}
-                              className="w-full h-24 object-cover rounded"
+                              alt={`Job image ${idx + 1}`}
+                              className="w-full h-24 object-cover rounded border"
                             />
                           ))}
                         </div>
                       )}
 
-                      <Button onClick={() => handlePurchaseLead(job)}>Purchase Lead</Button>
+                      <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                        <div className="flex items-center">
+                          <MapPin className="h-4 w-4 mr-1" />
+                          {job.location}
+                        </div>
+                        <div className="flex items-center">
+                          <Calendar className="h-4 w-4 mr-1" />
+                          {new Date(job.created_at).toLocaleDateString()}
+                        </div>
+                        <div className="flex items-center">
+                          <DollarSign className="h-4 w-4 mr-1" />
+                          {job.budget}
+                        </div>
+                        <div className="flex items-center">
+                          <Clock className="h-4 w-4 mr-1" />
+                          {job.timeline}
+                        </div>
+                      </div>
+
+                      <Button onClick={() => handlePurchaseLead(job)}>
+                        Purchase Lead
+                      </Button>
                     </Card>
                   ))
                 ) : (
