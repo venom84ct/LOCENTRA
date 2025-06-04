@@ -1,3 +1,4 @@
+// src/pages/dashboard/tradie/messages.tsx
 import React, { useEffect, useState, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
@@ -26,12 +27,9 @@ const TradieMessagesPage = () => {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser();
-
-      if (error || !user) return;
+      const { data } = await supabase.auth.getUser();
+      const user = data?.user;
+      if (!user) return;
 
       setUserId(user.id);
 
@@ -63,6 +61,8 @@ const TradieMessagesPage = () => {
       if (!error) {
         setMessages(data || []);
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      } else {
+        console.error("Error fetching messages:", error.message);
       }
     };
 
@@ -72,7 +72,12 @@ const TradieMessagesPage = () => {
       .channel(`messages-${conversationId}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${conversationId}` },
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversationId}`,
+        },
         (payload) => {
           setMessages((prev) => [...prev, payload.new as Message]);
           bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -103,10 +108,10 @@ const TradieMessagesPage = () => {
 
   return (
     <DashboardLayout userType="tradie">
-      <div className="p-4 max-w-3xl mx-auto space-y-4">
+      <div className="p-4 max-w-3xl mx-auto space-y-6">
         <h1 className="text-2xl font-bold">Messages</h1>
 
-        <div className="border rounded p-4 bg-white h-[500px] overflow-y-auto">
+        <div className="border rounded bg-white p-4 h-[500px] overflow-y-auto">
           {jobId && (
             <div className="text-xs text-muted-foreground mb-2">
               Chat related to Job ID: <span className="font-semibold">{jobId}</span>
@@ -116,7 +121,7 @@ const TradieMessagesPage = () => {
           {messages.map((msg) => (
             <div
               key={msg.id}
-              className={`my-2 max-w-sm px-4 py-2 rounded-lg ${
+              className={`my-2 max-w-sm px-4 py-2 rounded-lg text-sm ${
                 msg.sender_id === userId ? "bg-blue-100 ml-auto" : "bg-gray-100"
               }`}
             >
@@ -126,7 +131,7 @@ const TradieMessagesPage = () => {
 
           {isFirstMessage && (
             <div className="text-center text-muted-foreground text-sm mt-4">
-              You've sent a message. To unlock the chat, please wait for the Centra Resident to reply.
+              You’ve sent a message. To unlock the chat, please wait for the Centra Resident to reply.
             </div>
           )}
 
