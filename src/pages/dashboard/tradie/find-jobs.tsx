@@ -1,3 +1,4 @@
+// src/pages/dashboard/tradie/find-jobs.tsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -5,7 +6,17 @@ import { supabase } from "@/lib/supabaseClient";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, Calendar, Clock, CreditCard, DollarSign, Filter, MapPin, Search, User } from "lucide-react";
+import {
+  AlertCircle,
+  Calendar,
+  Clock,
+  CreditCard,
+  DollarSign,
+  Filter,
+  MapPin,
+  Search,
+  User,
+} from "lucide-react";
 import {
   Card,
   CardContent,
@@ -75,7 +86,7 @@ const FindJobsPage = () => {
 
     const { data: tradieProfile, error: tradieError } = await supabase
       .from("profile_centra_tradie")
-      .select("first_name, abn, license, rating_avg, portfolio")
+      .select("first_name, abn, license, rating_avg")
       .eq("id", tradieId)
       .single();
 
@@ -103,32 +114,16 @@ const FindJobsPage = () => {
       .select()
       .single();
 
-   let parsedPortfolio: string[] = [];
+    const autoMessage = `Hi! I'm interested in this job. Here's a bit about me:\n- ABN: ${tradieProfile.abn}\n- License: ${tradieProfile.license}\n- Rating: ${tradieProfile.rating_avg?.toFixed(1) || "N/A"}`;
 
-try {
-  parsedPortfolio = Array.isArray(tradieProfile.portfolio)
-    ? tradieProfile.portfolio
-    : JSON.parse(tradieProfile.portfolio || "[]");
-} catch (e) {
-  parsedPortfolio = [];
-}
+    await supabase.from("messages").insert({
+      conversation_id: conversation.id,
+      sender_id: tradieId,
+      message: autoMessage,
+    });
 
-const portfolioThumbs = parsedPortfolio.slice(0, 3);
-const thumbsText = portfolioThumbs.map((url) => `• ${url}`).join("\n");
-
-
-    const autoMessage = `Hi! I'm interested in this job. Here's a bit about me:\n- ABN: ${tradieProfile.abn}\n- License: ${tradieProfile.license}\n- Rating: ${tradieProfile.rating_avg?.toFixed(1) || "N/A"}\n\nRecent Work:\n${thumbsText || "No recent images"}`;
-
-    await supabase
-      .from("messages")
-      .insert({
-        conversation_id: conversation.id,
-        sender_id: tradieId,
-        message: autoMessage,
-      });
-
-    await fetchJobs(); // refresh to hide button
-    navigate(`/dashboard/tradie/messages?conversationId=${conversation.id}`);
+    await fetchJobs();
+    navigate(`/dashboard/tradie/messages?conversationId=${conversation.id}&jobId=${job.id}`);
   };
 
   const mockUser = {
@@ -161,27 +156,30 @@ const thumbsText = portfolioThumbs.map((url) => `• ${url}`).join("\n");
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Search</label>
-                    <div className="relative">
-                      <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                      <Input
-                        placeholder="Search jobs..."
-                        className="pl-10"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">Category</label>
-                    <div className="flex flex-wrap gap-2">
-                      <Badge variant={selectedCategory === null ? "default" : "outline"} className="cursor-pointer" onClick={() => setSelectedCategory(null)}>All</Badge>
-                      {categories.map((cat) => (
-                        <Badge key={cat} variant={selectedCategory === cat ? "default" : "outline"} className="cursor-pointer" onClick={() => setSelectedCategory(cat)}>{cat}</Badge>
-                      ))}
-                    </div>
+                  <Input
+                    placeholder="Search jobs..."
+                    className="pl-10"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <Badge
+                      variant={selectedCategory === null ? "default" : "outline"}
+                      className="cursor-pointer"
+                      onClick={() => setSelectedCategory(null)}
+                    >
+                      All
+                    </Badge>
+                    {categories.map((cat) => (
+                      <Badge
+                        key={cat}
+                        variant={selectedCategory === cat ? "default" : "outline"}
+                        className="cursor-pointer"
+                        onClick={() => setSelectedCategory(cat)}
+                      >
+                        {cat}
+                      </Badge>
+                    ))}
                   </div>
 
                   <div className="flex items-center space-x-2">
@@ -190,36 +188,41 @@ const thumbsText = portfolioThumbs.map((url) => `• ${url}`).join("\n");
                       id="emergency-only"
                       checked={showEmergencyOnly}
                       onChange={() => setShowEmergencyOnly(!showEmergencyOnly)}
-                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                      className="h-4 w-4 rounded border-gray-300 text-primary"
                     />
-                    <label className="text-sm font-medium" htmlFor="emergency-only">Emergency jobs only</label>
-                  </div>
-
-                  <div className="pt-4">
-                    <Button variant="outline" className="w-full" onClick={() => {
-                      setSearchTerm("");
-                      setSelectedCategory(null);
-                      setShowEmergencyOnly(false);
-                    }}>Reset Filters</Button>
+                    <label htmlFor="emergency-only" className="text-sm">
+                      Emergency jobs only
+                    </label>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
             {/* Job Cards */}
-            <div className="md:col-span-3">
-              <div className="grid grid-cols-1 gap-4">
-                {filteredJobs.length ? filteredJobs.map((job) => {
+            <div className="md:col-span-3 space-y-4">
+              {filteredJobs.length > 0 ? (
+                filteredJobs.map((job) => {
                   const isPurchased = purchasedLeads.includes(job.id);
                   const profile = job.profile_centra_resident;
 
                   return (
-                    <Card key={job.id} className={`bg-white p-4 border ${job.is_emergency ? "border-red-600 border-2" : "border-gray-200"}`}>
+                    <Card
+                      key={job.id}
+                      className={`bg-white p-4 border ${
+                        job.is_emergency ? "border-red-600 border-2" : "border-gray-200"
+                      }`}
+                    >
                       <div className="flex items-center gap-3 mb-2">
                         <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="font-medium">{profile?.first_name || "Unknown"} {profile?.last_name || ""}</span>
+                        <span className="font-medium">
+                          {profile?.first_name || "Unknown"} {profile?.last_name || ""}
+                        </span>
                         {profile?.avatar_url && (
-                          <img src={profile.avatar_url} alt="Avatar" className="h-8 w-8 rounded-full ml-auto" />
+                          <img
+                            src={profile.avatar_url}
+                            alt="Avatar"
+                            className="h-8 w-8 rounded-full ml-auto"
+                          />
                         )}
                       </div>
 
@@ -229,47 +232,70 @@ const thumbsText = portfolioThumbs.map((url) => `• ${url}`).join("\n");
                       {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-3">
                           {job.image_urls.map((url: string, idx: number) => (
-                            <img key={idx} src={url} className="w-full h-24 object-cover rounded border" />
+                            <img
+                              key={idx}
+                              src={url}
+                              alt={`Job image ${idx + 1}`}
+                              className="w-full h-24 object-cover rounded border"
+                            />
                           ))}
                         </div>
                       )}
 
                       <div className="grid grid-cols-1 md:grid-cols-2 text-sm gap-2 text-muted-foreground mb-3">
-                        <div className="flex items-center"><MapPin className="w-4 h-4 mr-2" />{job.location}</div>
-                        <div className="flex items-center"><Calendar className="w-4 h-4 mr-2" />{new Date(job.created_at).toLocaleDateString()}</div>
-                        <div className="flex items-center"><DollarSign className="w-4 h-4 mr-2" />{job.budget}</div>
-                        <div className="flex items-center"><Clock className="w-4 h-4 mr-2" />{job.timeline}</div>
+                        <div className="flex items-center">
+                          <MapPin className="w-4 h-4 mr-2" /> {job.location}
+                        </div>
+                        <div className="flex items-center">
+                          <Calendar className="w-4 h-4 mr-2" />
+                          {new Date(job.created_at).toLocaleDateString()}
+                        </div>
+                        <div className="flex items-center">
+                          <DollarSign className="w-4 h-4 mr-2" />
+                          {job.budget}
+                        </div>
+                        <div className="flex items-center">
+                          <Clock className="w-4 h-4 mr-2" />
+                          {job.timeline}
+                        </div>
                       </div>
 
                       <div className="flex items-center justify-between">
                         {isPurchased ? (
                           <>
                             <Badge className="bg-green-500 text-white">Purchased</Badge>
-                            <Button variant="destructive" onClick={() => navigate(`/dashboard/tradie/messages?jobId=${job.id}`)}>Message</Button>
+                            <Button
+                              variant="destructive"
+                              onClick={() =>
+                                navigate(
+                                  `/dashboard/tradie/messages?jobId=${job.id}`
+                                )
+                              }
+                            >
+                              Message
+                            </Button>
                           </>
                         ) : (
-                          <Button onClick={() => handlePurchaseLead(job)}>Purchase Lead</Button>
+                          <Button onClick={() => handlePurchaseLead(job)}>
+                            Purchase Lead
+                          </Button>
                         )}
                       </div>
                     </Card>
                   );
-                }) : (
-                  <Card className="bg-white">
-                    <CardContent className="flex flex-col items-center justify-center py-12">
-                      <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-medium mb-2">No jobs found</h3>
-                      <p className="text-muted-foreground text-center mb-4">
-                        We couldn't find any jobs matching your search criteria.
-                      </p>
-                      <Button onClick={() => {
-                        setSearchTerm("");
-                        setSelectedCategory(null);
-                        setShowEmergencyOnly(false);
-                      }}>Reset Filters</Button>
-                    </CardContent>
-                  </Card>
-                )}
-              </div>
+                })
+              ) : (
+                <Card className="bg-white">
+                  <CardContent className="flex flex-col items-center justify-center py-12">
+                    <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                    <h3 className="text-lg font-medium mb-2">No jobs found</h3>
+                    <p className="text-muted-foreground text-center mb-4">
+                      We couldn’t find any jobs matching your filters.
+                    </p>
+                    <Button onClick={() => fetchJobs()}>Reload Jobs</Button>
+                  </CardContent>
+                </Card>
+              )}
             </div>
           </div>
         </div>
