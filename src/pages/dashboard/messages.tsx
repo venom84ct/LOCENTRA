@@ -16,8 +16,9 @@ interface Message {
 
 interface Conversation {
   id: string;
-  job_id: string;
-  tradie_id: string;
+  job: {
+    title: string;
+  };
   profile_centra_tradie: {
     first_name: string;
     avatar_url: string;
@@ -48,7 +49,7 @@ const HomeownerMessagesPage = () => {
     const fetchConversations = async () => {
       const { data } = await supabase
         .from("conversations")
-        .select("id, job_id, tradie_id, profile_centra_tradie(first_name, avatar_url)")
+        .select("id, job(title), profile_centra_tradie(first_name, avatar_url)")
         .eq("homeowner_id", userId);
 
       setConversations(data || []);
@@ -130,11 +131,13 @@ const HomeownerMessagesPage = () => {
                       {conv.profile_centra_tradie?.first_name?.[0] || "T"}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="text-sm font-medium">
-                    {conv.profile_centra_tradie?.first_name || "Tradie"}
-                  </span>
+                  <div>
+                    <p className="text-sm font-medium">
+                      {conv.profile_centra_tradie?.first_name || "Tradie"}
+                    </p>
+                    <p className="text-xs text-muted-foreground">Job: {conv.job?.title || "Untitled"}</p>
+                  </div>
                 </div>
-                <p className="text-xs text-muted-foreground">Job: {conv.job_id}</p>
               </a>
             ))}
           </div>
