@@ -5,7 +5,17 @@ import { supabase } from "@/lib/supabaseClient";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, CreditCard, Filter, Search, User, Clock, MapPin, Calendar, DollarSign } from "lucide-react";
+import {
+  AlertCircle,
+  Calendar,
+  Clock,
+  CreditCard,
+  DollarSign,
+  Filter,
+  MapPin,
+  Search,
+  User,
+} from "lucide-react";
 import {
   Card,
   CardContent,
@@ -24,7 +34,7 @@ const FindJobsPage = () => {
   const fetchJobs = async () => {
     const { data, error } = await supabase
       .from("jobs")
-      .select(`*, profile_centra_resident(first_name, last_name, avatar_url)`)
+      .select("*, profile_centra_resident(first_name, last_name, avatar_url)")
       .or("status.eq.open,status.eq.available")
       .order("created_at", { ascending: false });
 
@@ -66,9 +76,20 @@ const FindJobsPage = () => {
       .eq("id", user.id)
       .single();
 
-    if (tradieError || !tradieProfile) {
+    if (tradieError) {
       console.error("Failed to fetch tradie profile", tradieError);
       return;
+    }
+
+    const { data: existingLead } = await supabase
+      .from("job_leads")
+      .select("id")
+      .eq("job_id", job.id)
+      .eq("tradie_id", user.id)
+      .maybeSingle();
+
+    if (!existingLead) {
+      await supabase.from("job_leads").insert({ job_id: job.id, tradie_id: user.id });
     }
 
     const { data: existingConvo } = await supabase
@@ -86,23 +107,22 @@ const FindJobsPage = () => {
         .insert({ homeowner_id: job.homeowner_id, tradie_id: user.id })
         .select()
         .single();
-
       conversationId = newConvo?.id;
     }
 
-    // Send first standardized message
-    const messageContent = `Hi, I'm ${tradieProfile.first_name}.\n\nHere are my credentials:\n• ABN: ${tradieProfile.abn}\n• License: ${tradieProfile.license}\n• Rating: ${tradieProfile.rating ?? "N/A"}\n\nHere’s a preview of my work:`;
+    if (conversationId) {
+      const portfolioThumbnails = tradieProfile.portfolio?.slice(0, 3).join("\n");
+      const introMessage = `Hi, I'm ${tradieProfile.first_name}.\n\nABN: ${tradieProfile.abn}\nLicense: ${tradieProfile.license}\nRating: ${tradieProfile.rating}/5\n\nHere’s some of my recent work:\n${portfolioThumbnails || "No portfolio uploaded."}`;
 
-    const thumbnails = (tradieProfile.portfolio || []).slice(0, 3);
+      await supabase.from("messages").insert({
+        conversation_id: conversationId,
+        sender_id: user.id,
+        content: introMessage,
+        sender_type: "tradie",
+      });
 
-    await supabase.from("messages").insert({
-      conversation_id: conversationId,
-      sender_id: user.id,
-      content: messageContent,
-      image_urls: thumbnails,
-    });
-
-    navigate(`/dashboard/tradie/messages?conversationId=${conversationId}`);
+      navigate(`/dashboard/tradie/messages?conversationId=${conversationId}`);
+    }
   };
 
   const mockUser = {
@@ -209,29 +229,38 @@ const FindJobsPage = () => {
                   filteredJobs.map((job) => (
                     <Card
                       key={job.id}
-                      className={`bg-white border rounded-xl shadow-sm p-6 space-y-4 ${
-                        job.is_emergency ? "border-red-600 border-2" : "border-gray-200"
-                      }`}
+                      className={`bg-white border shadow-sm rounded-xl p-6 space-y-3 ${job.is_emergency ? "border-red-600 border-2" : "border-gray-200"}`}
                     >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <User className="h-5 w-5 text-muted-foreground" />
-                          <span className="font-medium">
-                            {job.profile_centra_resident?.first_name || "Unknown"} {job.profile_centra_resident?.last_name || ""}
-                          </span>
-                        </div>
-                        {job.profile_centra_resident?.avatar_url && (
+                      <div className="flex items-center gap-2">
+                        {job.profile_centra_resident?.avatar_url ? (
                           <img
                             src={job.profile_centra_resident.avatar_url}
-                            alt="Avatar"
-                            className="h-10 w-10 rounded-full"
+                            className="h-8 w-8 rounded-full"
+                            alt="avatar"
                           />
+                        ) : (
+                          <User className="h-5 w-5 text-muted-foreground" />
                         )}
+                        <span className="font-medium">
+                          {job.profile_centra_resident?.first_name || "Unknown"} {job.profile_centra_resident?.last_name || ""}
+                        </span>
                       </div>
 
                       <h2 className="text-lg font-semibold">{job.title}</h2>
-                      <p className="text-sm text-muted-foreground">{job.description}</p>
-                      <Badge variant="secondary">{job.category}</Badge>
+                      <p className="text-muted-foreground text-sm">{job.description}</p>
+                      <p className="text-sm text-gray-600 font-medium">Category: {job.category}</p>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-muted-foreground">
+                        <div className="flex items-center">
+                          <MapPin className="h-4 w-4 mr-1" /> {job.location}
+                        </div>
+                        <div className="flex items-center">
+                          <Calendar className="h-4 w-4 mr-1" /> {job.timeline}
+                        </div>
+                        <div className="flex items-center">
+                          <DollarSign className="h-4 w-4 mr-1" /> {job.budget}
+                        </div>
+                      </div>
 
                       {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -240,30 +269,11 @@ const FindJobsPage = () => {
                               key={idx}
                               src={url}
                               alt={`Job image ${idx + 1}`}
-                              className="w-full h-24 object-cover rounded border"
+                              className="w-full h-32 object-cover rounded border"
                             />
                           ))}
                         </div>
                       )}
-
-                      <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-                        <div className="flex items-center">
-                          <MapPin className="h-4 w-4 mr-1" />
-                          {job.location}
-                        </div>
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          {new Date(job.created_at).toLocaleDateString()}
-                        </div>
-                        <div className="flex items-center">
-                          <DollarSign className="h-4 w-4 mr-1" />
-                          {job.budget}
-                        </div>
-                        <div className="flex items-center">
-                          <Clock className="h-4 w-4 mr-1" />
-                          {job.timeline}
-                        </div>
-                      </div>
 
                       <Button onClick={() => handlePurchaseLead(job)}>
                         Purchase Lead
