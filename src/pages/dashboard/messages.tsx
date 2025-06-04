@@ -16,9 +16,7 @@ interface Message {
 
 interface Conversation {
   id: string;
-  job: {
-    title: string;
-  };
+  job_id: string;
   profile_centra_tradie: {
     first_name: string;
     avatar_url: string;
@@ -47,12 +45,16 @@ const HomeownerMessagesPage = () => {
     if (!userId) return;
 
     const fetchConversations = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("conversations")
-        .select("id, job(title), profile_centra_tradie(first_name, avatar_url)")
+        .select("id, job_id, profile_centra_tradie(first_name, avatar_url)")
         .eq("homeowner_id", userId);
 
-      setConversations(data || []);
+      if (error) {
+        console.error("Failed to fetch conversations", error.message);
+      } else {
+        setConversations(data || []);
+      }
     };
 
     fetchConversations();
@@ -77,10 +79,15 @@ const HomeownerMessagesPage = () => {
     fetchMessages();
 
     const channel = supabase
-      .channel(`conversation-${selectedConversationId}`)
+      .channel(`messages-${selectedConversationId}`)
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${selectedConversationId}` },
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${selectedConversationId}`,
+        },
         (payload) => {
           setMessages((prev) => [...prev, payload.new as Message]);
           bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -110,7 +117,7 @@ const HomeownerMessagesPage = () => {
   return (
     <DashboardLayout userType="centraResident">
       <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Sidebar */}
+        {/* Conversation List */}
         <div className="col-span-1">
           <h2 className="text-lg font-semibold mb-2">Conversations</h2>
           <div className="space-y-2">
@@ -135,7 +142,9 @@ const HomeownerMessagesPage = () => {
                     <p className="text-sm font-medium">
                       {conv.profile_centra_tradie?.first_name || "Tradie"}
                     </p>
-                    <p className="text-xs text-muted-foreground">Job: {conv.job?.title || "Untitled"}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Job: {conv.job_id?.slice(0, 8)}...
+                    </p>
                   </div>
                 </div>
               </a>
@@ -143,7 +152,7 @@ const HomeownerMessagesPage = () => {
           </div>
         </div>
 
-        {/* Chat Panel */}
+        {/* Message Panel */}
         <div className="col-span-2">
           <h2 className="text-lg font-semibold mb-2">Messages</h2>
           <div className="border rounded p-4 bg-white h-[500px] overflow-y-auto">
