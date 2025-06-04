@@ -5,7 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, CreditCard, Filter, Search, User } from "lucide-react";
+import { AlertCircle, CreditCard, Filter, Search } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -19,10 +19,18 @@ const FindJobsPage = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showEmergencyOnly, setShowEmergencyOnly] = useState(false);
+  const [purchasedJobIds, setPurchasedJobIds] = useState<string[]>([]);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    fetchJobs();
+  }, []);
+
   const fetchJobs = async () => {
-    const { data, error } = await supabase
+    const {
+      data,
+      error,
+    } = await supabase
       .from("jobs")
       .select("*, profile_centra_resident(id, first_name, last_name, avatar_url)")
       .or("status.eq.open,status.eq.available")
@@ -33,11 +41,85 @@ const FindJobsPage = () => {
     } else {
       setJobs(data);
     }
+
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
+    if (user?.id) {
+      const { data: leads } = await supabase
+        .from("job_leads")
+        .select("job_id")
+        .eq("tradie_id", user.id);
+      setPurchasedJobIds(leads?.map((l) => l.job_id) || []);
+    }
   };
 
-  useEffect(() => {
-    fetchJobs();
-  }, []);
+  const handlePurchaseLead = async (job: any) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user?.id) return;
+
+    // Save lead
+    await supabase.from("job_leads").insert({
+      job_id: job.id,
+      tradie_id: user.id,
+    });
+
+    // Create conversation if not exists
+    const { data: existingConvo } = await supabase
+      .from("conversations")
+      .select("id")
+      .eq("homeowner_id", job.homeowner_id)
+      .eq("tradie_id", user.id)
+      .maybeSingle();
+
+    let convoId = existingConvo?.id;
+
+    if (!convoId) {
+      const { data: convo } = await supabase
+        .from("conversations")
+        .insert({ homeowner_id: job.homeowner_id, tradie_id: user.id })
+        .select()
+        .single();
+      convoId = convo?.id;
+    }
+
+    // Fetch tradie info
+    const { data: tradieProfile, error: tradieErr } = await supabase
+      .from("profile_centra_tradie")
+      .select("first_name, abn, license, rating, portfolio")
+      .eq("id", user.id)
+      .single();
+
+    if (tradieErr || !tradieProfile) {
+      console.error("Failed to fetch tradie profile", tradieErr);
+      return;
+    }
+
+    const portfolioThumbs = (tradieProfile.portfolio || []).slice(0, 3);
+    const message = `
+Hi, I'm ${tradieProfile.first_name} 👷‍♂️
+
+ABN: ${tradieProfile.abn || "N/A"}
+License: ${tradieProfile.license || "N/A"}
+Rating: ${tradieProfile.rating || "Not yet rated"}
+
+Here's a preview of my work:
+${portfolioThumbs.map((url: string) => `🖼️ ${url}`).join("\n")}
+    `;
+
+    await supabase.from("messages").insert({
+      conversation_id: convoId,
+      sender_id: user.id,
+      content: message,
+      type: "text",
+    });
+
+    setPurchasedJobIds((prev) => [...prev, job.id]);
+    navigate(`/dashboard/tradie/messages?conversationId=${convoId}`);
+  };
 
   const filteredJobs = jobs.filter((job) => {
     const matchesSearch =
@@ -53,71 +135,9 @@ const FindJobsPage = () => {
 
   const categories = Array.from(new Set(jobs.map((job) => job.category)));
 
-  const handlePurchaseLead = async (job: any) => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user?.id) return;
-
-    const { data: tradieProfile, error: tradieError } = await supabase
-      .from("profile_centra_tradie")
-      .select("first_name, abn, license, rating, portfolio")
-      .eq("id", user.id)
-      .single();
-
-    if (tradieError || !tradieProfile) {
-      console.error("Failed to fetch tradie profile", tradieError);
-      return;
-    }
-
-    const portfolioThumbnails = Array.isArray(tradieProfile.portfolio)
-      ? tradieProfile.portfolio.slice(0, 3).join("\n")
-      : "";
-
-    const introMessage = `Hi, I'm ${tradieProfile.first_name}! Here's a bit about me:
-
-ABN: ${tradieProfile.abn || "N/A"}
-License: ${tradieProfile.license || "N/A"}
-Rating: ${tradieProfile.rating || "N/A"}
-
-Portfolio:\n${portfolioThumbnails}`;
-
-    const { data: existingConvo } = await supabase
-      .from("conversations")
-      .select("*")
-      .eq("homeowner_id", job.homeowner_id)
-      .eq("tradie_id", user.id)
-      .maybeSingle();
-
-    let conversationId = existingConvo?.id;
-
-    if (!conversationId) {
-      const { data: newConvo } = await supabase
-        .from("conversations")
-        .insert({ homeowner_id: job.homeowner_id, tradie_id: user.id })
-        .select()
-        .single();
-
-      conversationId = newConvo?.id;
-
-      if (conversationId) {
-        await supabase.from("messages").insert({
-          conversation_id: conversationId,
-          sender_id: user.id,
-          content: introMessage,
-        });
-      }
-    }
-
-    if (conversationId) {
-      navigate(`/dashboard/tradie/messages?conversationId=${conversationId}`);
-    }
-  };
-
   const mockUser = {
     name: "Mike Johnson",
-    email: "mike.johnson@example.com",
+    email: "mike@example.com",
     avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mike",
     trade: "Plumber",
     credits: 45,
@@ -136,6 +156,7 @@ Portfolio:\n${portfolioThumbnails}`;
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {/* Sidebar Filters */}
             <div className="md:col-span-1">
               <Card className="bg-white sticky top-24">
                 <CardHeader>
@@ -145,9 +166,7 @@ Portfolio:\n${portfolioThumbnails}`;
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <label htmlFor="search" className="text-sm font-medium">
-                      Search
-                    </label>
+                    <label htmlFor="search" className="text-sm font-medium">Search</label>
                     <div className="relative">
                       <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -191,57 +210,72 @@ Portfolio:\n${portfolioThumbnails}`;
                       onChange={() => setShowEmergencyOnly(!showEmergencyOnly)}
                       className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                     />
-                    <label htmlFor="emergency-only" className="text-sm font-medium">
-                      Emergency jobs only
-                    </label>
+                    <label htmlFor="emergency-only" className="text-sm font-medium">Emergency jobs only</label>
                   </div>
 
-                  <div className="pt-4">
-                    <Button
-                      variant="outline"
-                      className="w-full"
-                      onClick={() => {
-                        setSearchTerm("");
-                        setSelectedCategory(null);
-                        setShowEmergencyOnly(false);
-                      }}
-                    >
-                      Reset Filters
-                    </Button>
-                  </div>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setSearchTerm("");
+                      setSelectedCategory(null);
+                      setShowEmergencyOnly(false);
+                    }}
+                  >
+                    Reset Filters
+                  </Button>
                 </CardContent>
               </Card>
             </div>
 
+            {/* Job Listings */}
             <div className="md:col-span-3">
               <div className="grid grid-cols-1 gap-4">
                 {filteredJobs.length > 0 ? (
                   filteredJobs.map((job) => (
                     <Card
                       key={job.id}
-                      className={`bg-white border rounded-lg shadow-sm p-4 space-y-4 ${
-                        job.is_emergency ? "border-red-600 border-2" : "border-gray-200"
+                      className={`bg-white rounded-lg shadow-sm p-4 space-y-4 border-2 ${
+                        job.is_emergency ? "border-red-500" : "border-gray-200"
                       }`}
                     >
                       <div className="flex items-center gap-3">
-                        <User className="h-5 w-5 text-muted-foreground" />
-                        <span className="font-medium">
-                          {job.profile_centra_resident?.first_name || "Unknown"} {job.profile_centra_resident?.last_name || ""}
-                        </span>
-                        {job.profile_centra_resident?.avatar_url && (
+                        {job.profile_centra_resident?.avatar_url ? (
                           <img
                             src={job.profile_centra_resident.avatar_url}
-                            alt="Avatar"
-                            className="h-8 w-8 rounded-full ml-auto"
+                            className="h-8 w-8 rounded-full"
+                            alt="avatar"
                           />
+                        ) : (
+                          <div className="h-8 w-8 bg-gray-200 rounded-full" />
                         )}
+                        <span className="font-medium">
+                          {job.profile_centra_resident?.first_name || "Unknown"}{" "}
+                          {job.profile_centra_resident?.last_name || ""}
+                        </span>
                       </div>
                       <div>
-                        <h2 className="text-lg font-semibold">{job.title}</h2>
-                        <p className="text-sm text-muted-foreground mb-1">{job.category}</p>
+                        <Badge>{job.category}</Badge>
+                        <h2 className="text-lg font-semibold mt-1">{job.title}</h2>
                         <p className="text-muted-foreground text-sm">{job.description}</p>
+                        <div className="text-sm mt-1">
+                          <strong>Location:</strong> {job.location} <br />
+                          <strong>Budget:</strong> ${job.budget} <br />
+                          <strong>Timeline:</strong> {job.timeline}
+                        </div>
+                        {job.image_urls?.length > 0 && (
+                          <div className="grid grid-cols-2 gap-2 mt-2">
+                            {job.image_urls.slice(0, 2).map((url: string, idx: number) => (
+                              <img key={idx} src={url} alt={`job-img-${idx}`} className="rounded-md" />
+                            ))}
+                          </div>
+                        )}
                       </div>
-                      <Button onClick={() => handlePurchaseLead(job)}>Purchase Lead</Button>
+                      {!purchasedJobIds.includes(job.id) ? (
+                        <Button onClick={() => handlePurchaseLead(job)}>Purchase Lead</Button>
+                      ) : (
+                        <Badge variant="outline">Lead Purchased</Badge>
+                      )}
                     </Card>
                   ))
                 ) : (
