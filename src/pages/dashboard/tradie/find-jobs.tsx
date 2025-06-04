@@ -103,8 +103,19 @@ const FindJobsPage = () => {
       .select()
       .single();
 
-    const portfolioThumbs = (tradieProfile.portfolio || []).slice(0, 3);
-    const thumbsText = portfolioThumbs.map((url) => `• ${url}`).join("\n");
+   let parsedPortfolio: string[] = [];
+
+try {
+  parsedPortfolio = Array.isArray(tradieProfile.portfolio)
+    ? tradieProfile.portfolio
+    : JSON.parse(tradieProfile.portfolio || "[]");
+} catch (e) {
+  parsedPortfolio = [];
+}
+
+const portfolioThumbs = parsedPortfolio.slice(0, 3);
+const thumbsText = portfolioThumbs.map((url) => `• ${url}`).join("\n");
+
 
     const autoMessage = `Hi! I'm interested in this job. Here's a bit about me:\n- ABN: ${tradieProfile.abn}\n- License: ${tradieProfile.license}\n- Rating: ${tradieProfile.rating_avg?.toFixed(1) || "N/A"}\n\nRecent Work:\n${thumbsText || "No recent images"}`;
 
