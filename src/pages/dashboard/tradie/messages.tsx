@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Trash2 } from "lucide-react";
 
 const MessagesPage = () => {
   const [userId, setUserId] = useState<string>("");
@@ -12,7 +12,6 @@ const MessagesPage = () => {
   const [messages, setMessages] = useState<any[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<any>(null);
   const [newMessage, setNewMessage] = useState("");
-  const [searchParams] = useSearchParams();
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -90,6 +89,17 @@ const MessagesPage = () => {
     if (!error) setNewMessage("");
   };
 
+  const deleteConversation = async (id: string) => {
+    const { error } = await supabase.from("conversations").delete().eq("id", id);
+    if (!error) {
+      setConversations((prev) => prev.filter((c) => c.id !== id));
+      if (selectedConversation?.id === id) {
+        setSelectedConversation(null);
+        setMessages([]);
+      }
+    }
+  };
+
   const isFirstMessage =
     messages.length === 1 && messages[0].sender_id === userId;
 
@@ -103,17 +113,15 @@ const MessagesPage = () => {
             <div
               key={convo.id}
               onClick={() => setSelectedConversation(convo)}
-              className={`p-2 rounded cursor-pointer mb-2 ${
+              className={`p-2 rounded cursor-pointer mb-2 flex items-center justify-between ${
                 selectedConversation?.id === convo.id
-                  ? "bg-primary text-white"
+                  ? "bg-red-100 text-black"
                   : "hover:bg-muted"
               }`}
             >
               <div className="flex items-center gap-2">
                 <Avatar className="h-6 w-6">
-                  <AvatarImage
-                    src={convo.profile_centra_resident?.avatar_url}
-                  />
+                  <AvatarImage src={convo.profile_centra_resident?.avatar_url} />
                   <AvatarFallback>
                     {convo.profile_centra_resident?.first_name?.charAt(0) || "U"}
                   </AvatarFallback>
@@ -127,6 +135,13 @@ const MessagesPage = () => {
                   </div>
                 </div>
               </div>
+              <Trash2
+                className="h-4 w-4 text-gray-500 hover:text-red-600"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteConversation(convo.id);
+                }}
+              />
             </div>
           ))}
         </div>
