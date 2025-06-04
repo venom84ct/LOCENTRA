@@ -5,7 +5,16 @@ import { supabase } from "@/lib/supabaseClient";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, CreditCard, Filter, Search, User } from "lucide-react";
+import {
+  AlertCircle,
+  CreditCard,
+  Filter,
+  Search,
+  User,
+  Calendar,
+  DollarSign,
+  MapPin,
+} from "lucide-react";
 import {
   Card,
   CardContent,
@@ -16,106 +25,71 @@ import { useNavigate } from "react-router-dom";
 
 const FindJobsPage = () => {
   const [jobs, setJobs] = useState<any[]>([]);
-  const [leads, setLeads] = useState<any[]>([]);
+  const [purchasedJobIds, setPurchasedJobIds] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showEmergencyOnly, setShowEmergencyOnly] = useState(false);
   const navigate = useNavigate();
 
+  useEffect(() => {
+    fetchJobs();
+    fetchPurchasedLeads();
+  }, []);
+
   const fetchJobs = async () => {
-    const { data: jobData, error: jobError } = await supabase
+    const { data, error } = await supabase
       .from("jobs")
-      .select("*, profile_centra_resident(id, first_name, last_name, avatar_url), job_leads(tradie_id)")
+      .select("*, profile_centra_resident(id, first_name, last_name, avatar_url)")
       .or("status.eq.open,status.eq.available")
       .order("created_at", { ascending: false });
 
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (jobError) {
-      console.error("Error fetching jobs:", jobError.message);
-    } else {
-      setJobs(jobData);
-      if (user) {
-        const tradieLeads = jobData.map((j) => ({ id: j.id, hasLead: j.job_leads?.some((l) => l.tradie_id === user.id) }));
-        setLeads(tradieLeads);
-      }
-    }
+    if (!error) setJobs(data);
   };
 
-  useEffect(() => {
-    fetchJobs();
-  }, []);
-
-  const filteredJobs = jobs.filter((job) => {
-    const matchesSearch =
-      job.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.location?.toLowerCase().includes(searchTerm.toLowerCase());
-
-    const matchesCategory = selectedCategory ? job.category === selectedCategory : true;
-    const matchesEmergency = showEmergencyOnly ? job.is_emergency === true : true;
-
-    return matchesSearch && matchesCategory && matchesEmergency;
-  });
-
-  const categories = Array.from(new Set(jobs.map((job) => job.category)));
-
-  const handlePurchaseLead = async (job: any) => {
+  const fetchPurchasedLeads = async () => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
 
     if (!user?.id) return;
 
-    const { data: tradieProfile } = await supabase
-      .from("profile_centra_tradie")
-      .select("first_name, abn, license, rating, portfolio")
-      .eq("id", user.id)
-      .single();
+    const { data, error } = await supabase
+      .from("job_leads")
+      .select("job_id")
+      .eq("tradie_id", user.id);
 
-    // Create job_leads entry
-    await supabase.from("job_leads").insert({ job_id: job.id, tradie_id: user.id });
+    if (!error && data) setPurchasedJobIds(data.map((d) => d.job_id));
+  };
+
+  const handlePurchaseLead = async (job: any) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user?.id) return;
 
     const { data: convo } = await supabase
       .from("conversations")
-      .insert({ job_id: job.id, homeowner_id: job.homeowner_id, tradie_id: user.id })
-      .select()
+      .insert({ homeowner_id: job.homeowner_id, tradie_id: user.id, job_id: job.id })
+      .select("id")
       .single();
 
-    if (convo?.id && tradieProfile) {
-      const portfolioThumbnails = (tradieProfile.portfolio || []).slice(0, 3);
-      const messageText = `Hi, I'm interested in this job.\n\n**ABN:** ${tradieProfile.abn}\n**License:** ${tradieProfile.license}\n**Rating:** ${tradieProfile.rating}\n\nHere are some of my recent work:`;
-
-      await supabase.from("messages").insert({
-        conversation_id: convo.id,
-        sender_id: user.id,
-        content: messageText,
-        portfolio_images: portfolioThumbnails,
-      });
-
+    if (convo) {
+      await fetchPurchasedLeads();
       navigate(`/dashboard/tradie/messages?conversationId=${convo.id}`);
     }
   };
 
-  const mockUser = {
-    name: "Mike Johnson",
-    email: "mike.johnson@example.com",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mike",
-    trade: "Plumber",
-    credits: 45,
-  };
+  const categories = Array.from(new Set(jobs.map((job) => job.category)));
 
   return (
-    <DashboardLayout userType="tradie" user={mockUser}>
+    <DashboardLayout userType="tradie">
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">Find Jobs</h1>
             <div className="flex items-center space-x-2 bg-primary/10 px-4 py-2 rounded-full">
               <CreditCard className="h-5 w-5 text-primary" />
-              <span className="font-medium">{mockUser.credits} credits available</span>
+              <span className="font-medium">Credits Available</span>
             </div>
           </div>
 
@@ -128,11 +102,22 @@ const FindJobsPage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <Input
-                    placeholder="Search jobs..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                  />
+                  <div className="space-y-2">
+                    <label htmlFor="search" className="text-sm font-medium">
+                      Search
+                    </label>
+                    <div className="relative">
+                      <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="search"
+                        placeholder="Search jobs..."
+                        className="pl-10"
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                    </div>
+                  </div>
+
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Category</label>
                     <div className="flex flex-wrap gap-2">
@@ -155,6 +140,7 @@ const FindJobsPage = () => {
                       ))}
                     </div>
                   </div>
+
                   <div className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -167,58 +153,74 @@ const FindJobsPage = () => {
                       Emergency jobs only
                     </label>
                   </div>
+
+                  <div className="pt-4">
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={() => {
+                        setSearchTerm("");
+                        setSelectedCategory(null);
+                        setShowEmergencyOnly(false);
+                      }}
+                    >
+                      Reset Filters
+                    </Button>
+                  </div>
                 </CardContent>
               </Card>
             </div>
 
             <div className="md:col-span-3">
               <div className="grid grid-cols-1 gap-4">
-                {filteredJobs.length > 0 ? (
-                  filteredJobs.map((job) => {
-                    const isPurchased = leads.find((lead) => lead.id === job.id)?.hasLead;
+                {jobs
+                  .filter((job) => {
+                    const match =
+                      job.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      job.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                      job.location?.toLowerCase().includes(searchTerm.toLowerCase());
+                    return (
+                      match &&
+                      (selectedCategory ? job.category === selectedCategory : true) &&
+                      (showEmergencyOnly ? job.is_emergency === true : true)
+                    );
+                  })
+                  .map((job) => {
+                    const isPurchased = purchasedJobIds.includes(job.id);
                     return (
                       <Card
                         key={job.id}
-                        className={`bg-white border rounded-lg shadow-sm p-4 space-y-4 ${
+                        className={`bg-white border rounded-lg p-4 space-y-4 ${
                           job.is_emergency ? "border-red-600 border-2" : "border-gray-200"
                         }`}
                       >
                         <div className="flex items-center gap-3">
-                          {job.profile_centra_resident?.avatar_url ? (
-                            <img
-                              src={job.profile_centra_resident.avatar_url}
-                              alt="Avatar"
-                              className="h-8 w-8 rounded-full"
-                            />
-                          ) : (
-                            <User className="h-5 w-5 text-muted-foreground" />
-                          )}
+                          <User className="h-5 w-5 text-muted-foreground" />
                           <span className="font-medium">
                             {job.profile_centra_resident?.first_name || "Unknown"} {job.profile_centra_resident?.last_name || ""}
                           </span>
+                          {job.profile_centra_resident?.avatar_url && (
+                            <img
+                              src={job.profile_centra_resident.avatar_url}
+                              alt="Avatar"
+                              className="h-8 w-8 rounded-full ml-auto"
+                            />
+                          )}
                         </div>
-                        <h2 className="text-lg font-semibold">{job.title}</h2>
-                        <p className="text-sm text-muted-foreground">{job.description}</p>
-                        <div className="text-sm text-gray-600">Category: {job.category}</div>
-                        <div className="text-sm text-gray-600">Location: {job.location}</div>
-                        <div className="text-sm text-gray-600">Budget: {job.budget}</div>
-                        <div className="text-sm text-gray-600">Timeline: {job.timeline}</div>
 
-                        {job.image_urls && job.image_urls.length > 0 && (
-                          <div className="flex gap-2 mt-2">
-                            {job.image_urls.map((url: string, idx: number) => (
-                              <img key={idx} src={url} alt="Job" className="h-20 w-20 object-cover rounded" />
-                            ))}
-                          </div>
-                        )}
+                        <div className="space-y-1">
+                          <h2 className="text-lg font-semibold">{job.title}</h2>
+                          <p className="text-muted-foreground text-sm">{job.description}</p>
+                          <p className="text-sm"><MapPin className="inline h-4 w-4 mr-1" /> {job.location}</p>
+                          <p className="text-sm"><DollarSign className="inline h-4 w-4 mr-1" /> ${job.budget}</p>
+                          <p className="text-sm"><Calendar className="inline h-4 w-4 mr-1" /> {job.timeline}</p>
+                          <p className="text-sm font-medium">Category: {job.category}</p>
+                        </div>
 
                         {isPurchased ? (
                           <>
-                            <Badge variant="default">Purchased</Badge>
-                            <Button
-                              className="mt-2"
-                              onClick={() => navigate(`/dashboard/tradie/messages?jobId=${job.id}`)}
-                            >
+                            <Badge className="bg-green-500 text-white px-3 py-1 rounded-full text-xs">Purchased</Badge>
+                            <Button variant="destructive" onClick={() => navigate(`/dashboard/tradie/messages?jobId=${job.id}`)}>
                               Message
                             </Button>
                           </>
@@ -227,27 +229,7 @@ const FindJobsPage = () => {
                         )}
                       </Card>
                     );
-                  })
-                ) : (
-                  <Card className="bg-white">
-                    <CardContent className="flex flex-col items-center justify-center py-12">
-                      <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
-                      <h3 className="text-lg font-medium mb-2">No jobs found</h3>
-                      <p className="text-muted-foreground text-center mb-4">
-                        We couldn't find any jobs matching your search criteria.
-                      </p>
-                      <Button
-                        onClick={() => {
-                          setSearchTerm("");
-                          setSelectedCategory(null);
-                          setShowEmergencyOnly(false);
-                        }}
-                      >
-                        Reset Filters
-                      </Button>
-                    </CardContent>
-                  </Card>
-                )}
+                  })}
               </div>
             </div>
           </div>
