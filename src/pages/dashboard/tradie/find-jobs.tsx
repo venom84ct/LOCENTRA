@@ -1,57 +1,54 @@
-// src/pages/dashboard/find-jobs.tsx
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { supabase } from "@/lib/supabaseClient";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { AlertCircle, CreditCard, Filter, Search, User } from "lucide-react";
+import { AlertCircle, Calendar, Clock, CreditCard, DollarSign, Filter, MapPin, Search, User } from "lucide-react";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { useNavigate } from "react-router-dom";
 
 const FindJobsPage = () => {
   const [jobs, setJobs] = useState<any[]>([]);
-  const [purchasedLeads, setPurchasedLeads] = useState<string[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showEmergencyOnly, setShowEmergencyOnly] = useState(false);
+  const [purchasedLeads, setPurchasedLeads] = useState<string[]>([]);
   const navigate = useNavigate();
 
   const fetchJobs = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const { data: leadsData } = await supabase
+      .from("job_leads")
+      .select("job_id")
+      .eq("tradie_id", user.id);
+
+    setPurchasedLeads(leadsData?.map((l) => l.job_id) || []);
+
     const { data, error } = await supabase
       .from("jobs")
       .select("*, profile_centra_resident(id, first_name, last_name, avatar_url)")
       .or("status.eq.open,status.eq.available")
       .order("created_at", { ascending: false });
 
-    if (!error) setJobs(data);
-  };
-
-  const fetchPurchasedLeads = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data, error } = await supabase
-      .from("job_leads")
-      .select("job_id")
-      .eq("tradie_id", user.id);
-
-    if (!error) {
-      const purchasedIds = data.map((entry) => entry.job_id);
-      setPurchasedLeads(purchasedIds);
+    if (error) {
+      console.error("Error fetching jobs:", error.message);
+    } else {
+      setJobs(data || []);
     }
   };
 
   useEffect(() => {
     fetchJobs();
-    fetchPurchasedLeads();
   }, []);
 
   const filteredJobs = jobs.filter((job) => {
@@ -66,70 +63,85 @@ const FindJobsPage = () => {
     return matchesSearch && matchesCategory && matchesEmergency;
   });
 
-  const handlePurchase = async (job: any) => {
+  const categories = Array.from(new Set(jobs.map((job) => job.category)));
+
+  const handlePurchaseLead = async (job: any) => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
 
-    const { data: profile } = await supabase
+    const tradieId = user.id;
+
+    const { data: tradieProfile, error: tradieError } = await supabase
       .from("profile_centra_tradie")
-      .select("first_name, abn, license, portfolio")
-      .eq("id", user.id)
+      .select("first_name, abn, license, rating_avg, portfolio")
+      .eq("id", tradieId)
       .single();
 
-    const { data: newLead } = await supabase
+    if (tradieError || !tradieProfile) {
+      console.error("Failed to fetch tradie profile", tradieError);
+      return;
+    }
+
+    const { data: leadData, error: leadError } = await supabase
       .from("job_leads")
-      .insert({ job_id: job.id, tradie_id: user.id })
-      .select()
-      .single();
+      .insert([{ job_id: job.id, tradie_id: tradieId }]);
+
+    if (leadError) {
+      console.error("Failed to purchase lead", leadError.message);
+      return;
+    }
 
     const { data: conversation } = await supabase
       .from("conversations")
       .insert({
-        homeowner_id: job.homeowner_id,
-        tradie_id: user.id,
         job_id: job.id,
+        homeowner_id: job.homeowner_id,
+        tradie_id: tradieId,
       })
       .select()
       .single();
 
-    if (conversation) {
-      const autoMessage = `Hi, I'm interested in this job.\n\n**ABN**: ${profile?.abn || "N/A"}\n**License**: ${profile?.license || "N/A"}\n\nPlease view my work in the portfolio below.`;
+    const portfolioThumbs = (tradieProfile.portfolio || []).slice(0, 3);
+    const thumbsText = portfolioThumbs.map((url) => `• ${url}`).join("\n");
 
-      await supabase.from("messages").insert([
-        {
-          conversation_id: conversation.id,
-          sender_id: user.id,
-          message: autoMessage,
-        },
-        {
-          conversation_id: conversation.id,
-          sender_id: user.id,
-          message: "You must wait for the homeowner to respond before sending more messages.",
-        },
-      ]);
+    const autoMessage = `Hi! I'm interested in this job. Here's a bit about me:\n- ABN: ${tradieProfile.abn}\n- License: ${tradieProfile.license}\n- Rating: ${tradieProfile.rating_avg?.toFixed(1) || "N/A"}\n\nRecent Work:\n${thumbsText || "No recent images"}`;
 
-      setPurchasedLeads((prev) => [...prev, job.id]);
-      navigate(`/dashboard/tradie/messages?conversationId=${conversation.id}`);
-    }
+    await supabase
+      .from("messages")
+      .insert({
+        conversation_id: conversation.id,
+        sender_id: tradieId,
+        message: autoMessage,
+      });
+
+    await fetchJobs(); // refresh to hide button
+    navigate(`/dashboard/tradie/messages?conversationId=${conversation.id}`);
   };
 
-  const categories = Array.from(new Set(jobs.map((job) => job.category)));
+  const mockUser = {
+    name: "Mike Johnson",
+    email: "mike.johnson@example.com",
+    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mike",
+    trade: "Plumber",
+    credits: 45,
+  };
 
   return (
-    <DashboardLayout userType="tradie">
+    <DashboardLayout userType="tradie" user={mockUser}>
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">Find Jobs</h1>
             <div className="flex items-center space-x-2 bg-primary/10 px-4 py-2 rounded-full">
               <CreditCard className="h-5 w-5 text-primary" />
-              <span className="font-medium">Credits available</span>
+              <span className="font-medium">{mockUser.credits} credits available</span>
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+            {/* Filters */}
             <div className="md:col-span-1">
               <Card className="bg-white sticky top-24">
                 <CardHeader>
@@ -139,11 +151,10 @@ const FindJobsPage = () => {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <label htmlFor="search" className="text-sm font-medium">Search</label>
+                    <label className="text-sm font-medium">Search</label>
                     <div className="relative">
                       <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
-                        id="search"
                         placeholder="Search jobs..."
                         className="pl-10"
                         value={searchTerm}
@@ -151,124 +162,103 @@ const FindJobsPage = () => {
                       />
                     </div>
                   </div>
+
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Category</label>
                     <div className="flex flex-wrap gap-2">
-                      <Badge
-                        variant={selectedCategory === null ? "default" : "outline"}
-                        className="cursor-pointer"
-                        onClick={() => setSelectedCategory(null)}
-                      >All</Badge>
-                      {categories.map((category) => (
-                        <Badge
-                          key={category}
-                          variant={selectedCategory === category ? "default" : "outline"}
-                          className="cursor-pointer"
-                          onClick={() => setSelectedCategory(category)}
-                        >
-                          {category}
-                        </Badge>
+                      <Badge variant={selectedCategory === null ? "default" : "outline"} className="cursor-pointer" onClick={() => setSelectedCategory(null)}>All</Badge>
+                      {categories.map((cat) => (
+                        <Badge key={cat} variant={selectedCategory === cat ? "default" : "outline"} className="cursor-pointer" onClick={() => setSelectedCategory(cat)}>{cat}</Badge>
                       ))}
                     </div>
                   </div>
+
                   <div className="flex items-center space-x-2">
                     <input
                       type="checkbox"
                       id="emergency-only"
                       checked={showEmergencyOnly}
                       onChange={() => setShowEmergencyOnly(!showEmergencyOnly)}
-                      className="h-4 w-4"
+                      className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
                     />
-                    <label htmlFor="emergency-only" className="text-sm font-medium">
-                      Emergency jobs only
-                    </label>
+                    <label className="text-sm font-medium" htmlFor="emergency-only">Emergency jobs only</label>
                   </div>
-                  <Button variant="outline" onClick={() => {
-                    setSearchTerm("");
-                    setSelectedCategory(null);
-                    setShowEmergencyOnly(false);
-                  }} className="w-full mt-4">Reset Filters</Button>
+
+                  <div className="pt-4">
+                    <Button variant="outline" className="w-full" onClick={() => {
+                      setSearchTerm("");
+                      setSelectedCategory(null);
+                      setShowEmergencyOnly(false);
+                    }}>Reset Filters</Button>
+                  </div>
                 </CardContent>
               </Card>
             </div>
 
-            <div className="md:col-span-3 space-y-4">
-              {filteredJobs.length > 0 ? (
-                filteredJobs.map((job) => (
-                  <Card
-                    key={job.id}
-                    className={`bg-white p-4 shadow-sm border ${job.is_emergency ? "border-red-600 border-2" : ""}`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {job.profile_centra_resident?.avatar_url ? (
-                          <img
-                            src={job.profile_centra_resident.avatar_url}
-                            alt="avatar"
-                            className="w-8 h-8 rounded-full"
-                          />
-                        ) : <User className="text-muted-foreground" />}
-                        <span className="font-medium">
-                          {job.profile_centra_resident?.first_name || "Unknown"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {purchasedLeads.includes(job.id) ? (
-                          <>
-                            <Badge className="bg-green-500 text-white">Purchased</Badge>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() =>
-                                navigate(`/dashboard/tradie/messages?jobId=${job.id}`)
-                              }
-                            >
-                              Message
-                            </Button>
-                          </>
-                        ) : (
-                          <Button size="sm" onClick={() => handlePurchase(job)}>
-                            Purchase Lead
-                          </Button>
+            {/* Job Cards */}
+            <div className="md:col-span-3">
+              <div className="grid grid-cols-1 gap-4">
+                {filteredJobs.length ? filteredJobs.map((job) => {
+                  const isPurchased = purchasedLeads.includes(job.id);
+                  const profile = job.profile_centra_resident;
+
+                  return (
+                    <Card key={job.id} className={`bg-white p-4 border ${job.is_emergency ? "border-red-600 border-2" : "border-gray-200"}`}>
+                      <div className="flex items-center gap-3 mb-2">
+                        <User className="h-4 w-4 text-muted-foreground" />
+                        <span className="font-medium">{profile?.first_name || "Unknown"} {profile?.last_name || ""}</span>
+                        {profile?.avatar_url && (
+                          <img src={profile.avatar_url} alt="Avatar" className="h-8 w-8 rounded-full ml-auto" />
                         )}
                       </div>
-                    </div>
 
-                    <div className="mt-4 space-y-1">
                       <h2 className="text-lg font-semibold">{job.title}</h2>
-                      <p className="text-muted-foreground text-sm">{job.description}</p>
-                      <p className="text-sm text-gray-500">
-                        <strong>Category:</strong> {job.category} | <strong>Location:</strong> {job.location} | <strong>Budget:</strong> ${job.budget} | <strong>Timeline:</strong> {job.timeline}
-                      </p>
-                    </div>
+                      <p className="text-muted-foreground text-sm mb-2">{job.description}</p>
 
-                    {job.image_urls && Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
-                      <div className="mt-3 flex gap-2 flex-wrap">
-                        {job.image_urls.slice(0, 3).map((url: string, i: number) => (
-                          <img key={i} src={url} alt={`job ${i}`} className="w-24 h-24 object-cover rounded" />
-                        ))}
+                      {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-3">
+                          {job.image_urls.map((url: string, idx: number) => (
+                            <img key={idx} src={url} className="w-full h-24 object-cover rounded border" />
+                          ))}
+                        </div>
+                      )}
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 text-sm gap-2 text-muted-foreground mb-3">
+                        <div className="flex items-center"><MapPin className="w-4 h-4 mr-2" />{job.location}</div>
+                        <div className="flex items-center"><Calendar className="w-4 h-4 mr-2" />{new Date(job.created_at).toLocaleDateString()}</div>
+                        <div className="flex items-center"><DollarSign className="w-4 h-4 mr-2" />{job.budget}</div>
+                        <div className="flex items-center"><Clock className="w-4 h-4 mr-2" />{job.timeline}</div>
                       </div>
-                    )}
+
+                      <div className="flex items-center justify-between">
+                        {isPurchased ? (
+                          <>
+                            <Badge className="bg-green-500 text-white">Purchased</Badge>
+                            <Button variant="destructive" onClick={() => navigate(`/dashboard/tradie/messages?jobId=${job.id}`)}>Message</Button>
+                          </>
+                        ) : (
+                          <Button onClick={() => handlePurchaseLead(job)}>Purchase Lead</Button>
+                        )}
+                      </div>
+                    </Card>
+                  );
+                }) : (
+                  <Card className="bg-white">
+                    <CardContent className="flex flex-col items-center justify-center py-12">
+                      <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                      <h3 className="text-lg font-medium mb-2">No jobs found</h3>
+                      <p className="text-muted-foreground text-center mb-4">
+                        We couldn't find any jobs matching your search criteria.
+                      </p>
+                      <Button onClick={() => {
+                        setSearchTerm("");
+                        setSelectedCategory(null);
+                        setShowEmergencyOnly(false);
+                      }}>Reset Filters</Button>
+                    </CardContent>
                   </Card>
-                ))
-              ) : (
-                <Card className="bg-white">
-                  <CardContent className="flex flex-col items-center justify-center py-12">
-                    <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
-                    <h3 className="text-lg font-medium mb-2">No jobs found</h3>
-                    <p className="text-muted-foreground text-center mb-4">
-                      We couldn't find any jobs matching your search criteria.
-                    </p>
-                    <Button onClick={() => {
-                      setSearchTerm("");
-                      setSelectedCategory(null);
-                      setShowEmergencyOnly(false);
-                    }}>
-                      Reset Filters
-                    </Button>
-                  </CardContent>
-                </Card>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </div>
