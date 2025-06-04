@@ -1,49 +1,70 @@
 import React, { useEffect, useState, useRef } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { useSearchParams } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { supabase } from "@/lib/supabaseClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
-const MessagesPage = () => {
-  const [userId, setUserId] = useState<string>("");
-  const [conversations, setConversations] = useState<any[]>([]);
-  const [messages, setMessages] = useState<any[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<any>(null);
+interface Message {
+  id: string;
+  conversation_id: string;
+  sender_id: string;
+  message: string;
+  created_at: string;
+}
+
+interface Conversation {
+  id: string;
+  job_id: string;
+  tradie_id: string;
+  profile_centra_tradie: {
+    first_name: string;
+    avatar_url: string;
+  };
+}
+
+const HomeownerMessagesPage = () => {
+  const [searchParams] = useSearchParams();
+  const selectedConversationId = searchParams.get("conversationId");
+
+  const [userId, setUserId] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [conversations, setConversations] = useState<Conversation[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const fetchUserAndConversations = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-      setUserId(user.id);
-
-      const { data, error } = await supabase
-        .from("conversations")
-        .select(`
-          *,
-          jobs(title),
-          profile_centra_tradie(first_name, avatar_url)
-        `)
-        .eq("homeowner_id", user.id);
-
-      if (!error) setConversations(data || []);
+    const fetchUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      setUserId(data.user?.id || null);
     };
-
-    fetchUserAndConversations();
+    fetchUser();
   }, []);
 
   useEffect(() => {
-    if (!selectedConversation?.id) return;
+    if (!userId) return;
+
+    const fetchConversations = async () => {
+      const { data } = await supabase
+        .from("conversations")
+        .select("id, job_id, tradie_id, profile_centra_tradie(first_name, avatar_url)")
+        .eq("homeowner_id", userId);
+
+      setConversations(data || []);
+    };
+
+    fetchConversations();
+  }, [userId]);
+
+  useEffect(() => {
+    if (!selectedConversationId) return;
 
     const fetchMessages = async () => {
       const { data, error } = await supabase
         .from("messages")
         .select("*")
-        .eq("conversation_id", selectedConversation.id)
+        .eq("conversation_id", selectedConversationId)
         .order("created_at", { ascending: true });
 
       if (!error) {
@@ -55,17 +76,12 @@ const MessagesPage = () => {
     fetchMessages();
 
     const channel = supabase
-      .channel(`messages-${selectedConversation.id}`)
+      .channel(`conversation-${selectedConversationId}`)
       .on(
         "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `conversation_id=eq.${selectedConversation.id}`,
-        },
+        { event: "INSERT", schema: "public", table: "messages", filter: `conversation_id=eq.${selectedConversationId}` },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new]);
+          setMessages((prev) => [...prev, payload.new as Message]);
           bottomRef.current?.scrollIntoView({ behavior: "smooth" });
         }
       )
@@ -74,92 +90,78 @@ const MessagesPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedConversation]);
+  }, [selectedConversationId]);
 
   const handleSend = async () => {
-    if (!newMessage.trim() || !userId || !selectedConversation) return;
+    if (!newMessage.trim() || !userId || !selectedConversationId) return;
 
     const { error } = await supabase.from("messages").insert({
-      conversation_id: selectedConversation.id,
+      conversation_id: selectedConversationId,
       sender_id: userId,
       message: newMessage.trim(),
     });
 
-    if (!error) setNewMessage("");
+    if (!error) {
+      setNewMessage("");
+    }
   };
 
-  const isFirstMessage =
-    messages.length === 1 && messages[0].sender_id === userId;
-
   return (
-    <DashboardLayout userType="homeowner">
-      <div className="p-6 flex space-x-6">
-        {/* Conversation List */}
-        <div className="w-1/3 border rounded p-4 bg-white h-[600px] overflow-y-auto">
-          <h2 className="font-semibold text-lg mb-4">Conversations</h2>
-          {conversations.map((convo) => (
-            <div
-              key={convo.id}
-              onClick={() => setSelectedConversation(convo)}
-              className={`p-2 rounded cursor-pointer mb-2 ${
-                selectedConversation?.id === convo.id
-                  ? "bg-primary text-white"
-                  : "hover:bg-muted"
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Avatar className="h-6 w-6">
-                  <AvatarImage
-                    src={convo.profile_centra_tradie?.avatar_url}
-                  />
-                  <AvatarFallback>
-                    {convo.profile_centra_tradie?.first_name?.charAt(0) || "T"}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="text-sm">
-                  <div className="font-medium">
-                    {convo.profile_centra_tradie?.first_name || "Unknown"}
-                  </div>
-                  <div className="text-xs text-muted-foreground">
-                    Job: {convo.jobs?.title || "No title"}
-                  </div>
+    <DashboardLayout userType="centraResident">
+      <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Sidebar */}
+        <div className="col-span-1">
+          <h2 className="text-lg font-semibold mb-2">Conversations</h2>
+          <div className="space-y-2">
+            {conversations.map((conv) => (
+              <a
+                key={conv.id}
+                href={`/dashboard/messages?conversationId=${conv.id}`}
+                className={`block p-2 rounded border ${
+                  selectedConversationId === conv.id
+                    ? "bg-primary text-white"
+                    : "hover:bg-gray-100"
+                }`}
+              >
+                <div className="flex items-center gap-2">
+                  <Avatar className="h-6 w-6">
+                    <AvatarImage src={conv.profile_centra_tradie?.avatar_url} />
+                    <AvatarFallback>
+                      {conv.profile_centra_tradie?.first_name?.[0] || "T"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm font-medium">
+                    {conv.profile_centra_tradie?.first_name || "Tradie"}
+                  </span>
                 </div>
-              </div>
-            </div>
-          ))}
+                <p className="text-xs text-muted-foreground">Job: {conv.job_id}</p>
+              </a>
+            ))}
+          </div>
         </div>
 
-        {/* Messages Panel */}
-        <div className="flex-1 border rounded p-4 bg-white h-[600px] flex flex-col">
-          <h2 className="font-semibold text-lg mb-2">Messages</h2>
-          <div className="flex-1 overflow-y-auto space-y-2">
+        {/* Chat Panel */}
+        <div className="col-span-2">
+          <h2 className="text-lg font-semibold mb-2">Messages</h2>
+          <div className="border rounded p-4 bg-white h-[500px] overflow-y-auto">
             {messages.map((msg) => (
               <div
                 key={msg.id}
-                className={`max-w-xs px-4 py-2 rounded-lg ${
-                  msg.sender_id === userId
-                    ? "bg-red-100 ml-auto"
-                    : "bg-gray-100"
+                className={`my-2 max-w-sm px-4 py-2 rounded-lg ${
+                  msg.sender_id === userId ? "bg-red-100 ml-auto" : "bg-gray-100"
                 }`}
               >
                 {msg.message}
               </div>
             ))}
-
-            {isFirstMessage && (
-              <div className="text-center text-muted-foreground text-sm mt-4">
-                You’ve sent a message. To unlock the chat, please wait for the Tradie to reply.
-              </div>
-            )}
-
             <div ref={bottomRef} />
           </div>
 
-          <div className="mt-4 flex gap-2">
+          <div className="flex gap-2 mt-4">
             <Input
-              placeholder="Type a message..."
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
+              placeholder="Type a message..."
             />
             <Button onClick={handleSend} disabled={!newMessage.trim()}>
               Send
@@ -171,4 +173,4 @@ const MessagesPage = () => {
   );
 };
 
-export default MessagesPage;
+export default HomeownerMessagesPage;
