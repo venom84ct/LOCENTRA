@@ -1,11 +1,11 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { supabase } from "@/lib/supabaseClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Trash } from "lucide-react";
+import { Trash2 } from "lucide-react";
 
 interface Message {
   id: string;
@@ -28,6 +28,7 @@ interface Conversation {
 
 const HomeownerMessagesPage = () => {
   const [searchParams] = useSearchParams();
+  const navigate = useNavigate();
   const selectedConversationId = searchParams.get("conversationId");
 
   const [userId, setUserId] = useState<string | null>(null);
@@ -53,9 +54,7 @@ const HomeownerMessagesPage = () => {
         .select("id, jobs(title), profile_centra_tradie(first_name, avatar_url)")
         .eq("homeowner_id", userId);
 
-      if (!error) {
-        setConversations(data || []);
-      }
+      if (!error) setConversations(data || []);
     };
 
     fetchConversations();
@@ -119,50 +118,50 @@ const HomeownerMessagesPage = () => {
     await supabase.from("messages").delete().eq("conversation_id", id);
     await supabase.from("conversations").delete().eq("id", id);
     setConversations((prev) => prev.filter((c) => c.id !== id));
+    if (selectedConversationId === id) navigate("/dashboard/messages");
   };
 
   return (
-    <DashboardLayout userType="homeowner" user={userId}>
+    <DashboardLayout userType="homeowner">
       <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Sidebar */}
         <div className="col-span-1">
           <h2 className="text-lg font-semibold mb-2">Conversations</h2>
           <div className="space-y-2">
             {conversations.map((conv) => (
-              <div
-                key={conv.id}
-                className={`flex justify-between items-center p-2 rounded border cursor-pointer ${
-                  selectedConversationId === conv.id
-                    ? "bg-red-500 text-white"
-                    : "hover:bg-gray-100"
-                }`}
-              >
+              <div key={conv.id} className="relative group">
                 <a
                   href={`/dashboard/messages?conversationId=${conv.id}`}
-                  className="flex items-center gap-2 flex-1"
+                  className={`block p-2 rounded border ${
+                    selectedConversationId === conv.id
+                      ? "bg-[#ffe6e6] text-black"
+                      : "hover:bg-gray-100"
+                  }`}
                 >
-                  <Avatar className="h-6 w-6">
-                    <AvatarImage src={conv.profile_centra_tradie?.avatar_url} />
-                    <AvatarFallback>
-                      {conv.profile_centra_tradie?.first_name?.[0] || "T"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="text-sm font-medium">
-                      {conv.profile_centra_tradie?.first_name || "Tradie"}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      Job: {conv.jobs?.title || "Untitled"}
-                    </p>
+                  <div className="flex items-center gap-2">
+                    <Avatar className="h-6 w-6">
+                      <AvatarImage src={conv.profile_centra_tradie?.avatar_url} />
+                      <AvatarFallback>
+                        {conv.profile_centra_tradie?.first_name?.[0] || "T"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="text-sm font-medium">
+                        {conv.profile_centra_tradie?.first_name || "Tradie"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Job: {conv.jobs?.title || "Untitled"}
+                      </p>
+                    </div>
                   </div>
                 </a>
-                <Button
-                  size="icon"
-                  variant="ghost"
+                <button
+                  className="absolute top-2 right-2 text-gray-400 hover:text-red-500 hidden group-hover:inline"
                   onClick={() => handleDeleteConversation(conv.id)}
+                  title="Delete conversation"
                 >
-                  <Trash size={16} />
-                </Button>
+                  <Trash2 className="h-4 w-4" />
+                </button>
               </div>
             ))}
           </div>
