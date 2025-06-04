@@ -162,8 +162,9 @@ const MessagesPage = () => {
               placeholder="Type a message..."
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
+              disabled={isFirstMessage}
             />
-            <Button onClick={handleSend} disabled={!newMessage.trim()}>
+            <Button onClick={handleSend} disabled={!newMessage.trim() || isFirstMessage}>
               Send
             </Button>
           </div>
