@@ -1,3 +1,5 @@
+// src/components/dashboard/TradieDashboard.tsx
+
 import React from "react";
 import {
   Card,
@@ -7,6 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   MapPin,
@@ -14,6 +17,8 @@ import {
   ClipboardList,
   MessageSquare,
   PlusCircle,
+  Star,
+  Hammer,
 } from "lucide-react";
 
 interface TradieProfile {
@@ -55,35 +60,28 @@ const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
           <CardContent className="flex items-center space-x-4">
             <Avatar className="h-14 w-14">
               <AvatarImage src={profile.avatar_url} />
-              <AvatarFallback>
-                {fullName.slice(0, 2).toUpperCase() || "TR"}
-              </AvatarFallback>
+              <AvatarFallback>{fullName.slice(0, 2).toUpperCase() || "TR"}</AvatarFallback>
             </Avatar>
-            <div className="text-sm space-y-1">
+            <div className="text-sm">
               <p className="font-semibold">{fullName || "Tradie"}</p>
               <p className="text-muted-foreground">Member since {joinDate}</p>
-
-              {profile.trade_category && (
-                <p className="text-xs text-gray-600">
-                  <strong>Trade:</strong> {profile.trade_category}
-                </p>
-              )}
-
-              {typeof profile.rating_avg === "number" && (
-                <p className="text-xs text-yellow-600">
-                  ⭐ {profile.rating_avg.toFixed(1)} ({profile.rating_count || 0} reviews)
-                </p>
-              )}
-
               {profile.address && (
-                <div className="flex items-center text-xs text-muted-foreground">
+                <div className="flex items-center text-xs text-muted-foreground mt-1">
                   <MapPin className="h-4 w-4 mr-1" /> {profile.address}
                 </div>
               )}
-
-              <div className="text-xs">
+              {profile.trade_category && (
+                <div className="flex items-center text-xs text-muted-foreground mt-1">
+                  <Hammer className="h-4 w-4 mr-1" /> {profile.trade_category}
+                </div>
+              )}
+              <div className="text-xs mt-1">
                 <Gift className="inline h-4 w-4 mr-1" />
                 {profile.credits || 0} credits
+              </div>
+              <div className="text-xs text-yellow-500 flex items-center mt-1">
+                <Star className="h-4 w-4 mr-1" />
+                {profile.rating_avg?.toFixed(1) || "0.0"} ({profile.rating_count || 0} reviews)
               </div>
             </div>
           </CardContent>
