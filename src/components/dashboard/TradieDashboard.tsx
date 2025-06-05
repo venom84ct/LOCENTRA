@@ -26,6 +26,7 @@ interface TradieProfile {
   credits?: number;
   rating_avg?: number;
   rating_count?: number;
+  trade_category?: string; // ✅ added
   jobs?: { status: string }[];
 }
 
@@ -60,6 +61,11 @@ const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
             <div className="text-sm">
               <p className="font-semibold">{fullName || "Tradie"}</p>
               <p className="text-muted-foreground">Member since {joinDate}</p>
+              {profile.trade_category && (
+                <p className="text-xs text-gray-600 mt-1">
+                  <strong>Trade Category:</strong> {profile.trade_category}
+                </p>
+              )}
               {profile.address && (
                 <div className="flex items-center text-xs text-muted-foreground mt-1">
                   <MapPin className="h-4 w-4 mr-1" /> {profile.address}
