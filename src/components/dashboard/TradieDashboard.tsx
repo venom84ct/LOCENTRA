@@ -7,7 +7,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   MapPin,
@@ -26,7 +25,7 @@ interface TradieProfile {
   credits?: number;
   rating_avg?: number;
   rating_count?: number;
-  trade_category?: string; // ✅ added
+  trade_category?: string;
   jobs?: { status: string }[];
 }
 
@@ -56,22 +55,33 @@ const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
           <CardContent className="flex items-center space-x-4">
             <Avatar className="h-14 w-14">
               <AvatarImage src={profile.avatar_url} />
-              <AvatarFallback>{fullName.slice(0, 2).toUpperCase() || "TR"}</AvatarFallback>
+              <AvatarFallback>
+                {fullName.slice(0, 2).toUpperCase() || "TR"}
+              </AvatarFallback>
             </Avatar>
-            <div className="text-sm">
+            <div className="text-sm space-y-1">
               <p className="font-semibold">{fullName || "Tradie"}</p>
               <p className="text-muted-foreground">Member since {joinDate}</p>
+
               {profile.trade_category && (
-                <p className="text-xs text-gray-600 mt-1">
-                  <strong>Trade Category:</strong> {profile.trade_category}
+                <p className="text-xs text-gray-600">
+                  <strong>Trade:</strong> {profile.trade_category}
                 </p>
               )}
+
+              {typeof profile.rating_avg === "number" && (
+                <p className="text-xs text-yellow-600">
+                  ⭐ {profile.rating_avg.toFixed(1)} ({profile.rating_count || 0} reviews)
+                </p>
+              )}
+
               {profile.address && (
-                <div className="flex items-center text-xs text-muted-foreground mt-1">
+                <div className="flex items-center text-xs text-muted-foreground">
                   <MapPin className="h-4 w-4 mr-1" /> {profile.address}
                 </div>
               )}
-              <div className="text-xs mt-1">
+
+              <div className="text-xs">
                 <Gift className="inline h-4 w-4 mr-1" />
                 {profile.credits || 0} credits
               </div>
