@@ -1,3 +1,5 @@
+// src/pages/dashboard/tradie/profile.tsx
+
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -11,7 +13,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Star, MapPin, Mail, Phone, Trash } from "lucide-react";
+import { Star, MapPin, Phone, Trash } from "lucide-react";
 
 const TradieProfilePage = () => {
   const [profile, setProfile] = useState<any>(null);
@@ -67,14 +69,24 @@ const TradieProfilePage = () => {
 
   const handleSave = async () => {
     if (!profile) return;
-    const updates: any = { ...profile };
+
+    const updates: any = {
+      bio: profile.bio || null,
+      abn: profile.abn || null,
+      license: profile.license || null,
+      trade_category: profile.trade_category || null,
+      portfolio: profile.portfolio || [],
+    };
 
     if (avatarFile) {
       const { data, error } = await supabase.storage
         .from("tradie-avatars")
         .upload(`${profile.id}/avatar.png`, avatarFile, { upsert: true });
+
       if (!error && data) {
-        const { data: url } = supabase.storage.from("tradie-avatars").getPublicUrl(data.path);
+        const { data: url } = supabase.storage
+          .from("tradie-avatars")
+          .getPublicUrl(data.path);
         updates.avatar_url = url.publicUrl;
       }
     }
@@ -85,8 +97,11 @@ const TradieProfilePage = () => {
         const { data, error } = await supabase.storage
           .from("portfolio")
           .upload(`${profile.id}/${file.name}`, file, { upsert: false });
+
         if (!error && data) {
-          const { data: url } = supabase.storage.from("portfolio").getPublicUrl(data.path);
+          const { data: url } = supabase.storage
+            .from("portfolio")
+            .getPublicUrl(data.path);
           uploadedUrls.push(url.publicUrl);
         }
       }
@@ -99,10 +114,10 @@ const TradieProfilePage = () => {
       .eq("id", profile.id);
 
     if (!error) {
-      setProfile(updates);
+      setProfile({ ...profile, ...updates });
       setEditing(false);
     } else {
-      alert("Failed to update profile.");
+      alert("Failed to update profile: " + error.message);
     }
   };
 
@@ -259,4 +274,3 @@ const TradieProfilePage = () => {
 };
 
 export default TradieProfilePage;
-
