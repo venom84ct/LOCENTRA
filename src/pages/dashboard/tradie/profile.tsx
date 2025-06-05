@@ -24,9 +24,7 @@ const TradieProfilePage = () => {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
       const { data, error } = await supabase
@@ -93,18 +91,26 @@ const TradieProfilePage = () => {
 
     if (portfolioFiles) {
       const uploadedUrls: string[] = [];
+
       for (const file of Array.from(portfolioFiles).slice(0, 6)) {
+        const timestamp = Date.now();
+        const cleanName = file.name.replace(/[^a-z0-9.\-_]/gi, "_").toLowerCase();
+        const filePath = `${profile.id}/${timestamp}_${cleanName}`;
+
         const { data, error } = await supabase.storage
           .from("portfolio")
-          .upload(`${profile.id}/${file.name}`, file, { upsert: false });
+          .upload(filePath, file, { upsert: false });
 
         if (!error && data) {
           const { data: url } = supabase.storage
             .from("portfolio")
             .getPublicUrl(data.path);
           uploadedUrls.push(url.publicUrl);
+        } else {
+          alert(`Upload failed for ${file.name}: ${error?.message}`);
         }
       }
+
       const combinedPortfolio = [...(profile.portfolio || []), ...uploadedUrls];
       updates.portfolio = combinedPortfolio;
       setProfile((prev: any) => ({ ...prev, portfolio: combinedPortfolio }));
@@ -199,7 +205,9 @@ const TradieProfilePage = () => {
                   <Input
                     placeholder="Trade Category"
                     value={profile.trade_category || ""}
-                    onChange={(e) => setProfile({ ...profile, trade_category: e.target.value })}
+                    onChange={(e) =>
+                      setProfile({ ...profile, trade_category: e.target.value })
+                    }
                   />
                   <Input
                     type="file"
