@@ -155,7 +155,18 @@ const TradieProfilePage = () => {
                 <AvatarImage src={profile.avatar_url} />
                 <AvatarFallback>{fullName.slice(0, 2)}</AvatarFallback>
               </Avatar>
-              <CardTitle className="text-xl font-bold mt-2">{fullName}</CardTitle>
+              <CardTitle className="text-xl font-bold mt-2 flex items-center justify-center space-x-2">
+                <span>{fullName}</span>
+                {profile.leaderboard_rank === 1 && (
+                  <span title="Top Tradie - 1st Place 🥇" className="text-yellow-500 text-lg">🥇</span>
+                )}
+                {profile.leaderboard_rank === 2 && (
+                  <span title="Top Tradie - 2nd Place 🥈" className="text-gray-400 text-lg">🥈</span>
+                )}
+                {profile.leaderboard_rank === 3 && (
+                  <span title="Top Tradie - 3rd Place 🥉" className="text-amber-700 text-lg">🥉</span>
+                )}
+              </CardTitle>
               <p className="text-muted-foreground">{profile.email}</p>
               <div className="text-sm mt-2 space-y-1">
                 <div className="flex items-center justify-center">
@@ -205,9 +216,7 @@ const TradieProfilePage = () => {
                   <Input
                     placeholder="Trade Category"
                     value={profile.trade_category || ""}
-                    onChange={(e) =>
-                      setProfile({ ...profile, trade_category: e.target.value })
-                    }
+                    onChange={(e) => setProfile({ ...profile, trade_category: e.target.value })}
                   />
                   <Input
                     type="file"
