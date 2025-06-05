@@ -1,5 +1,3 @@
-// src/pages/dashboard/tradie/profile.tsx
-
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -182,6 +180,11 @@ const TradieProfilePage = () => {
                     onChange={(e) => setProfile({ ...profile, license: e.target.value })}
                   />
                   <Input
+                    placeholder="Trade Category"
+                    value={profile.trade_category || ""}
+                    onChange={(e) => setProfile({ ...profile, trade_category: e.target.value })}
+                  />
+                  <Input
                     type="file"
                     multiple
                     accept="image/*"
@@ -194,6 +197,7 @@ const TradieProfilePage = () => {
                   <p><strong>About Me:</strong> {profile.bio || "N/A"}</p>
                   <p><strong>ABN:</strong> {profile.abn || "N/A"}</p>
                   <p><strong>License:</strong> {profile.license || "N/A"}</p>
+                  <p><strong>Trade Category:</strong> {profile.trade_category || "N/A"}</p>
                 </>
               )}
             </CardContent>
@@ -255,3 +259,4 @@ const TradieProfilePage = () => {
 };
 
 export default TradieProfilePage;
+
