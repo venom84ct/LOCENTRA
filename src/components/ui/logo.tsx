@@ -6,18 +6,18 @@ interface LogoProps {
 }
 
 const sizeMap = {
-  sm: "h-6 w-6",
-  md: "h-8 w-8",
-  lg: "h-10 w-10",
+  sm: "w-6 h-6",
+  md: "w-10 h-10",
+  lg: "w-14 h-14",
 };
 
 const Logo: React.FC<LogoProps> = ({ size = "md", variant = "full" }) => {
   return (
     <div className="flex items-center">
       <img
-        src="/logo.png" // or "/logo.svg" if you used an SVG file
+        src="/logo.png" // or use "/logo.svg" if applicable
         alt="Locentra Logo"
-        className={`${sizeMap[size]} rounded-xl`}
+        className={`${sizeMap[size]} object-contain rounded-xl`}
       />
       {variant === "full" && (
         <span className="ml-2 font-bold text-gray-900 text-xl">Locentra</span>
