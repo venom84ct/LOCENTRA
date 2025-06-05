@@ -20,6 +20,7 @@ const RegisterPage = () => {
     license: "",
     businessName: "",
     businessWebsite: "",
+    trade_category: "", // ✅ Added new field
   })
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
@@ -58,6 +59,7 @@ const RegisterPage = () => {
         role,
         status: "pending",
         created_at: new Date(),
+        ...(role === "tradie" && { trade_category: formData.trade_category }), // ✅ Only for tradie
       }
 
       const { error: insertError } = await supabase
@@ -116,6 +118,10 @@ const RegisterPage = () => {
       <div>
         <Label htmlFor="businessWebsite">Business Website</Label>
         <Input id="businessWebsite" name="businessWebsite" value={formData.businessWebsite} onChange={handleChange} />
+      </div>
+      <div>
+        <Label htmlFor="trade_category">Trade Category</Label>
+        <Input id="trade_category" name="trade_category" value={formData.trade_category} onChange={handleChange} required />
       </div>
     </>
   )
