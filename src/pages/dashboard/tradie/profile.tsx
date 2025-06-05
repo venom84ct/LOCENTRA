@@ -105,7 +105,9 @@ const TradieProfilePage = () => {
           uploadedUrls.push(url.publicUrl);
         }
       }
-      updates.portfolio = [...(profile.portfolio || []), ...uploadedUrls];
+      const combinedPortfolio = [...(profile.portfolio || []), ...uploadedUrls];
+      updates.portfolio = combinedPortfolio;
+      setProfile((prev: any) => ({ ...prev, portfolio: combinedPortfolio }));
     }
 
     const { error } = await supabase
