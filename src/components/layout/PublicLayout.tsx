@@ -22,13 +22,33 @@ interface PublicLayoutProps {
 const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [loggedIn, setLoggedIn] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  const [role, setRole] = useState<string | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }) => {
-      setLoggedIn(!!data.user);
-    });
+    const fetchUserAndRole = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setLoggedIn(!!user);
+      setUser(user);
+
+      if (user) {
+        const { data: tradieProfile } = await supabase
+          .from("profile_centra_tradie")
+          .select("id")
+          .eq("id", user.id)
+          .single();
+
+        if (tradieProfile) {
+          setRole("tradie");
+        } else {
+          setRole("homeowner");
+        }
+      }
+    };
+
+    fetchUserAndRole();
   }, []);
 
   const handleLogout = async () => {
@@ -36,6 +56,14 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
     localStorage.clear();
     setLoggedIn(false);
     navigate("/");
+  };
+
+  const goToDashboard = () => {
+    if (role === "tradie") {
+      navigate("/dashboard/tradie");
+    } else {
+      navigate("/dashboard");
+    }
   };
 
   const isActive = (path: string) => location.pathname === path;
@@ -78,10 +106,15 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
             {/* Auth Buttons */}
             <div className="hidden md:flex items-center space-x-2">
               {loggedIn ? (
-                <Button variant="destructive" size="sm" onClick={handleLogout}>
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Logout
-                </Button>
+                <>
+                  <Button variant="outline" size="sm" onClick={goToDashboard}>
+                    Dashboard
+                  </Button>
+                  <Button variant="destructive" size="sm" onClick={handleLogout}>
+                    <LogOut className="h-4 w-4 mr-2" />
+                    Logout
+                  </Button>
+                </>
               ) : (
                 <>
                   <Link to="/login">
@@ -133,18 +166,31 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
                 ))}
                 <div className="pt-2 border-t mt-2 space-y-2">
                   {loggedIn ? (
-                    <Button
-                      onClick={() => {
-                        setMobileMenuOpen(false);
-                        handleLogout();
-                      }}
-                      variant="destructive"
-                      size="sm"
-                      className="w-full"
-                    >
-                      <LogOut className="h-4 w-4 mr-2" />
-                      Logout
-                    </Button>
+                    <>
+                      <Button
+                        onClick={() => {
+                          setMobileMenuOpen(false);
+                          goToDashboard();
+                        }}
+                        variant="outline"
+                        size="sm"
+                        className="w-full"
+                      >
+                        Dashboard
+                      </Button>
+                      <Button
+                        onClick={() => {
+                          setMobileMenuOpen(false);
+                          handleLogout();
+                        }}
+                        variant="destructive"
+                        size="sm"
+                        className="w-full"
+                      >
+                        <LogOut className="h-4 w-4 mr-2" />
+                        Logout
+                      </Button>
+                    </>
                   ) : (
                     <>
                       <Link to="/login" onClick={() => setMobileMenuOpen(false)}>
