@@ -1,3 +1,4 @@
+// src/pages/dashboard/tradie/find-jobs.tsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -28,6 +29,7 @@ const FindJobsPage = () => {
   const [showEmergencyOnly, setShowEmergencyOnly] = useState(false);
   const [purchasedLeads, setPurchasedLeads] = useState<string[]>([]);
   const [userId, setUserId] = useState<string>("");
+  const [userProfile, setUserProfile] = useState<any>(null);
   const navigate = useNavigate();
 
   const fetchJobs = async () => {
@@ -35,7 +37,15 @@ const FindJobsPage = () => {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
+
     setUserId(user.id);
+
+    const { data: profile } = await supabase
+      .from("profile_centra_tradie")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+    setUserProfile(profile);
 
     const { data: leadsData } = await supabase
       .from("job_leads")
@@ -119,28 +129,26 @@ const FindJobsPage = () => {
     const isPurchased = purchasedLeads.includes(job.id);
     const isAssignedToAnother = job.assigned_tradie && job.assigned_tradie !== userId;
 
-    // Show if job is unassigned OR tradie purchased it (even if not assigned)
-    return matchesSearch && matchesCategory && matchesEmergency && (!job.assigned_tradie || isPurchased);
+    return (
+      matchesSearch &&
+      matchesCategory &&
+      matchesEmergency &&
+      (!job.assigned_tradie || job.assigned_tradie === userId || isPurchased)
+    );
   });
 
-  const mockUser = {
-    name: "Mike Johnson",
-    email: "mike.johnson@example.com",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mike",
-    trade: "Plumber",
-    credits: 45,
-  };
-
   return (
-    <DashboardLayout userType="tradie" user={mockUser}>
+    <DashboardLayout userType="tradie" user={userProfile}>
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">Find Jobs</h1>
-            <div className="flex items-center space-x-2 bg-primary/10 px-4 py-2 rounded-full">
-              <CreditCard className="h-5 w-5 text-primary" />
-              <span className="font-medium">{mockUser.credits} credits available</span>
-            </div>
+            {userProfile && (
+              <div className="flex items-center space-x-2 bg-primary/10 px-4 py-2 rounded-full">
+                <CreditCard className="h-5 w-5 text-primary" />
+                <span className="font-medium">{userProfile.credits || 0} credits available</span>
+              </div>
+            )}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
