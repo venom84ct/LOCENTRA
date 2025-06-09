@@ -1,4 +1,3 @@
-// src/pages/dashboard/tradie/find-jobs.tsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -30,6 +29,7 @@ const FindJobsPage = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showEmergencyOnly, setShowEmergencyOnly] = useState(false);
   const [purchasedLeads, setPurchasedLeads] = useState<string[]>([]);
+  const [userId, setUserId] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const fetchJobs = async () => {
@@ -37,6 +37,8 @@ const FindJobsPage = () => {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
+
+    setUserId(user.id);
 
     const { data: leadsData } = await supabase
       .from("job_leads")
@@ -71,9 +73,15 @@ const FindJobsPage = () => {
     const matchesCategory = selectedCategory ? job.category === selectedCategory : true;
     const matchesEmergency = showEmergencyOnly ? job.is_emergency === true : true;
 
-    // Hide jobs that have an assigned tradie (only visible to the assigned tradie)
-    const isAssignedToAnother = job.assigned_tradie && !purchasedLeads.includes(job.id);
-    return matchesSearch && matchesCategory && matchesEmergency && !isAssignedToAnother;
+    const isAssignedToAnother =
+      job.assigned_tradie && job.assigned_tradie !== userId;
+
+    return (
+      matchesSearch &&
+      matchesCategory &&
+      matchesEmergency &&
+      (!isAssignedToAnother || job.assigned_tradie === userId)
+    );
   });
 
   const categories = Array.from(new Set(jobs.map((job) => job.category)));
