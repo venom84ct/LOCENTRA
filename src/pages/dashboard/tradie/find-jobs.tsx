@@ -109,11 +109,15 @@ const FindJobsPage = () => {
     const matchesCategory = selectedCategory ? job.category === selectedCategory : true;
     const matchesEmergency = showEmergencyOnly ? job.is_emergency === true : true;
 
-    const isAssignedToAnother = job.assigned_tradie && job.assigned_tradie !== userId;
+    const isAssignedToOther = job.assigned_tradie && job.assigned_tradie !== userId;
+    const isAssignedToSelf = job.assigned_tradie === userId;
     const hasPurchased = purchasedLeads.includes(job.id);
 
-    if (isAssignedToAnother) return hasPurchased;
-    return matchesSearch && matchesCategory && matchesEmergency && !job.assigned_tradie;
+    return (
+      (matchesSearch && matchesCategory && matchesEmergency && !job.assigned_tradie) ||
+      isAssignedToSelf ||
+      (isAssignedToOther && hasPurchased)
+    );
   });
 
   return (
@@ -124,7 +128,7 @@ const FindJobsPage = () => {
           {filteredJobs.map((job) => {
             const isPurchased = purchasedLeads.includes(job.id);
             const isAssignedToOther = job.assigned_tradie && job.assigned_tradie !== userId;
-            const isAssignedToCurrent = job.assigned_tradie === userId;
+            const isAssignedToSelf = job.assigned_tradie === userId;
 
             return (
               <Card key={job.id} className={`p-4 ${job.is_emergency ? "border-red-500 border-2" : "border"}`}>
@@ -178,7 +182,7 @@ const FindJobsPage = () => {
                         Delete Lead
                       </Button>
                     </>
-                  ) : isPurchased && isAssignedToCurrent ? (
+                  ) : isPurchased && isAssignedToSelf ? (
                     <Button
                       variant="destructive"
                       onClick={() => navigate(`/dashboard/tradie/messages?jobId=${job.id}`)}
