@@ -167,7 +167,7 @@ const TopTradiesPage = () => {
           <div className="mt-4 text-sm">
             <h3 className="font-medium mb-2">Weekly Rewards</h3>
             <ul className="list-decimal ml-6 space-y-1 text-muted-foreground">
-              <li>🥇 1st: 25 free credits + gold badge + featured search placement</li>
+              <li>🥇 1st: 25 free credits + gold badge</li>
               <li>🥈 2nd: 20 free credits + silver badge</li>
               <li>🥉 3rd: 15 free credits + bronze badge</li>
               <li>4th: 10 free credits</li>
