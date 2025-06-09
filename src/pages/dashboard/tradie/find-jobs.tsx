@@ -80,7 +80,7 @@ const FindJobsPage = () => {
     const hasPurchased = purchasedLeads.includes(job.id);
 
     if (isAssignedToAnother) {
-      return hasPurchased; // Only show if they purchased the lead
+      return hasPurchased;
     }
 
     return matchesSearch && matchesCategory && matchesEmergency && !job.assigned_tradie;
