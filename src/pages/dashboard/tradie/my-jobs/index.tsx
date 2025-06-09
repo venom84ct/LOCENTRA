@@ -1,3 +1,4 @@
+// src/pages/dashboard/tradie/my-jobs.tsx
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -22,18 +23,19 @@ const MyJobsPage = () => {
       const { data, error } = await supabase
         .from("job_leads")
         .select("*, jobs(*, profile_centra_resident(first_name, last_name, avatar_url))")
-        .eq("tradie_id", user.id)
-        .order("created_at", { ascending: false });
+        .eq("tradie_id", user.id);
 
       if (error) console.error(error);
       else {
-        const filtered = (data || []).filter((lead) => {
-          const job = lead.jobs;
-          return !job.assigned_tradie || job.assigned_tradie === user.id;
-        });
-        setLeads(filtered);
+        const sorted = [...(data || [])].sort(
+          (a, b) =>
+            new Date(b.jobs?.created_at || 0).getTime() -
+            new Date(a.jobs?.created_at || 0).getTime()
+        );
+        setLeads(sorted);
       }
     };
+
     fetchData();
   }, []);
 
