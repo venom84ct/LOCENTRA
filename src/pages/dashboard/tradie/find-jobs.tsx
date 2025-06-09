@@ -29,6 +29,7 @@ const FindJobsPage = () => {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [showEmergencyOnly, setShowEmergencyOnly] = useState(false);
   const [purchasedLeads, setPurchasedLeads] = useState<string[]>([]);
+  const [userId, setUserId] = useState<string>("");
   const navigate = useNavigate();
 
   const fetchJobs = async () => {
@@ -36,6 +37,7 @@ const FindJobsPage = () => {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
+    setUserId(user.id);
 
     const { data: leadsData } = await supabase
       .from("job_leads")
@@ -69,7 +71,7 @@ const FindJobsPage = () => {
 
     const matchesCategory = selectedCategory ? job.category === selectedCategory : true;
     const matchesEmergency = showEmergencyOnly ? job.is_emergency === true : true;
-    const isAssignedToAnother = job.assigned_tradie && !purchasedLeads.includes(job.id);
+    const isAssignedToAnother = job.assigned_tradie && job.assigned_tradie !== userId;
 
     return matchesSearch && matchesCategory && matchesEmergency && !isAssignedToAnother;
   });
@@ -168,7 +170,6 @@ const FindJobsPage = () => {
                       </Badge>
                     ))}
                   </div>
-
                   <div className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -200,6 +201,16 @@ const FindJobsPage = () => {
                         <div>
                           <h2 className="text-lg font-semibold mb-1">{job.title}</h2>
                           <p className="text-muted-foreground text-sm">{job.category}</p>
+                          <div className="flex items-center space-x-2 mt-1">
+                            <img
+                              src={job.profile_centra_resident?.avatar_url || "https://via.placeholder.com/40"}
+                              alt="Homeowner Avatar"
+                              className="w-8 h-8 rounded-full"
+                            />
+                            <span className="text-sm text-muted-foreground">
+                              {job.profile_centra_resident?.first_name || "Unknown"}
+                            </span>
+                          </div>
                         </div>
                         {job.is_emergency && (
                           <Badge variant="destructive" className="text-xs">
@@ -212,12 +223,13 @@ const FindJobsPage = () => {
                       {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
                         <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                           {job.image_urls.map((url: string, idx: number) => (
-                            <img
-                              key={idx}
-                              src={url}
-                              alt="Job image"
-                              className="w-full h-24 object-cover rounded border"
-                            />
+                            <a key={idx} href={url} target="_blank" rel="noopener noreferrer">
+                              <img
+                                src={url}
+                                alt="Job image"
+                                className="w-full h-24 object-cover rounded border"
+                              />
+                            </a>
                           ))}
                         </div>
                       )}
