@@ -1,295 +1,227 @@
+// src/pages/dashboard/tradie/find-jobs.tsx
 import React, { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { supabase } from "@/lib/supabaseClient";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  AlertCircle,
+  Calendar,
+  Clock,
+  DollarSign,
+  MapPin,
+} from "lucide-react";
 import {
   Card,
   CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Star, MapPin, Phone, Trash, Trophy, Medal } from "lucide-react";
 
-const TradieProfilePage = () => {
-  const [profile, setProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
-  const [portfolioFiles, setPortfolioFiles] = useState<FileList | null>(null);
+const FindJobsPage = () => {
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [showEmergencyOnly, setShowEmergencyOnly] = useState(false);
+  const [purchasedLeads, setPurchasedLeads] = useState<string[]>([]);
+  const [userId, setUserId] = useState<string>("");
+  const navigate = useNavigate();
+
+  const fetchJobs = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+    setUserId(user.id);
+
+    const { data: leadsData } = await supabase
+      .from("job_leads")
+      .select("job_id")
+      .eq("tradie_id", user.id);
+    setPurchasedLeads(leadsData?.map((l) => l.job_id) || []);
+
+    const { data, error } = await supabase
+      .from("jobs")
+      .select("*, profile_centra_resident(id, first_name, avatar_url)")
+      .or("status.eq.open,status.eq.available")
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching jobs:", error.message);
+    } else {
+      setJobs(data || []);
+    }
+  };
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-
-      const { data, error } = await supabase
-        .from("profile_centra_tradie")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-
-      const { data: reviews } = await supabase
-        .from("reviews")
-        .select("*")
-        .eq("tradie_id", user.id);
-
-      if (!error && data) {
-        // Safe portfolio parsing
-        let fixedPortfolio: string[] = [];
-
-        if (Array.isArray(data.portfolio)) {
-          fixedPortfolio = data.portfolio;
-        } else if (typeof data.portfolio === "string") {
-          try {
-            const parsed = JSON.parse(data.portfolio);
-            if (Array.isArray(parsed)) {
-              fixedPortfolio = parsed;
-            }
-          } catch {
-            console.warn("Fixing malformed portfolio string for user:", user.id);
-            await supabase
-              .from("profile_centra_tradie")
-              .update({ portfolio: [] })
-              .eq("id", user.id);
-          }
-        }
-
-        setProfile({
-          ...data,
-          portfolio: fixedPortfolio,
-          reviews: reviews || [],
-        });
-      }
-
-      setLoading(false);
-    };
-
-    fetchProfile();
+    fetchJobs();
   }, []);
 
-  const handleDeleteImage = async (url: string) => {
-    const filePath = url.split("/storage/v1/object/public/portfolio/")[1];
-    await supabase.storage.from("portfolio").remove([filePath]);
-    const updatedPortfolio = profile.portfolio.filter((img: string) => img !== url);
-    setProfile({ ...profile, portfolio: updatedPortfolio });
-    await supabase
-      .from("profile_centra_tradie")
-      .update({ portfolio: updatedPortfolio })
-      .eq("id", profile.id);
-  };
-
-  const handleSave = async () => {
-    if (!profile) return;
-
-    const updates: any = {
-      bio: profile.bio || null,
-      abn: profile.abn || null,
-      license: profile.license || null,
-      trade_category: profile.trade_category || null,
-      portfolio: profile.portfolio || [],
-    };
-
-    if (avatarFile) {
-      const { data, error } = await supabase.storage
-        .from("tradie-avatars")
-        .upload(`${profile.id}/avatar.png`, avatarFile, { upsert: true });
-
-      if (!error && data) {
-        const { data: url } = supabase.storage
-          .from("tradie-avatars")
-          .getPublicUrl(data.path);
-        updates.avatar_url = url.publicUrl;
-      }
-    }
-
-    if (portfolioFiles) {
-      const uploadedUrls: string[] = [];
-
-      for (const file of Array.from(portfolioFiles).slice(0, 6)) {
-        const timestamp = Date.now();
-        const cleanName = file.name.replace(/[^a-z0-9.\-_]/gi, "_").toLowerCase();
-        const filePath = `${profile.id}/${timestamp}_${cleanName}`;
-
-        const { data, error } = await supabase.storage
-          .from("portfolio")
-          .upload(filePath, file, { upsert: false });
-
-        if (!error && data) {
-          const { data: url } = supabase.storage
-            .from("portfolio")
-            .getPublicUrl(data.path);
-          uploadedUrls.push(url.publicUrl);
-        } else {
-          alert(`Upload failed for ${file.name}: ${error?.message}`);
-        }
-      }
-
-      const combinedPortfolio = [...(profile.portfolio || []), ...uploadedUrls];
-      updates.portfolio = combinedPortfolio;
-      setProfile((prev: any) => ({ ...prev, portfolio: combinedPortfolio }));
-    }
-
+  const handleDeleteLead = async (jobId: string) => {
     const { error } = await supabase
-      .from("profile_centra_tradie")
-      .update(updates)
-      .eq("id", profile.id);
+      .from("job_leads")
+      .delete()
+      .match({ job_id: jobId, tradie_id: userId });
 
     if (!error) {
-      setProfile({ ...profile, ...updates });
-      setEditing(false);
-    } else {
-      alert("Failed to update profile: " + error.message);
+      setPurchasedLeads((prev) => prev.filter((id) => id !== jobId));
+      setJobs((prev) => prev.filter((j) => j.id !== jobId || j.assigned_tradie));
     }
+
+    await fetchJobs();
   };
 
-  if (loading) return <div className="p-6">Loading...</div>;
+  const handlePurchaseLead = async (job: any) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    const tradieId = user.id;
+
+    const { data: tradieProfile } = await supabase
+      .from("profile_centra_tradie")
+      .select("first_name, abn, license, rating_avg")
+      .eq("id", tradieId)
+      .single();
+
+    const { data: conversation } = await supabase
+      .from("conversations")
+      .insert({ job_id: job.id, homeowner_id: job.homeowner_id, tradie_id: tradieId })
+      .select()
+      .single();
+
+    await supabase.from("job_leads").insert([{ job_id: job.id, tradie_id: tradieId }]);
+
+    const autoMessage = `Hi! I'm interested in this job. Here's a bit about me:\n- ABN: ${tradieProfile.abn}\n- License: ${tradieProfile.license}\n- Rating: ${tradieProfile.rating_avg?.toFixed(1) || "N/A"}`;
+
+    await supabase.from("messages").insert({
+      conversation_id: conversation.id,
+      sender_id: tradieId,
+      message: autoMessage,
+    });
+
+    await fetchJobs();
+    navigate(`/dashboard/tradie/messages?conversationId=${conversation.id}&jobId=${job.id}`);
+  };
+
+  const filteredJobs = jobs.filter((job) => {
+    const matchesSearch = job.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.location?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesCategory = selectedCategory ? job.category === selectedCategory : true;
+    const matchesEmergency = showEmergencyOnly ? job.is_emergency === true : true;
+
+    const hasPurchased = purchasedLeads.includes(job.id);
+    const isAssignedToOther = job.assigned_tradie && job.assigned_tradie !== userId;
+    const isAssignedToMe = job.assigned_tradie === userId;
+
+    if (isAssignedToOther && !hasPurchased) return false;
+    if (isAssignedToMe) return false;
+
+    return (matchesSearch && matchesCategory && matchesEmergency && !isAssignedToOther) || hasPurchased;
+  });
 
   return (
-    <DashboardLayout userType="tradie" user={profile}>
-      <div className="p-6 max-w-6xl mx-auto space-y-6">
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">My Profile</h1>
-          {!editing && <Button onClick={() => setEditing(true)}>Edit Profile</Button>}
-        </div>
+    <DashboardLayout userType="tradie" user={{ name: "Tradie" }}>
+      <div className="p-6">
+        <h1 className="text-2xl font-bold mb-4">Find Jobs</h1>
+        <div className="space-y-4">
+          {filteredJobs.map((job) => {
+            const isPurchased = purchasedLeads.includes(job.id);
+            const isAssignedToOther = job.assigned_tradie && job.assigned_tradie !== userId;
+            const isAssignedToCurrent = job.assigned_tradie === userId;
 
-        {profile?.first_name ? (
-          <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader className="text-center">
-                  <Avatar className="w-20 h-20 mx-auto">
-                    <AvatarImage src={profile.avatar_url} />
-                    <AvatarFallback>{(profile.first_name || "").slice(0, 2)}</AvatarFallback>
-                  </Avatar>
-                  <CardTitle className="text-xl font-bold mt-2">
-                    {profile.first_name} {profile.last_name}
-                  </CardTitle>
-
-                  {profile.weekly_badge === "gold" && (
-                    <div className="flex justify-center items-center mt-1 text-yellow-500">
-                      <Trophy className="h-5 w-5 mr-1" />
-                      <span className="text-sm font-medium">Top Tradie of the Week</span>
-                    </div>
-                  )}
-                  {profile.weekly_badge === "silver" && (
-                    <div className="flex justify-center items-center mt-1 text-gray-400">
-                      <Medal className="h-5 w-5 mr-1" />
-                      <span className="text-sm font-medium">2nd Place This Week</span>
-                    </div>
-                  )}
-                  {profile.weekly_badge === "bronze" && (
-                    <div className="flex justify-center items-center mt-1 text-amber-700">
-                      <Medal className="h-5 w-5 mr-1" />
-                      <span className="text-sm font-medium">3rd Place This Week</span>
-                    </div>
-                  )}
-
-                  <p className="text-muted-foreground">{profile.email}</p>
-                  <div className="text-sm mt-2 space-y-1">
-                    <div className="flex items-center justify-center">
-                      <Phone className="h-4 w-4 mr-2" /> {profile.phone || "N/A"}
-                    </div>
-                    <div className="flex items-center justify-center">
-                      <MapPin className="h-4 w-4 mr-2" /> {profile.address || "No address"}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-center mt-2 text-yellow-500">
-                    <Star className="w-4 h-4 mr-1" />
-                    {profile.rating_avg?.toFixed(1) || "0.0"} ({profile.rating_count || 0} reviews)
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {editing && (
-                    <Input type="file" onChange={(e) => setAvatarFile(e.target.files?.[0] || null)} />
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Profile Details</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {editing ? (
-                    <>
-                      <Textarea placeholder="About Me" value={profile.bio || ""} onChange={(e) => setProfile({ ...profile, bio: e.target.value })} />
-                      <Input placeholder="ABN" value={profile.abn || ""} onChange={(e) => setProfile({ ...profile, abn: e.target.value })} />
-                      <Input placeholder="License" value={profile.license || ""} onChange={(e) => setProfile({ ...profile, license: e.target.value })} />
-                      <Input placeholder="Trade Category" value={profile.trade_category || ""} onChange={(e) => setProfile({ ...profile, trade_category: e.target.value })} />
-                      <Input type="file" multiple accept="image/*" onChange={(e) => setPortfolioFiles(e.target.files)} />
-                      <Button onClick={handleSave}>Save Changes</Button>
-                    </>
-                  ) : (
-                    <>
-                      <p><strong>About Me:</strong> {profile.bio || "N/A"}</p>
-                      <p><strong>ABN:</strong> {profile.abn || "N/A"}</p>
-                      <p><strong>License:</strong> {profile.license || "N/A"}</p>
-                      <p><strong>Trade Category:</strong> {profile.trade_category || "N/A"}</p>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Portfolio</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {(profile.portfolio || []).slice(0, 6).map((url: string, idx: number) => (
-                    <div key={idx} className="relative group">
+            return (
+              <Card key={job.id} className={`p-4 ${job.is_emergency ? "border-red-500 border-2" : "border"}`}>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h2 className="text-lg font-semibold">{job.title}</h2>
+                    <p className="text-sm text-muted-foreground">{job.category}</p>
+                    <div className="flex items-center gap-2 mt-2">
                       <img
-                        src={url}
-                        alt={`Portfolio ${idx + 1}`}
-                        className="w-full h-32 object-cover rounded border"
+                        src={job.profile_centra_resident?.avatar_url || "https://via.placeholder.com/40"}
+                        className="w-8 h-8 rounded-full"
                       />
-                      {editing && (
-                        <button
-                          onClick={() => handleDeleteImage(url)}
-                          className="absolute top-1 right-1 bg-white rounded-full p-1 shadow hover:bg-red-100"
-                        >
-                          <Trash className="w-4 h-4 text-red-500" />
-                        </button>
-                      )}
+                      <span className="text-sm">{job.profile_centra_resident?.first_name || "Homeowner"}</span>
                     </div>
-                  ))}
+                  </div>
+                  {job.is_emergency && <Badge variant="destructive">Emergency</Badge>}
                 </div>
-              </CardContent>
-            </Card>
 
-            <Card>
-              <CardHeader>
-                <CardTitle>Reviews</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                {profile.reviews?.length ? (
-                  profile.reviews.map((r: any, i: number) => (
-                    <div key={i} className="p-3 border rounded">
-                      <p className="text-sm font-medium">{r.reviewer_name}</p>
-                      <p className="text-sm text-muted-foreground">{r.comment}</p>
-                      <div className="flex items-center text-yellow-500">
-                        {[...Array(r.rating)].map((_, i) => (
-                          <Star key={i} className="w-4 h-4" />
-                        ))}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-muted-foreground text-sm">No reviews available.</p>
+                <p className="mt-2 text-sm">{job.description}</p>
+
+                {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+                    {job.image_urls.map((url: string, i: number) => (
+                      <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                        <img src={url} className="w-full h-24 object-cover rounded" />
+                      </a>
+                    ))}
+                  </div>
                 )}
+
+                <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground mt-2">
+                  <div className="flex items-center">
+                    <MapPin className="h-4 w-4 mr-1" /> {job.location}
+                  </div>
+                  <div className="flex items-center">
+                    <Calendar className="h-4 w-4 mr-1" /> {new Date(job.created_at).toLocaleDateString()}
+                  </div>
+                  <div className="flex items-center">
+                    <DollarSign className="h-4 w-4 mr-1" /> {job.budget}
+                  </div>
+                  <div className="flex items-center">
+                    <Clock className="h-4 w-4 mr-1" /> {job.timeline}
+                  </div>
+                </div>
+
+                <div className="mt-4 flex justify-end gap-2">
+                  {isPurchased && isAssignedToOther ? (
+                    <>
+                      <Badge variant="outline">Assigned to another tradie</Badge>
+                      <Button variant="ghost" onClick={() => handleDeleteLead(job.id)}>
+                        Delete Lead
+                      </Button>
+                    </>
+                  ) : isPurchased && isAssignedToCurrent ? (
+                    <Button
+                      variant="destructive"
+                      onClick={() => navigate(`/dashboard/tradie/messages?jobId=${job.id}`)}
+                    >
+                      Message
+                    </Button>
+                  ) : isPurchased ? (
+                    <Button disabled variant="secondary">
+                      Waiting Assignment
+                    </Button>
+                  ) : (
+                    <Button onClick={() => handlePurchaseLead(job)}>Purchase Lead</Button>
+                  )}
+                </div>
+              </Card>
+            );
+          })}
+
+          {filteredJobs.length === 0 && (
+            <Card className="bg-white">
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
+                <h3 className="text-lg font-medium mb-2">No jobs found</h3>
+                <p className="text-muted-foreground text-center mb-4">
+                  We couldn’t find any jobs matching your filters.
+                </p>
+                <Button onClick={() => fetchJobs()}>Reload Jobs</Button>
               </CardContent>
             </Card>
-          </>
-        ) : (
-          <p className="text-muted-foreground">Profile is empty. Please complete your details.</p>
-        )}
+          )}
+        </div>
       </div>
     </DashboardLayout>
   );
 };
 
-export default TradieProfilePage;
+export default FindJobsPage;
