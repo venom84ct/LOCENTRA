@@ -1,4 +1,5 @@
 // src/pages/dashboard/tradie/top-tradies.tsx
+
 import React, { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
@@ -9,7 +10,14 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Award, CheckCircle, Medal, Star, Trophy, Info } from "lucide-react";
+import {
+  Award,
+  CheckCircle,
+  Medal,
+  Star,
+  Trophy,
+  Info,
+} from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
 const getBadgeIcon = (rank: number) => {
@@ -58,8 +66,8 @@ const TopTradiesPage = () => {
 
   return (
     <DashboardLayout userType="tradie">
-      <div className="p-6 max-w-5xl mx-auto space-y-6">
-        <div className="flex justify-between items-center">
+      <div className="p-6 max-w-5xl mx-auto">
+        <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Top Tradies</h1>
           <div className="bg-primary/10 px-4 py-2 rounded-full flex items-center">
             <Award className="h-5 w-5 mr-2 text-primary" />
@@ -136,30 +144,37 @@ const TopTradiesPage = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-muted-50">
-          <CardHeader>
-            <div className="flex items-center gap-2 text-primary">
-              <Info className="h-5 w-5" />
-              <CardTitle>How the Leaderboard Works</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent className="text-sm space-y-2 text-muted-foreground">
-            <p>
-              🏆 <strong>Points System:</strong> Tradies earn leaderboard points every week:
-            </p>
-            <ul className="list-disc ml-6 space-y-1">
-              <li>+10 points for every <strong>completed job</strong></li>
-              <li>+5 points for each <strong>5-star review</strong></li>
-              <li>Points reset every <strong>Monday at midnight</strong></li>
+        <div className="mt-8 p-4 border rounded-lg bg-white">
+          <div className="flex items-center mb-2">
+            <Info className="text-blue-500 mr-2" />
+            <h2 className="text-lg font-semibold">How the Leaderboard Works</h2>
+          </div>
+          <ul className="list-disc ml-6 space-y-1 text-sm text-muted-foreground">
+            <li><strong>Job Completion</strong>: 50 points per job + 10 bonus for emergencies</li>
+            <li><strong>Customer Reviews</strong>:
+              <ul className="list-disc ml-6">
+                <li>5-star: +25 pts</li>
+                <li>4-star: +15 pts</li>
+                <li>3-star: +5 pts</li>
+                <li>2-star: -10 pts</li>
+                <li>1-star: -25 pts</li>
+              </ul>
+            </li>
+            <li><strong>Leaderboard resets</strong> every Sunday at midnight</li>
+            <li><strong>Scores</strong> are based on a rolling 90-day period</li>
+          </ul>
+
+          <div className="mt-4 text-sm">
+            <h3 className="font-medium mb-2">Weekly Rewards</h3>
+            <ul className="list-decimal ml-6 space-y-1 text-muted-foreground">
+              <li>🥇 1st: 25 free credits + gold badge + featured search placement</li>
+              <li>🥈 2nd: 20 free credits + silver badge</li>
+              <li>🥉 3rd: 15 free credits + bronze badge</li>
+              <li>4th: 10 free credits</li>
+              <li>5th: 5 free credits</li>
             </ul>
-            <p>
-              🪙 <strong>Weekly Rewards:</strong> Top 3 tradies get <strong>bonus credits</strong> added to their account.
-            </p>
-            <p>
-              💡 To stay on top, complete jobs and keep your customers happy!
-            </p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
     </DashboardLayout>
   );
