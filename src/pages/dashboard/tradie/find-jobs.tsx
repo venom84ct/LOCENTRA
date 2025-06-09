@@ -51,10 +51,23 @@ const FindJobsPage = () => {
       .or("status.eq.open,status.eq.available")
       .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("Error fetching jobs:", error.message);
-    } else {
-      setJobs(data || []);
+    // Get count of leads per job
+    const { data: leadCounts } = await supabase
+      .from("job_leads")
+      .select("job_id, count:job_id")
+      .group("job_id");
+
+    const leadMap = new Map<string, number>();
+    (leadCounts || []).forEach((entry) => leadMap.set(entry.job_id, entry.count));
+
+    // Filter out jobs that are already assigned or reached lead limit
+    const filtered = (data || []).filter((job) => {
+      const leadCount = leadMap.get(job.id) || 0;
+      return !job.assigned_tradie && leadCount < 10;
+    });
+
+    if (!error) {
+      setJobs(filtered);
     }
   };
 
@@ -147,7 +160,6 @@ const FindJobsPage = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-            {/* Filters */}
             <div className="md:col-span-1">
               <Card className="bg-white sticky top-24">
                 <CardHeader>
@@ -181,7 +193,6 @@ const FindJobsPage = () => {
                       </Badge>
                     ))}
                   </div>
-
                   <div className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -198,7 +209,6 @@ const FindJobsPage = () => {
               </Card>
             </div>
 
-            {/* Job Cards */}
             <div className="md:col-span-3 space-y-4">
               {filteredJobs.length > 0 ? (
                 filteredJobs.map((job) => {
@@ -251,25 +261,23 @@ const FindJobsPage = () => {
                           {new Date(job.created_at).toLocaleDateString()}
                         </div>
                         <div className="flex items-center">
-                          <DollarSign className="w-4 h-4 mr-2" />
-                          {job.budget}
+                          <DollarSign className="w-4 h-4 mr-2" /> {job.budget}
                         </div>
                         <div className="flex items-center">
-                          <Clock className="w-4 h-4 mr-2" />
-                          {job.timeline}
+                          <Clock className="w-4 h-4 mr-2" /> {job.timeline}
                         </div>
                       </div>
 
                       <div className="flex items-center justify-between">
-                        {isPurchased ? (
+                        {job.assigned_tradie ? (
+                          <Badge className="bg-yellow-500 text-white">Assigned</Badge>
+                        ) : isPurchased ? (
                           <>
                             <Badge className="bg-green-500 text-white">Purchased</Badge>
                             <Button
                               variant="destructive"
                               onClick={() =>
-                                navigate(
-                                  `/dashboard/tradie/messages?jobId=${job.id}`
-                                )
+                                navigate(`/dashboard/tradie/messages?jobId=${job.id}`)
                               }
                             >
                               Message
