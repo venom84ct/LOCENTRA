@@ -32,17 +32,28 @@ const HomeownerMessagesPage = () => {
   const selectedConversationId = searchParams.get("conversationId");
 
   const [userId, setUserId] = useState<string | null>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const fetchUser = async () => {
+    const fetchUserAndProfile = async () => {
       const { data } = await supabase.auth.getUser();
-      setUserId(data.user?.id || null);
+      const uid = data.user?.id || null;
+      setUserId(uid);
+
+      if (uid) {
+        const { data: profileData } = await supabase
+          .from("profile_centra_resident")
+          .select("*")
+          .eq("id", uid)
+          .single();
+        setProfile(profileData);
+      }
     };
-    fetchUser();
+    fetchUserAndProfile();
   }, []);
 
   useEffect(() => {
@@ -122,7 +133,7 @@ const HomeownerMessagesPage = () => {
   };
 
   return (
-    <DashboardLayout userType="homeowner">
+    <DashboardLayout userType="centraResident" user={profile}>
       <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Sidebar */}
         <div className="col-span-1">
