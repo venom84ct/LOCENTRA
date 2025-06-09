@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import Logo from "@/components/ui/logo";
 import {
   Home,
   Info,
@@ -76,6 +75,14 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
     { name: "Contact", path: "/contact", icon: <Mail className="h-4 w-4 mr-2" /> },
   ];
 
+  const LogoImage = (
+    <img
+      src="https://nlgiukcwbexfxkzdvzzq.supabase.co/storage/v1/object/public/public-assets/logo.png"
+      alt="Locentra Logo"
+      className="h-10"
+    />
+  );
+
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Header */}
@@ -84,7 +91,7 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
           <div className="flex items-center justify-between">
             {/* Logo */}
             <Link to="/" className="flex items-center">
-              <Logo size="md" variant="full" />
+              {LogoImage}
             </Link>
 
             {/* Desktop Navigation */}
@@ -221,9 +228,7 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
         <div className="container mx-auto px-4 py-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div>
-              <div className="mb-4">
-                <Logo size="md" variant="full" />
-              </div>
+              <div className="mb-4">{LogoImage}</div>
               <p className="text-sm text-gray-600">
                 Connecting homeowners with skilled trade professionals across
                 Australia.
