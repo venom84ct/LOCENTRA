@@ -1,4 +1,3 @@
-// src/pages/dashboard/tradie/find-jobs.tsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -31,53 +30,47 @@ const FindJobsPage = () => {
   const [userId, setUserId] = useState<string>("");
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const loadUserId = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) setUserId(user.id);
-    };
-    loadUserId();
-  }, []);
-
   const fetchJobs = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
+    setUserId(user.id);
 
     const { data: leadsData } = await supabase
       .from("job_leads")
       .select("job_id")
       .eq("tradie_id", user.id);
-
     setPurchasedLeads(leadsData?.map((l) => l.job_id) || []);
 
     const { data, error } = await supabase
       .from("jobs")
-      .select("*, profile_centra_resident(id, first_name, last_name, avatar_url)")
-      .or("status.eq.open,status.eq.available")
+      .select("*, profile_centra_resident(id, first_name, last_name, avatar_url), profile_centra_tradie(first_name)")
       .order("created_at", { ascending: false });
 
-    if (!error) setJobs(data || []);
-    else console.error("Error fetching jobs:", error.message);
+    if (error) console.error("Error fetching jobs:", error.message);
+    else setJobs(data || []);
   };
 
   useEffect(() => {
-    if (userId) fetchJobs();
-  }, [userId]);
+    fetchJobs();
+  }, []);
 
-  const filteredJobs = jobs.filter((job) => {
-    const matchesSearch =
-      job.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.location?.toLowerCase().includes(searchTerm.toLowerCase());
+  const handleDeleteLead = async (jobId: string) => {
+    const { error } = await supabase
+      .from("job_leads")
+      .delete()
+      .eq("tradie_id", userId)
+      .eq("job_id", jobId);
 
-    const matchesCategory = selectedCategory ? job.category === selectedCategory : true;
-    const matchesEmergency = showEmergencyOnly ? job.is_emergency === true : true;
-
-    return matchesSearch && matchesCategory && matchesEmergency;
-  });
+    if (error) console.error("Delete lead error:", error.message);
+    await fetchJobs();
+  };
 
   const handlePurchaseLead = async (job: any) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
 
     const tradieId = user.id;
@@ -112,17 +105,23 @@ const FindJobsPage = () => {
     navigate(`/dashboard/tradie/messages?conversationId=${conversation.id}&jobId=${job.id}`);
   };
 
-  const handleDeleteLead = async (jobId: string) => {
-    await supabase
-      .from("job_leads")
-      .delete()
-      .eq("job_id", jobId)
-      .eq("tradie_id", userId);
-
-    fetchJobs();
-  };
-
   const categories = Array.from(new Set(jobs.map((job) => job.category)));
+
+  const filteredJobs = jobs.filter((job) => {
+    const matchesSearch =
+      job.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      job.location?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesCategory = selectedCategory ? job.category === selectedCategory : true;
+    const matchesEmergency = showEmergencyOnly ? job.is_emergency === true : true;
+
+    const isPurchased = purchasedLeads.includes(job.id);
+    const isAssignedToAnother = job.assigned_tradie && job.assigned_tradie !== userId;
+
+    // Show if job is unassigned OR tradie purchased it (even if not assigned)
+    return matchesSearch && matchesCategory && matchesEmergency && (!job.assigned_tradie || isPurchased);
+  });
 
   const mockUser = {
     name: "Mike Johnson",
@@ -155,7 +154,6 @@ const FindJobsPage = () => {
                 <CardContent className="space-y-4">
                   <Input
                     placeholder="Search jobs..."
-                    className="pl-10"
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                   />
@@ -184,7 +182,6 @@ const FindJobsPage = () => {
                       id="emergency-only"
                       checked={showEmergencyOnly}
                       onChange={() => setShowEmergencyOnly(!showEmergencyOnly)}
-                      className="h-4 w-4 rounded border-gray-300 text-primary"
                     />
                     <label htmlFor="emergency-only" className="text-sm">
                       Emergency jobs only
@@ -211,7 +208,7 @@ const FindJobsPage = () => {
                         <div>
                           <h2 className="text-lg font-semibold mb-1">{job.title}</h2>
                           <p className="text-muted-foreground text-sm">{job.category}</p>
-                          <div className="flex items-center space-x-2 mt-2">
+                          <div className="flex items-center space-x-2 mt-1">
                             <img
                               src={job.profile_centra_resident?.avatar_url || "https://via.placeholder.com/40"}
                               alt="Homeowner Avatar"
@@ -261,33 +258,39 @@ const FindJobsPage = () => {
                         </div>
                       </div>
 
-                      <div className="flex justify-end space-x-2">
-                        {isPurchased && isAssignedToAnother ? (
-                          <>
-                            <Badge variant="outline" className="text-red-600 border-red-400">
-                              Assigned to another tradie
-                            </Badge>
+                      <div className="flex justify-between items-center pt-2">
+                        <div>
+                          {isPurchased && isAssignedToAnother && (
+                            <span className="text-sm text-red-600 font-medium">
+                              Assigned to: {job.profile_centra_tradie?.first_name || "another tradie"}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex gap-2">
+                          {isPurchased && isAssignedToAnother ? (
+                            <>
+                              <Button disabled variant="secondary" className="opacity-60 cursor-not-allowed">
+                                Message
+                              </Button>
+                              <Button variant="outline" onClick={() => handleDeleteLead(job.id)}>
+                                Delete Lead
+                              </Button>
+                            </>
+                          ) : isPurchased ? (
                             <Button
-                              variant="outline"
-                              onClick={() => handleDeleteLead(job.id)}
+                              variant="destructive"
+                              onClick={() =>
+                                navigate(`/dashboard/tradie/messages?jobId=${job.id}`)
+                              }
                             >
-                              Delete Lead
+                              Message
                             </Button>
-                          </>
-                        ) : isPurchased ? (
-                          <Button
-                            variant="destructive"
-                            onClick={() =>
-                              navigate(`/dashboard/tradie/messages?jobId=${job.id}`)
-                            }
-                          >
-                            Message
-                          </Button>
-                        ) : (
-                          <Button onClick={() => handlePurchaseLead(job)}>
-                            Purchase Lead
-                          </Button>
-                        )}
+                          ) : (
+                            <Button onClick={() => handlePurchaseLead(job)}>
+                              Purchase Lead
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     </Card>
                   );
