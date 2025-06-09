@@ -25,20 +25,15 @@ const MyJobsPage = () => {
         .eq("tradie_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error(error);
-        return;
+      if (error) console.error(error);
+      else {
+        const filtered = (data || []).filter((lead) => {
+          const job = lead.jobs;
+          return !job.assigned_tradie || job.assigned_tradie === user.id;
+        });
+        setLeads(filtered);
       }
-
-      // Filter jobs: only those not assigned OR assigned to this tradie
-      const filtered = data.filter((lead) => {
-        const job = lead.jobs;
-        return !job.assigned_tradie || job.assigned_tradie === user.id;
-      });
-
-      setLeads(filtered);
     };
-
     fetchData();
   }, []);
 
