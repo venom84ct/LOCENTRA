@@ -20,7 +20,7 @@ serve(async () => {
     return new Response(JSON.stringify({ error: error?.message || "Failed to fetch tradies" }), { status: 500 });
   }
 
-  // 2. Award badges + credits
+  // 2. Award credits and badges
   const badgeCredits = [
     { id: topTradies[0]?.id, badge: "gold", credits: 25 },
     { id: topTradies[1]?.id, badge: "silver", credits: 20 },
@@ -30,21 +30,29 @@ serve(async () => {
   ].filter(t => t.id);
 
   for (const { id, badge, credits } of badgeCredits) {
-    const updates: any = {
-      credits: supabase.rpc("increment_credits", { user_id: id, amount: credits }),
-    };
-    if (badge) updates.weekly_badge = badge;
+    // Increment credits via RPC
+    const { error: creditError } = await supabase.rpc("increment_credits", {
+      user_id: id,
+      amount: credits,
+    });
 
-    await supabase
-      .from("profile_centra_tradie")
-      .update(updates)
-      .eq("id", id);
+    if (creditError) {
+      console.error(`Failed to increment credits for ${id}:`, creditError.message);
+    }
+
+    // Update badge if applicable
+    if (badge) {
+      await supabase
+        .from("profile_centra_tradie")
+        .update({ weekly_badge: badge })
+        .eq("id", id);
+    }
   }
 
   // 3. Reset score and badge for all others
   const { error: resetError } = await supabase
     .from("profile_centra_tradie")
-    .update({ score: 0 })
+    .update({ score: 0, weekly_badge: null })
     .not("id", "in", topTradies.map(t => t.id));
 
   if (resetError) {
@@ -53,3 +61,4 @@ serve(async () => {
 
   return new Response("Leaderboard reset and rewards given", { status: 200 });
 });
+
