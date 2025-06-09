@@ -12,6 +12,7 @@ const MessagesPage = () => {
   const [messages, setMessages] = useState<any[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<any>(null);
   const [newMessage, setNewMessage] = useState("");
+  const [isAssigned, setIsAssigned] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -77,8 +78,32 @@ const MessagesPage = () => {
     };
   }, [selectedConversation]);
 
+  useEffect(() => {
+    if (selectedConversation?.job_id && userId) {
+      supabase
+        .from("jobs")
+        .select("assigned_tradie")
+        .eq("id", selectedConversation.job_id)
+        .single()
+        .then(({ data }) => {
+          setIsAssigned(data?.assigned_tradie === userId);
+        });
+    }
+  }, [selectedConversation, userId]);
+
   const handleSend = async () => {
     if (!newMessage.trim() || !userId || !selectedConversation) return;
+
+    const { data: jobDetails } = await supabase
+      .from("jobs")
+      .select("assigned_tradie")
+      .eq("id", selectedConversation.job_id)
+      .single();
+
+    if (!jobDetails || jobDetails.assigned_tradie !== userId) {
+      alert("You are not assigned to this job and cannot send messages.");
+      return;
+    }
 
     const { error } = await supabase.from("messages").insert({
       conversation_id: selectedConversation.id,
@@ -177,9 +202,9 @@ const MessagesPage = () => {
               placeholder="Type a message..."
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              disabled={isFirstMessage}
+              disabled={isFirstMessage || !isAssigned}
             />
-            <Button onClick={handleSend} disabled={!newMessage.trim() || isFirstMessage}>
+            <Button onClick={handleSend} disabled={!newMessage.trim() || isFirstMessage || !isAssigned}>
               Send
             </Button>
           </div>
