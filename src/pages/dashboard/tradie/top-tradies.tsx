@@ -1,5 +1,4 @@
 // src/pages/dashboard/tradie/top-tradies.tsx
-
 import React, { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
@@ -10,7 +9,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Award, CheckCircle, Medal, Star, Trophy } from "lucide-react";
+import { Award, CheckCircle, Medal, Star, Trophy, Info } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
 const getBadgeIcon = (rank: number) => {
@@ -59,8 +58,8 @@ const TopTradiesPage = () => {
 
   return (
     <DashboardLayout userType="tradie">
-      <div className="p-6 max-w-5xl mx-auto">
-        <div className="flex justify-between items-center mb-6">
+      <div className="p-6 max-w-5xl mx-auto space-y-6">
+        <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">Top Tradies</h1>
           <div className="bg-primary/10 px-4 py-2 rounded-full flex items-center">
             <Award className="h-5 w-5 mr-2 text-primary" />
@@ -134,6 +133,31 @@ const TopTradiesPage = () => {
                 );
               })
             )}
+          </CardContent>
+        </Card>
+
+        <Card className="bg-muted-50">
+          <CardHeader>
+            <div className="flex items-center gap-2 text-primary">
+              <Info className="h-5 w-5" />
+              <CardTitle>How the Leaderboard Works</CardTitle>
+            </div>
+          </CardHeader>
+          <CardContent className="text-sm space-y-2 text-muted-foreground">
+            <p>
+              🏆 <strong>Points System:</strong> Tradies earn leaderboard points every week:
+            </p>
+            <ul className="list-disc ml-6 space-y-1">
+              <li>+10 points for every <strong>completed job</strong></li>
+              <li>+5 points for each <strong>5-star review</strong></li>
+              <li>Points reset every <strong>Monday at midnight</strong></li>
+            </ul>
+            <p>
+              🪙 <strong>Weekly Rewards:</strong> Top 3 tradies get <strong>bonus credits</strong> added to their account.
+            </p>
+            <p>
+              💡 To stay on top, complete jobs and keep your customers happy!
+            </p>
           </CardContent>
         </Card>
       </div>
