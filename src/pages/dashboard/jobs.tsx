@@ -1,7 +1,6 @@
-// src/pages/dashboard/jobs.tsx
+// src/components/dashboard/DashboardJobs.tsx
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
   Card,
   CardContent,
@@ -12,8 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Pencil, Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 
-const DashboardJobsPage = () => {
+const DashboardJobs = () => {
   const [jobs, setJobs] = useState<any[]>([]);
   const [userId, setUserId] = useState<string>("");
 
@@ -27,7 +27,12 @@ const DashboardJobsPage = () => {
 
       const { data, error } = await supabase
         .from("jobs")
-        .select("*, profile_centra_resident(first_name, avatar_url), job_leads(tradie_id, profile_centra_tradie(first_name, last_name))")
+        .select(`
+          *,
+          profile_centra_resident(first_name, avatar_url),
+          profile_centra_tradie!assigned_tradie(first_name, last_name),
+          job_leads(id, tradie_id, profile_centra_tradie(first_name, last_name))
+        `)
         .eq("homeowner_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -72,7 +77,7 @@ const DashboardJobsPage = () => {
   };
 
   return (
-    <DashboardLayout userType="centra_resident">
+    <DashboardLayout>
       <div className="p-6 space-y-4">
         <h1 className="text-2xl font-bold mb-4">Your Posted Jobs</h1>
         {jobs.length === 0 ? (
@@ -82,6 +87,8 @@ const DashboardJobsPage = () => {
             const isAssigned = !!job.assigned_tradie;
             const isCancelled = job.status === "cancelled";
             const isEmergency = job.is_emergency;
+            const assignedTradie = job.profile_centra_tradie;
+            const tradieOptions = job.job_leads || [];
 
             return (
               <Card
@@ -94,7 +101,9 @@ const DashboardJobsPage = () => {
                   <CardTitle className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
                       {job.title}
-                      {isEmergency && <Badge variant="destructive">Emergency</Badge>}
+                      {isEmergency && (
+                        <Badge variant="destructive">Emergency</Badge>
+                      )}
                     </div>
                     {isAssigned ? (
                       <Badge variant="outline">In Progress</Badge>
@@ -108,7 +117,8 @@ const DashboardJobsPage = () => {
                     {job.description}
                   </p>
                   <div className="text-sm text-muted-foreground">
-                    Budget: ${job.budget} | Location: {job.location} | Timeline: {job.timeline}
+                    Budget: ${job.budget} | Location: {job.location} | Timeline:{" "}
+                    {job.timeline}
                   </div>
                   {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
@@ -123,37 +133,47 @@ const DashboardJobsPage = () => {
                     </div>
                   )}
 
-                  {!isAssigned && !isCancelled && job.job_leads?.length > 0 && (
-                    <div className="mt-2">
-                      <label className="block text-sm font-medium mb-1">Assign Tradie:</label>
+                  {/* Show assigned tradie name if assigned */}
+                  {isAssigned && assignedTradie && (
+                    <p className="text-sm text-green-800 font-medium">
+                      Assigned to: {assignedTradie.first_name} {assignedTradie.last_name}
+                    </p>
+                  )}
+
+                  {/* Assignment dropdown if not assigned or cancelled */}
+                  {!isAssigned && !isCancelled && tradieOptions.length > 0 && (
+                    <div className="mt-3">
+                      <label className="text-sm font-medium mr-2">
+                        Assign Tradie:
+                      </label>
                       <select
-                        onChange={(e) => handleAssignTradie(job.id, e.target.value)}
+                        onChange={(e) =>
+                          handleAssignTradie(job.id, e.target.value)
+                        }
                         defaultValue=""
-                        className="border px-3 py-2 rounded w-full"
+                        className="border rounded p-1"
                       >
                         <option value="" disabled>
-                          Select a tradie
+                          Select tradie
                         </option>
-                        {job.job_leads.map((lead: any) => (
+                        {tradieOptions.map((lead: any) => (
                           <option key={lead.tradie_id} value={lead.tradie_id}>
-                            {lead.profile_centra_tradie.first_name} {lead.profile_centra_tradie.last_name}
+                            {lead.profile_centra_tradie.first_name}{" "}
+                            {lead.profile_centra_tradie.last_name}
                           </option>
                         ))}
                       </select>
                     </div>
                   )}
 
-                  {isAssigned && (
-                    <p className="text-sm text-green-600 font-medium">
-                      Assigned to Tradie ID: {job.assigned_tradie}
-                    </p>
-                  )}
-
+                  {/* Edit + Cancel buttons if still open */}
                   {!isAssigned && !isCancelled && (
                     <div className="flex gap-2 mt-3">
                       <Button
                         variant="default"
-                        onClick={() => navigate(`/dashboard/edit-job/${job.id}`)}
+                        onClick={() =>
+                          navigate(`/dashboard/edit-job/${job.id}`)
+                        }
                       >
                         <Pencil className="w-4 h-4 mr-2" />
                         Edit
@@ -169,7 +189,9 @@ const DashboardJobsPage = () => {
                   )}
 
                   {isCancelled && (
-                    <p className="text-sm text-red-500 mt-2">This job was cancelled.</p>
+                    <p className="text-sm text-red-500 mt-2">
+                      This job was cancelled.
+                    </p>
                   )}
                 </CardContent>
               </Card>
@@ -181,4 +203,4 @@ const DashboardJobsPage = () => {
   );
 };
 
-export default DashboardJobsPage;
+export default DashboardJobs;
