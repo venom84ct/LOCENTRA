@@ -28,17 +28,12 @@ const HomeownerJobsPage = () => {
       .from("jobs")
       .select(`
         *,
-        profile_centra_tradie(id, first_name, last_name, avatar_url)
+        assigned_tradie_profile:profile_centra_tradie(id, first_name, last_name, avatar_url)
       `)
       .eq("homeowner_id", user.id)
       .order("created_at", { ascending: false });
 
-    if (error) {
-      console.error("Failed to fetch jobs", error);
-      return;
-    }
-
-    setJobs(data || []);
+    if (!error) setJobs(data || []);
   };
 
   useEffect(() => {
@@ -103,7 +98,7 @@ const HomeownerJobsPage = () => {
                   </div>
                 </div>
 
-                {job.assigned_tradie && job.profile_centra_tradie ? (
+                {job.assigned_tradie && job.assigned_tradie_profile ? (
                   <div className="mt-4 pt-3 border-t">
                     <p className="text-sm mb-1 text-muted-foreground">
                       Assigned Tradie
@@ -111,12 +106,12 @@ const HomeownerJobsPage = () => {
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4" />
                       <span className="font-medium text-sm">
-                        {job.profile_centra_tradie.first_name}{" "}
-                        {job.profile_centra_tradie.last_name}
+                        {job.assigned_tradie_profile.first_name}{" "}
+                        {job.assigned_tradie_profile.last_name}
                       </span>
-                      {job.profile_centra_tradie.avatar_url && (
+                      {job.assigned_tradie_profile.avatar_url && (
                         <img
-                          src={job.profile_centra_tradie.avatar_url}
+                          src={job.assigned_tradie_profile.avatar_url}
                           alt="Tradie Avatar"
                           className="h-6 w-6 rounded-full ml-2"
                         />
