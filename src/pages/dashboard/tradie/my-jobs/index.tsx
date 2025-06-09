@@ -1,4 +1,3 @@
-// src/pages/dashboard/tradie/my-jobs.tsx
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -12,30 +11,29 @@ const MyJobsPage = () => {
   const [leads, setLeads] = useState<any[]>([]);
   const [user, setUser] = useState<any>(null);
 
-  const fetchLeads = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-    setUser(user);
-
-    const { data, error } = await supabase
-      .from("job_leads")
-      .select("*, jobs(*, profile_centra_resident(first_name, last_name, avatar_url))")
-      .eq("tradie_id", user.id);
-
-    if (error) console.error(error);
-    else setLeads(data);
-  };
-
   useEffect(() => {
-    fetchLeads();
+    const fetchData = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      setUser(user);
+
+      const { data, error } = await supabase
+        .from("job_leads")
+        .select("*, jobs(*, profile_centra_resident(first_name, last_name, avatar_url))")
+        .eq("tradie_id", user.id);
+
+      if (error) console.error(error);
+      else setLeads(data);
+    };
+    fetchData();
   }, []);
 
   const handleDeleteLead = async (jobId: string) => {
     if (!user) return;
     await supabase.from("job_leads").delete().match({ job_id: jobId, tradie_id: user.id });
-    await fetchLeads();
+    setLeads((prev) => prev.filter((l) => l.job_id !== jobId));
   };
 
   return (
@@ -49,14 +47,15 @@ const MyJobsPage = () => {
             leads.map((lead) => {
               const job = lead.jobs;
               const profile = job.profile_centra_resident;
-              const isAssigned = job.assigned_tradie === user?.id;
+              const isAssigned = job.assigned_tradie === user.id;
+              const isUnassigned = !job.assigned_tradie;
 
               return (
                 <Card
                   key={lead.id}
                   className={`border ${
                     isAssigned
-                      ? "border-green-600 bg-[#90ee90]"
+                      ? "bg-[#CAEEC2] border-green-600"
                       : job.is_emergency
                       ? "border-red-600 border-2"
                       : "border-gray-200"
@@ -65,12 +64,9 @@ const MyJobsPage = () => {
                   <CardHeader>
                     <CardTitle className="flex justify-between items-center">
                       <span>{job.title}</span>
-                      <div className="flex items-center gap-2">
-                        {isAssigned ? (
-                          <Badge variant="success">Assigned to You</Badge>
-                        ) : (
-                          <Badge variant="secondary">Open – Waiting Assignment</Badge>
-                        )}
+                      <div className="flex gap-2">
+                        {isAssigned && <Badge variant="outline">Assigned to you</Badge>}
+                        {isUnassigned && <Badge variant="secondary">Open</Badge>}
                         {job.is_emergency && <Badge variant="destructive">Emergency</Badge>}
                       </div>
                     </CardTitle>
@@ -111,27 +107,28 @@ const MyJobsPage = () => {
                             <AvatarImage src={profile.avatar_url} />
                             <AvatarFallback>{profile.first_name?.[0]}</AvatarFallback>
                           </Avatar>
-                          <span>{profile.first_name} {profile.last_name}</span>
+                          <span>
+                            {profile.first_name} {profile.last_name}
+                          </span>
                         </div>
                       )}
-                      <div className="ml-auto flex gap-2">
-                        {isAssigned ? (
-                          <Button
-                            onClick={() =>
-                              window.location.href = `/dashboard/tradie/messages?jobId=${job.id}`
-                            }
-                          >
-                            <MessageSquare className="w-4 h-4 mr-2" /> Message
-                          </Button>
-                        ) : (
-                          <Button
-                            variant="ghost"
-                            onClick={() => handleDeleteLead(job.id)}
-                          >
-                            <Trash2 className="w-4 h-4 mr-2" /> Delete Lead
-                          </Button>
-                        )}
-                      </div>
+                      <Button
+                        onClick={() =>
+                          (window.location.href = `/dashboard/tradie/messages?jobId=${job.id}`)
+                        }
+                        className="ml-auto"
+                      >
+                        <MessageSquare className="w-4 h-4 mr-2" /> Message
+                      </Button>
+                      {!isAssigned && (
+                        <Button
+                          variant="ghost"
+                          onClick={() => handleDeleteLead(job.id)}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" /> Delete Lead
+                        </Button>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
