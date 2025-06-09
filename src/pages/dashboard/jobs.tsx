@@ -65,17 +65,21 @@ const DashboardJobs = () => {
         jobs.map((job) => {
           const isAssigned = !!job.assigned_tradie;
           const isCancelled = job.status === "cancelled";
+          const isEmergency = job.is_emergency;
 
           return (
             <Card
               key={job.id}
               className={`p-4 ${
                 isAssigned ? "bg-[#CAEEC2]" : "bg-white"
-              }`}
+              } ${isEmergency ? "border-red-500 border-2" : ""}`}
             >
               <CardHeader>
                 <CardTitle className="flex justify-between items-center">
-                  <span>{job.title}</span>
+                  <div className="flex items-center gap-2">
+                    {job.title}
+                    {isEmergency && <Badge variant="destructive">Emergency</Badge>}
+                  </div>
                   {isAssigned ? (
                     <Badge variant="outline">In Progress</Badge>
                   ) : (
@@ -104,7 +108,7 @@ const DashboardJobs = () => {
                   </div>
                 )}
 
-                {!isAssigned && job.status !== "cancelled" && (
+                {!isAssigned && !isCancelled && (
                   <div className="flex gap-2 mt-3">
                     <Button
                       variant="default"
