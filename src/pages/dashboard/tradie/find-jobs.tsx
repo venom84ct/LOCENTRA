@@ -51,23 +51,10 @@ const FindJobsPage = () => {
       .or("status.eq.open,status.eq.available")
       .order("created_at", { ascending: false });
 
-    // Get count of leads per job
-    const { data: leadCounts } = await supabase
-      .from("job_leads")
-      .select("job_id, count:job_id")
-      .group("job_id");
-
-    const leadMap = new Map<string, number>();
-    (leadCounts || []).forEach((entry) => leadMap.set(entry.job_id, entry.count));
-
-    // Filter out jobs that are already assigned or reached lead limit
-    const filtered = (data || []).filter((job) => {
-      const leadCount = leadMap.get(job.id) || 0;
-      return !job.assigned_tradie && leadCount < 10;
-    });
-
-    if (!error) {
-      setJobs(filtered);
+    if (error) {
+      console.error("Error fetching jobs:", error.message);
+    } else {
+      setJobs(data || []);
     }
   };
 
@@ -84,7 +71,9 @@ const FindJobsPage = () => {
     const matchesCategory = selectedCategory ? job.category === selectedCategory : true;
     const matchesEmergency = showEmergencyOnly ? job.is_emergency === true : true;
 
-    return matchesSearch && matchesCategory && matchesEmergency;
+    // Hide jobs that have an assigned tradie (only visible to the assigned tradie)
+    const isAssignedToAnother = job.assigned_tradie && !purchasedLeads.includes(job.id);
+    return matchesSearch && matchesCategory && matchesEmergency && !isAssignedToAnother;
   });
 
   const categories = Array.from(new Set(jobs.map((job) => job.category)));
@@ -193,6 +182,7 @@ const FindJobsPage = () => {
                       </Badge>
                     ))}
                   </div>
+
                   <div className="flex items-center space-x-2">
                     <input
                       type="checkbox"
@@ -261,23 +251,25 @@ const FindJobsPage = () => {
                           {new Date(job.created_at).toLocaleDateString()}
                         </div>
                         <div className="flex items-center">
-                          <DollarSign className="w-4 h-4 mr-2" /> {job.budget}
+                          <DollarSign className="w-4 h-4 mr-2" />
+                          {job.budget}
                         </div>
                         <div className="flex items-center">
-                          <Clock className="w-4 h-4 mr-2" /> {job.timeline}
+                          <Clock className="w-4 h-4 mr-2" />
+                          {job.timeline}
                         </div>
                       </div>
 
                       <div className="flex items-center justify-between">
-                        {job.assigned_tradie ? (
-                          <Badge className="bg-yellow-500 text-white">Assigned</Badge>
-                        ) : isPurchased ? (
+                        {isPurchased ? (
                           <>
                             <Badge className="bg-green-500 text-white">Purchased</Badge>
                             <Button
                               variant="destructive"
                               onClick={() =>
-                                navigate(`/dashboard/tradie/messages?jobId=${job.id}`)
+                                navigate(
+                                  `/dashboard/tradie/messages?jobId=${job.id}`
+                                )
                               }
                             >
                               Message
