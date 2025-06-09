@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, CheckCircle } from "lucide-react";
+import { Pencil, Trash2, CheckCircle, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
@@ -81,8 +81,11 @@ const DashboardJobs = () => {
       setJobs((prev) =>
         prev.map((j) => (j.id === jobId ? { ...j, status: "completed" } : j))
       );
-      navigate(`/dashboard/review/${jobId}`);
     }
+  };
+
+  const goToReviewPage = (jobId: string) => {
+    navigate(`/dashboard/review/${jobId}`);
   };
 
   return (
@@ -203,6 +206,18 @@ const DashboardJobs = () => {
                       >
                         <CheckCircle className="w-4 h-4 mr-2" />
                         Mark as Complete
+                      </Button>
+                    </div>
+                  )}
+
+                  {isCompleted && (
+                    <div className="mt-3">
+                      <Button
+                        variant="default"
+                        onClick={() => goToReviewPage(job.id)}
+                      >
+                        <Star className="w-4 h-4 mr-2" />
+                        Leave a Review
                       </Button>
                     </div>
                   )}
