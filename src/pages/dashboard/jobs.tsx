@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { supabase } from "@/lib/supabaseClient";
@@ -11,7 +10,6 @@ import {
   Clock,
   DollarSign,
   MapPin,
-  Search,
   User,
   X,
 } from "lucide-react";
@@ -28,11 +26,19 @@ const HomeownerJobsPage = () => {
 
     const { data, error } = await supabase
       .from("jobs")
-      .select("*, profile_centra_tradie(id, first_name, last_name, avatar_url)")
+      .select(`
+        *,
+        profile_centra_tradie(id, first_name, last_name, avatar_url)
+      `)
       .eq("homeowner_id", user.id)
       .order("created_at", { ascending: false });
 
-    if (!error) setJobs(data || []);
+    if (error) {
+      console.error("Failed to fetch jobs", error);
+      return;
+    }
+
+    setJobs(data || []);
   };
 
   useEffect(() => {
