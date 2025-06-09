@@ -78,7 +78,7 @@ const Home = () => {
               <div className="absolute -top-6 -left-6 w-24 h-24 bg-red-600 rounded-full opacity-20"></div>
               <div className="absolute -bottom-6 -right-6 w-32 h-32 bg-red-600 rounded-full opacity-10"></div>
               <img
-  src="https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=800&q=80"
+  src="src="https://nlgiukcwbexfxkzdvzzq.supabase.co/storage/v1/object/public/public-assets/part-construction-worker-with-tools-belt.jpg"
   alt="Tradie working on a construction site"
   className="rounded-lg shadow-xl w-full object-cover h-[400px]"
 />
