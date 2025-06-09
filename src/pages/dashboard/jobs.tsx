@@ -1,203 +1,247 @@
-// Updated FindJobsPage
 import React, { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabaseClient";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
-import { supabase } from "@/lib/supabaseClient";
-import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  AlertCircle,
-  Calendar,
-  Clock,
-  CreditCard,
-  DollarSign,
-  Filter,
-  MapPin,
-  Search,
-  User,
-  X,
-} from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Calendar, DollarSign, MapPin, Clock, User, Plus, AlertCircle } from "lucide-react";
 
-const FindJobsPage = () => {
+const DashboardJobs = () => {
   const [jobs, setJobs] = useState<any[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
-  const [showEmergencyOnly, setShowEmergencyOnly] = useState(false);
-  const [purchasedLeads, setPurchasedLeads] = useState<string[]>([]);
-  const [imageModalUrl, setImageModalUrl] = useState<string | null>(null);
+  const [jobLeads, setJobLeads] = useState<{ [jobId: string]: any[] }>({});
+  const [profile, setProfile] = useState<any>(null);
   const navigate = useNavigate();
 
-  const fetchJobs = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const { data: leadsData } = await supabase
+  const fetchJobLeads = async (jobId: string) => {
+    const { data } = await supabase
       .from("job_leads")
-      .select("job_id")
-      .eq("tradie_id", user.id);
+      .select("tradie_id, profile_centra_tradie(first_name, last_name)")
+      .eq("job_id", jobId);
 
-    setPurchasedLeads(leadsData?.map((l) => l.job_id) || []);
+    setJobLeads((prev) => ({
+      ...prev,
+      [jobId]: data || [],
+    }));
+  };
 
-    const { data, error } = await supabase
+  const refetchJobs = async (userId: string) => {
+    const { data: profileData } = await supabase
+      .from("profile_centra_resident")
+      .select("*")
+      .eq("id", userId)
+      .single();
+
+    setProfile(profileData);
+
+    const { data: jobsData } = await supabase
       .from("jobs")
-      .select("*, profile_centra_resident(id, first_name, last_name, avatar_url)")
-      .or("status.eq.open,status.eq.available")
+      .select(`
+        *,
+        assigned_tradie_profile:profile_centra_tradie!assigned_tradie(id, first_name, last_name)
+      `)
+      .eq("homeowner_id", profileData.id)
       .order("created_at", { ascending: false });
 
-    if (!error) setJobs(data || []);
+    const visibleJobs = (jobsData || []).filter(
+      (j) => j.status !== "cancelled" && !(j.status === "completed" && j.review_submitted === true)
+    );
+
+    setJobs(visibleJobs);
+    for (const job of visibleJobs) {
+      fetchJobLeads(job.id);
+    }
   };
 
   useEffect(() => {
-    fetchJobs();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user?.id) refetchJobs(user.id);
+    });
   }, []);
 
-  const filteredJobs = jobs.filter((job) => {
-    const matchesSearch =
-      job.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      job.location?.toLowerCase().includes(searchTerm.toLowerCase());
+  const updateStatus = async (jobId: string, newStatus: string) => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-    const matchesCategory = selectedCategory ? job.category === selectedCategory : true;
-    const matchesEmergency = showEmergencyOnly ? job.is_emergency === true : true;
-    const isAssignedToAnother = job.assigned_tradie && !purchasedLeads.includes(job.id);
+    const { error } = await supabase
+      .from("jobs")
+      .update({ status: newStatus.toLowerCase() })
+      .eq("id", jobId)
+      .eq("homeowner_id", user.id);
 
-    return matchesSearch && matchesCategory && matchesEmergency && !isAssignedToAnother;
-  });
+    if (!error) {
+      if (newStatus === "completed") {
+        navigate(`/dashboard/review/${jobId}`);
+      } else {
+        refetchJobs(user.id);
+      }
+    }
+  };
 
-  const handleImageClick = (url: string) => setImageModalUrl(url);
+  const assignTradie = async (jobId: string, tradieId: string) => {
+    await supabase.from("jobs").update({ assigned_tradie: tradieId }).eq("id", jobId);
+    await refetchJobs(profile.id);
+  };
 
-  const closeImageModal = () => setImageModalUrl(null);
+  const renderStatusLabel = (job: any) => {
+    if (job.status === "completed" && !job.review_submitted) {
+      return (
+        <Badge className="bg-yellow-100 text-yellow-800 flex items-center">
+          <AlertCircle className="h-4 w-4 mr-1" /> Awaiting Review
+        </Badge>
+      );
+    }
+    switch (job.status?.toLowerCase()) {
+      case "open":
+        return <Badge variant="outline">Open</Badge>;
+      case "in_progress":
+        return <Badge className="bg-blue-100 text-blue-800">In Progress</Badge>;
+      case "completed":
+        return <Badge className="bg-green-100 text-green-800">Completed</Badge>;
+      case "cancelled":
+        return <Badge className="bg-red-100 text-red-800">Cancelled</Badge>;
+      default:
+        return <Badge variant="outline">Unknown</Badge>;
+    }
+  };
+
+  if (!profile) return <div className="p-8">Loading...</div>;
 
   return (
-    <DashboardLayout userType="tradie">
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">Find Jobs</h1>
+    <DashboardLayout user={profile} userType="centraResident">
+      <div className="px-4 py-6 max-w-4xl mx-auto space-y-6">
+        <div className="flex justify-between items-center">
+          <h1 className="text-2xl font-bold">My Jobs</h1>
+          <Button onClick={() => navigate("/dashboard/post-job")}>
+            <Plus className="h-4 w-4 mr-2" /> Post a New Job
+          </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="md:col-span-1">
-            <Card className="bg-white sticky top-24">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Filter className="h-5 w-5 mr-2" /> Filters
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <Input
-                  placeholder="Search jobs..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                />
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="md:col-span-3 space-y-4">
-            {filteredJobs.length > 0 ? (
-              filteredJobs.map((job) => {
-                const profile = job.profile_centra_resident;
-                return (
-                  <Card
-                    key={job.id}
-                    className={`bg-white p-4 border ${
-                      job.is_emergency ? "border-red-600 border-2" : "border-gray-200"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 mb-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium text-sm">
-                        {profile?.first_name || "Unknown"} {profile?.last_name || ""}
-                      </span>
-                      {profile?.avatar_url && (
-                        <img
-                          src={profile.avatar_url}
-                          alt="Avatar"
-                          className="h-6 w-6 rounded-full ml-2"
-                        />
-                      )}
-                      {job.is_emergency && (
-                        <Badge variant="destructive" className="ml-auto">Emergency</Badge>
-                      )}
-                    </div>
-
-                    <h2 className="text-lg font-semibold mb-1">{job.title}</h2>
-                    <p className="text-muted-foreground text-sm mb-2">{job.description}</p>
-
-                    {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
-                      <div className="flex gap-2 overflow-x-auto mb-3">
-                        {job.image_urls.map((url: string, idx: number) => (
-                          <img
-                            key={idx}
-                            src={url}
-                            alt="Job image"
-                            onClick={() => handleImageClick(url)}
-                            className="h-20 w-28 object-cover rounded cursor-pointer border"
-                          />
-                        ))}
-                      </div>
-                    )}
-
-                    <div className="grid grid-cols-2 text-sm text-muted-foreground gap-2 mb-3">
-                      <div className="flex items-center">
-                        <MapPin className="h-4 w-4 mr-1" /> {job.location}
-                      </div>
-                      <div className="flex items-center">
-                        <Calendar className="h-4 w-4 mr-1" />
-                        {new Date(job.created_at).toLocaleDateString()}
-                      </div>
-                      <div className="flex items-center">
-                        <DollarSign className="h-4 w-4 mr-1" /> {job.budget}
-                      </div>
-                      <div className="flex items-center">
-                        <Clock className="h-4 w-4 mr-1" /> {job.timeline}
-                      </div>
-                    </div>
-
-                    <div className="flex justify-end">
-                      <Button onClick={() => navigate(`/dashboard/tradie/messages?jobId=${job.id}`)}>
-                        Message
-                      </Button>
-                    </div>
-                  </Card>
-                );
-              })
-            ) : (
-              <Card className="bg-white">
-                <CardContent className="py-10 text-center">
-                  <AlertCircle className="w-6 h-6 mb-2 text-muted-foreground mx-auto" />
-                  <p>No jobs found.</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
-
-        {imageModalUrl && (
-          <div className="fixed inset-0 z-50 bg-black bg-opacity-75 flex items-center justify-center">
-            <div className="relative bg-white p-4 rounded shadow-lg">
-              <button
-                onClick={closeImageModal}
-                className="absolute top-2 right-2 text-black hover:text-red-600"
+        {jobs.length === 0 ? (
+          <p>No active jobs found.</p>
+        ) : (
+          jobs.map((job) => {
+            const leads = jobLeads[job.id] || [];
+            return (
+              <div
+                key={job.id}
+                className={`bg-white rounded-xl border shadow-sm p-6 space-y-4 ${
+                  job.is_emergency ? "border-red-600 border-2" : "border-gray-200"
+                }`}
               >
-                <X className="w-5 h-5" />
-              </button>
-              <img src={imageModalUrl} alt="Full size" className="max-h-[80vh] max-w-[90vw]" />
-            </div>
-          </div>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h2 className="text-lg font-semibold">{job.title}</h2>
+                    <p className="text-sm text-muted-foreground">{job.category}</p>
+                  </div>
+                  <div className="flex flex-col items-end space-y-1">
+                    {job.is_emergency && (
+                      <Badge variant="destructive" className="text-xs">
+                        Emergency
+                      </Badge>
+                    )}
+                    {renderStatusLabel(job)}
+                  </div>
+                </div>
+
+                {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+                    {job.image_urls.map((url: string, idx: number) => (
+                      <img
+                        key={idx}
+                        src={url}
+                        alt=""
+                        className="w-full h-32 object-cover rounded border"
+                      />
+                    ))}
+                  </div>
+                )}
+
+                <p className="text-sm">{job.description}</p>
+
+                <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                  <div className="flex items-center">
+                    <MapPin className="h-4 w-4 mr-1" />
+                    {job.location}
+                  </div>
+                  <div className="flex items-center">
+                    <Calendar className="h-4 w-4 mr-1" />
+                    {new Date(job.created_at).toLocaleDateString()}
+                  </div>
+                  <div className="flex items-center">
+                    <DollarSign className="h-4 w-4 mr-1" />
+                    {job.budget}
+                  </div>
+                  <div className="flex items-center">
+                    <Clock className="h-4 w-4 mr-1" />
+                    {job.timeline}
+                  </div>
+                </div>
+
+                {job.assigned_tradie ? (
+                  <div className="flex items-center pt-2 text-sm text-muted-foreground">
+                    <User className="h-4 w-4 mr-2" />
+                    Assigned Tradie:{" "}
+                    {job.assigned_tradie_profile
+                      ? `${job.assigned_tradie_profile.first_name} ${job.assigned_tradie_profile.last_name}`
+                      : job.assigned_tradie}
+                  </div>
+                ) : leads.length > 0 ? (
+                  <div className="pt-2">
+                    <label className="block mb-1 text-sm font-medium">Assign Tradie:</label>
+                    <select
+                      className="border rounded px-3 py-2 w-full"
+                      onChange={(e) => assignTradie(job.id, e.target.value)}
+                      defaultValue=""
+                    >
+                      <option disabled value="">
+                        Select tradie...
+                      </option>
+                      {leads.map((lead: any) => (
+                        <option key={lead.tradie_id} value={lead.tradie_id}>
+                          {lead.profile_centra_tradie.first_name}{" "}
+                          {lead.profile_centra_tradie.last_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No tradies have purchased this lead yet.
+                  </p>
+                )}
+
+                <div className="flex gap-2 pt-4">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => navigate(`/dashboard/edit-job/${job.id}`)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    disabled={!job.assigned_tradie}
+                    onClick={() => updateStatus(job.id, "completed")}
+                  >
+                    Mark as Completed
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => updateStatus(job.id, "cancelled")}
+                  >
+                    Cancel Job
+                  </Button>
+                </div>
+              </div>
+            );
+          })
         )}
       </div>
     </DashboardLayout>
   );
 };
 
-export default FindJobsPage;
+export default DashboardJobs;
