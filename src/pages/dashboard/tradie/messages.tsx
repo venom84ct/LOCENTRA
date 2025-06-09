@@ -1,3 +1,4 @@
+// src/pages/dashboard/tradie/messages.tsx
 import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -12,7 +13,6 @@ const MessagesPage = () => {
   const [messages, setMessages] = useState<any[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<any>(null);
   const [newMessage, setNewMessage] = useState("");
-  const [isAssigned, setIsAssigned] = useState(true);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -27,7 +27,7 @@ const MessagesPage = () => {
         .from("conversations")
         .select(`
           *,
-          jobs(title),
+          jobs(id, title, assigned_tradie),
           profile_centra_resident(first_name, avatar_url)
         `)
         .eq("tradie_id", user.id);
@@ -78,32 +78,8 @@ const MessagesPage = () => {
     };
   }, [selectedConversation]);
 
-  useEffect(() => {
-    if (selectedConversation?.job_id && userId) {
-      supabase
-        .from("jobs")
-        .select("assigned_tradie")
-        .eq("id", selectedConversation.job_id)
-        .single()
-        .then(({ data }) => {
-          setIsAssigned(data?.assigned_tradie === userId);
-        });
-    }
-  }, [selectedConversation, userId]);
-
   const handleSend = async () => {
     if (!newMessage.trim() || !userId || !selectedConversation) return;
-
-    const { data: jobDetails } = await supabase
-      .from("jobs")
-      .select("assigned_tradie")
-      .eq("id", selectedConversation.job_id)
-      .single();
-
-    if (!jobDetails || jobDetails.assigned_tradie !== userId) {
-      alert("You are not assigned to this job and cannot send messages.");
-      return;
-    }
 
     const { error } = await supabase.from("messages").insert({
       conversation_id: selectedConversation.id,
@@ -125,8 +101,12 @@ const MessagesPage = () => {
     }
   };
 
-  const isFirstMessage =
-    messages.length === 1 && messages[0].sender_id === userId;
+  const job = selectedConversation?.jobs;
+  const isAssignedToTradie = job?.assigned_tradie === userId;
+  const isUnassigned = !job?.assigned_tradie;
+  const hasReceivedReply = messages.some((msg) => msg.sender_id !== userId);
+
+  const canMessage = isAssignedToTradie || (isUnassigned && hasReceivedReply);
 
   return (
     <DashboardLayout userType="tradie">
@@ -179,18 +159,16 @@ const MessagesPage = () => {
               <div
                 key={msg.id}
                 className={`max-w-xs px-4 py-2 rounded-lg ${
-                  msg.sender_id === userId
-                    ? "bg-red-100 ml-auto"
-                    : "bg-gray-100"
+                  msg.sender_id === userId ? "bg-red-100 ml-auto" : "bg-gray-100"
                 }`}
               >
                 {msg.message}
               </div>
             ))}
 
-            {isFirstMessage && (
+            {!canMessage && (
               <div className="text-center text-muted-foreground text-sm mt-4">
-                You’ve sent a message. To unlock the chat, please wait for the Centra Resident to reply.
+                You cannot message anymore. The job has been assigned to another tradie.
               </div>
             )}
 
@@ -202,9 +180,9 @@ const MessagesPage = () => {
               placeholder="Type a message..."
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              disabled={isFirstMessage || !isAssigned}
+              disabled={!canMessage}
             />
-            <Button onClick={handleSend} disabled={!newMessage.trim() || isFirstMessage || !isAssigned}>
+            <Button onClick={handleSend} disabled={!newMessage.trim() || !canMessage}>
               Send
             </Button>
           </div>
