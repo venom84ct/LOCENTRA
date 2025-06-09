@@ -42,7 +42,6 @@ const FindJobsPage = () => {
       .from("job_leads")
       .select("job_id")
       .eq("tradie_id", user.id);
-
     setPurchasedLeads(leadsData?.map((l) => l.job_id) || []);
 
     const { data, error } = await supabase
@@ -51,8 +50,11 @@ const FindJobsPage = () => {
       .or("status.eq.open,status.eq.available")
       .order("created_at", { ascending: false });
 
-    if (error) console.error("Error fetching jobs:", error.message);
-    else setJobs(data || []);
+    if (error) {
+      console.error("Error fetching jobs:", error.message);
+    } else {
+      setJobs(data || []);
+    }
   };
 
   useEffect(() => {
@@ -60,13 +62,8 @@ const FindJobsPage = () => {
   }, []);
 
   const handleDeleteLead = async (jobId: string) => {
-    const { error } = await supabase
-      .from("job_leads")
-      .delete()
-      .match({ job_id: jobId, tradie_id: userId });
-
-    if (error) console.error("Delete lead failed:", error.message);
-    else await fetchJobs();
+    await supabase.from("job_leads").delete().match({ job_id: jobId, tradie_id: userId });
+    await fetchJobs();
   };
 
   const handlePurchaseLead = async (job: any) => {
@@ -76,6 +73,7 @@ const FindJobsPage = () => {
     if (!user) return;
 
     const tradieId = user.id;
+
     const { data: tradieProfile } = await supabase
       .from("profile_centra_tradie")
       .select("first_name, abn, license, rating_avg")
@@ -84,17 +82,11 @@ const FindJobsPage = () => {
 
     const { data: conversation } = await supabase
       .from("conversations")
-      .insert({
-        job_id: job.id,
-        homeowner_id: job.homeowner_id,
-        tradie_id: tradieId,
-      })
+      .insert({ job_id: job.id, homeowner_id: job.homeowner_id, tradie_id: tradieId })
       .select()
       .single();
 
-    await supabase
-      .from("job_leads")
-      .insert([{ job_id: job.id, tradie_id: tradieId }]);
+    await supabase.from("job_leads").insert([{ job_id: job.id, tradie_id: tradieId }]);
 
     const autoMessage = `Hi! I'm interested in this job. Here's a bit about me:\n- ABN: ${tradieProfile.abn}\n- License: ${tradieProfile.license}\n- Rating: ${tradieProfile.rating_avg?.toFixed(1) || "N/A"}`;
 
@@ -120,10 +112,7 @@ const FindJobsPage = () => {
     const isAssignedToAnother = job.assigned_tradie && job.assigned_tradie !== userId;
     const hasPurchased = purchasedLeads.includes(job.id);
 
-    if (isAssignedToAnother) {
-      return hasPurchased;
-    }
-
+    if (isAssignedToAnother) return hasPurchased;
     return matchesSearch && matchesCategory && matchesEmergency && !job.assigned_tradie;
   });
 
@@ -132,85 +121,83 @@ const FindJobsPage = () => {
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-4">Find Jobs</h1>
         <div className="space-y-4">
-          {filteredJobs.length > 0 ? (
-            filteredJobs.map((job) => {
-              const isPurchased = purchasedLeads.includes(job.id);
-              const assignedToOther = job.assigned_tradie && job.assigned_tradie !== userId;
+          {filteredJobs.map((job) => {
+            const isPurchased = purchasedLeads.includes(job.id);
+            const isAssignedToOther = job.assigned_tradie && job.assigned_tradie !== userId;
+            const isAssignedToCurrent = job.assigned_tradie === userId;
 
-              return (
-                <Card key={job.id} className={`p-4 ${job.is_emergency ? "border-red-500 border-2" : "border"}`}>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <h2 className="text-lg font-semibold">{job.title}</h2>
-                      <p className="text-sm text-muted-foreground">{job.category}</p>
-                      <div className="flex items-center gap-2 mt-2">
-                        <img
-                          src={job.profile_centra_resident?.avatar_url || "https://via.placeholder.com/40"}
-                          className="w-8 h-8 rounded-full"
-                        />
-                        <span className="text-sm">{job.profile_centra_resident?.first_name || "Homeowner"}</span>
-                      </div>
-                    </div>
-                    {job.is_emergency && <Badge variant="destructive">Emergency</Badge>}
-                  </div>
-
-                  <p className="mt-2 text-sm">{job.description}</p>
-
-                  {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
-                      {job.image_urls.map((url: string, i: number) => (
-                        <a key={i} href={url} target="_blank" rel="noopener noreferrer">
-                          <img src={url} className="w-full h-24 object-cover rounded" />
-                        </a>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground mt-2">
-                    <div className="flex items-center">
-                      <MapPin className="h-4 w-4 mr-1" /> {job.location}
-                    </div>
-                    <div className="flex items-center">
-                      <Calendar className="h-4 w-4 mr-1" />
-                      {new Date(job.created_at).toLocaleDateString()}
-                    </div>
-                    <div className="flex items-center">
-                      <DollarSign className="h-4 w-4 mr-1" /> {job.budget}
-                    </div>
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 mr-1" /> {job.timeline}
+            return (
+              <Card key={job.id} className={`p-4 ${job.is_emergency ? "border-red-500 border-2" : "border"}`}>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h2 className="text-lg font-semibold">{job.title}</h2>
+                    <p className="text-sm text-muted-foreground">{job.category}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <img
+                        src={job.profile_centra_resident?.avatar_url || "https://via.placeholder.com/40"}
+                        className="w-8 h-8 rounded-full"
+                      />
+                      <span className="text-sm">{job.profile_centra_resident?.first_name || "Homeowner"}</span>
                     </div>
                   </div>
+                  {job.is_emergency && <Badge variant="destructive">Emergency</Badge>}
+                </div>
 
-                  <div className="mt-4 flex justify-end gap-2">
-                    {assignedToOther && isPurchased ? (
-                      <>
-                        <Badge variant="outline">Assigned to another tradie</Badge>
-                        <Button variant="ghost" onClick={() => handleDeleteLead(job.id)}>
-                          Delete Lead
-                        </Button>
-                      </>
-                    ) : isPurchased ? (
-                      <Button
-                        variant="destructive"
-                        onClick={() => {
-                          if (job.assigned_tradie === userId) {
-                            navigate(`/dashboard/tradie/messages?jobId=${job.id}`);
-                          } else {
-                            alert("You are not the assigned tradie for this job.");
-                          }
-                        }}
-                      >
-                        Message
+                <p className="mt-2 text-sm">{job.description}</p>
+
+                {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+                    {job.image_urls.map((url: string, i: number) => (
+                      <a key={i} href={url} target="_blank" rel="noopener noreferrer">
+                        <img src={url} className="w-full h-24 object-cover rounded" />
+                      </a>
+                    ))}
+                  </div>
+                )}
+
+                <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground mt-2">
+                  <div className="flex items-center">
+                    <MapPin className="h-4 w-4 mr-1" /> {job.location}
+                  </div>
+                  <div className="flex items-center">
+                    <Calendar className="h-4 w-4 mr-1" /> {new Date(job.created_at).toLocaleDateString()}
+                  </div>
+                  <div className="flex items-center">
+                    <DollarSign className="h-4 w-4 mr-1" /> {job.budget}
+                  </div>
+                  <div className="flex items-center">
+                    <Clock className="h-4 w-4 mr-1" /> {job.timeline}
+                  </div>
+                </div>
+
+                <div className="mt-4 flex justify-end gap-2">
+                  {isPurchased && isAssignedToOther ? (
+                    <>
+                      <Badge variant="outline">Assigned to another tradie</Badge>
+                      <Button variant="ghost" onClick={() => handleDeleteLead(job.id)}>
+                        Delete Lead
                       </Button>
-                    ) : (
-                      <Button onClick={() => handlePurchaseLead(job)}>Purchase Lead</Button>
-                    )}
-                  </div>
-                </Card>
-              );
-            })
-          ) : (
+                    </>
+                  ) : isPurchased && isAssignedToCurrent ? (
+                    <Button
+                      variant="destructive"
+                      onClick={() => navigate(`/dashboard/tradie/messages?jobId=${job.id}`)}
+                    >
+                      Message
+                    </Button>
+                  ) : isPurchased ? (
+                    <Button disabled variant="secondary">
+                      Waiting Assignment
+                    </Button>
+                  ) : (
+                    <Button onClick={() => handlePurchaseLead(job)}>Purchase Lead</Button>
+                  )}
+                </div>
+              </Card>
+            );
+          })}
+
+          {filteredJobs.length === 0 && (
             <Card className="bg-white">
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <AlertCircle className="h-12 w-12 text-muted-foreground mb-4" />
@@ -218,7 +205,7 @@ const FindJobsPage = () => {
                 <p className="text-muted-foreground text-center mb-4">
                   We couldn’t find any jobs matching your filters.
                 </p>
-                <Button onClick={fetchJobs}>Reload Jobs</Button>
+                <Button onClick={() => fetchJobs()}>Reload Jobs</Button>
               </CardContent>
             </Card>
           )}
