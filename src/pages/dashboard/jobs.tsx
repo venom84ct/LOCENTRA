@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 import {
   Card,
@@ -9,12 +8,14 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, Check } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
 const DashboardJobs = () => {
   const [jobs, setJobs] = useState<any[]>([]);
   const [userId, setUserId] = useState<string>("");
+
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -27,16 +28,18 @@ const DashboardJobs = () => {
 
       const { data, error } = await supabase
         .from("jobs")
-        .select(`
+        .select(\`
           *,
           profile_centra_resident(first_name, avatar_url),
           profile_centra_tradie!assigned_tradie(first_name, last_name),
           job_leads(id, tradie_id, profile_centra_tradie(first_name, last_name))
-        `)
+        \`)
         .eq("homeowner_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (!error) setJobs(data || []);
+      if (!error) {
+        setJobs(data || []);
+      }
     };
 
     fetchJobs();
@@ -50,7 +53,9 @@ const DashboardJobs = () => {
 
     if (!error) {
       setJobs((prev) =>
-        prev.map((j) => (j.id === jobId ? { ...j, status: "cancelled" } : j))
+        prev.map((j) =>
+          j.id === jobId ? { ...j, status: "cancelled" } : j
+        )
       );
     }
   };
@@ -63,7 +68,9 @@ const DashboardJobs = () => {
 
     if (!error) {
       setJobs((prev) =>
-        prev.map((j) => (j.id === jobId ? { ...j, assigned_tradie: tradieId } : j))
+        prev.map((j) =>
+          j.id === jobId ? { ...j, assigned_tradie: tradieId } : j
+        )
       );
     }
   };
@@ -75,9 +82,7 @@ const DashboardJobs = () => {
       .eq("id", jobId);
 
     if (!error) {
-      setJobs((prev) =>
-        prev.map((j) => (j.id === jobId ? { ...j, status: "completed" } : j))
-      );
+      navigate(\`/dashboard/review/\${jobId}\`);
     }
   };
 
@@ -99,9 +104,7 @@ const DashboardJobs = () => {
             return (
               <Card
                 key={job.id}
-                className={`p-4 ${
-                  isAssigned ? "bg-[#CAEEC2]" : "bg-white"
-                } ${isEmergency ? "border-red-500 border-2" : ""}`}
+                className={\`p-4 \${isAssigned ? "bg-[#CAEEC2]" : "bg-white"} \${isEmergency ? "border-red-500 border-2" : ""}\`}
               >
                 <CardHeader>
                   <CardTitle className="flex justify-between items-center">
@@ -112,7 +115,7 @@ const DashboardJobs = () => {
                       )}
                     </div>
                     {isCompleted ? (
-                      <Badge variant="default">Completed</Badge>
+                      <Badge variant="success">Completed</Badge>
                     ) : isAssigned ? (
                       <Badge variant="outline">In Progress</Badge>
                     ) : (
@@ -125,7 +128,8 @@ const DashboardJobs = () => {
                     {job.description}
                   </p>
                   <div className="text-sm text-muted-foreground">
-                    Budget: ${job.budget} | Location: {job.location} | Timeline: {job.timeline}
+                    Budget: ${job.budget} | Location: {job.location} | Timeline:{" "}
+                    {job.timeline}
                   </div>
                   {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
@@ -152,7 +156,9 @@ const DashboardJobs = () => {
                         Assign Tradie:
                       </label>
                       <select
-                        onChange={(e) => handleAssignTradie(job.id, e.target.value)}
+                        onChange={(e) =>
+                          handleAssignTradie(job.id, e.target.value)
+                        }
                         defaultValue=""
                         className="border rounded p-1"
                       >
@@ -161,7 +167,8 @@ const DashboardJobs = () => {
                         </option>
                         {tradieOptions.map((lead: any) => (
                           <option key={lead.tradie_id} value={lead.tradie_id}>
-                            {lead.profile_centra_tradie.first_name} {lead.profile_centra_tradie.last_name}
+                            {lead.profile_centra_tradie.first_name}{" "}
+                            {lead.profile_centra_tradie.last_name}
                           </option>
                         ))}
                       </select>
@@ -172,28 +179,31 @@ const DashboardJobs = () => {
                     <div className="flex gap-2 mt-3">
                       <Button
                         variant="default"
-                        onClick={() => navigate(`/dashboard/edit-job/${job.id}`)}
+                        onClick={() =>
+                          navigate(\`/dashboard/edit-job/\${job.id}\`)
+                        }
                       >
-                        <Pencil className="w-4 h-4 mr-2" /> Edit
+                        <Pencil className="w-4 h-4 mr-2" />
+                        Edit
                       </Button>
                       <Button
                         variant="destructive"
                         onClick={() => handleCancelJob(job.id)}
                       >
-                        <Trash2 className="w-4 h-4 mr-2" /> Cancel Job
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Cancel Job
                       </Button>
                     </div>
                   )}
 
                   {isAssigned && !isCompleted && (
-                    <div className="mt-3">
-                      <Button
-                        variant="success"
-                        onClick={() => handleMarkComplete(job.id)}
-                      >
-                        <Check className="w-4 h-4 mr-2" /> Mark as Complete
-                      </Button>
-                    </div>
+                    <Button
+                      variant="success"
+                      className="mt-3"
+                      onClick={() => handleMarkComplete(job.id)}
+                    >
+                      ✅ Mark as Complete & Leave Review
+                    </Button>
                   )}
 
                   {isCancelled && (
