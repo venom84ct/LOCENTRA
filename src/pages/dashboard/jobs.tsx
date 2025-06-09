@@ -4,15 +4,7 @@ import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Calendar,
-  DollarSign,
-  MapPin,
-  Clock,
-  User,
-  Plus,
-  AlertCircle,
-} from "lucide-react";
+import { Calendar, DollarSign, MapPin, Clock, Plus, AlertCircle, User } from "lucide-react";
 
 const DashboardJobs = () => {
   const [jobs, setJobs] = useState<any[]>([]);
@@ -26,10 +18,7 @@ const DashboardJobs = () => {
       .select("tradie_id, profile_centra_tradie(first_name, last_name)")
       .eq("job_id", jobId);
 
-    setJobLeads((prev) => ({
-      ...prev,
-      [jobId]: data || [],
-    }));
+    setJobLeads((prev) => ({ ...prev, [jobId]: data || [] }));
   };
 
   const refetchJobs = async (userId: string) => {
@@ -43,7 +32,7 @@ const DashboardJobs = () => {
 
     const { data: jobsData } = await supabase
       .from("jobs")
-      .select("*, profile_centra_tradie!assigned_tradie(first_name, last_name)")
+      .select("*")
       .eq("homeowner_id", profileData.id)
       .order("created_at", { ascending: false });
 
@@ -64,9 +53,7 @@ const DashboardJobs = () => {
   }, []);
 
   const updateStatus = async (jobId: string, newStatus: string) => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    const { data: { user } } = await supabase.auth.getUser();
 
     const { error } = await supabase
       .from("jobs")
@@ -84,9 +71,8 @@ const DashboardJobs = () => {
   };
 
   const assignTradie = async (jobId: string, tradieId: string) => {
-    const confirmAssign = window.confirm("Are you sure you want to assign this tradie to the job?");
+    const confirmAssign = confirm("Are you sure you want to assign this tradie to the job?");
     if (!confirmAssign) return;
-
     await supabase.from("jobs").update({ assigned_tradie: tradieId }).eq("id", jobId);
     await refetchJobs(profile.id);
   };
@@ -117,10 +103,10 @@ const DashboardJobs = () => {
 
   return (
     <DashboardLayout user={profile} userType="centraResident">
-      <div className="px-4 py-6 max-w-4xl mx-auto space-y-6">
+      <div className="px-4 py-6 max-w-5xl mx-auto space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">My Jobs</h1>
-          <Button onClick={() => navigate("/dashboard/post-job")}> <Plus className="h-4 w-4 mr-2" /> Post a New Job </Button>
+          <Button onClick={() => navigate("/dashboard/post-job")}> <Plus className="h-4 w-4 mr-2" /> Post a New Job</Button>
         </div>
 
         {jobs.length === 0 ? (
@@ -131,22 +117,22 @@ const DashboardJobs = () => {
             return (
               <div
                 key={job.id}
-                className={`bg-white rounded-xl border shadow-sm p-6 space-y-4 ${
-                  job.is_emergency ? "border-red-600 border-2" : "border-gray-200"
-                }`}
+                className={`bg-white rounded-xl shadow p-6 space-y-4 border ${job.is_emergency ? "border-red-600 border-2" : "border-gray-200"}`}
               >
                 <div className="flex justify-between items-start">
                   <div>
-                    <h2 className="text-lg font-semibold">{job.title}</h2>
+                    <h2 className="text-xl font-semibold text-gray-900">{job.title}</h2>
                     <p className="text-sm text-muted-foreground">{job.category}</p>
                   </div>
                   <div className="flex flex-col items-end space-y-1">
                     {job.is_emergency && (
-                      <Badge variant="destructive" className="text-xs"> Emergency </Badge>
+                      <Badge variant="destructive" className="text-xs">Emergency</Badge>
                     )}
                     {renderStatusLabel(job)}
                   </div>
                 </div>
+
+                <p className="text-sm text-gray-700">{job.description}</p>
 
                 {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -161,19 +147,17 @@ const DashboardJobs = () => {
                   </div>
                 )}
 
-                <p className="text-sm">{job.description}</p>
-
                 <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-                  <div className="flex items-center"> <MapPin className="h-4 w-4 mr-1" />{job.location} </div>
-                  <div className="flex items-center"> <Calendar className="h-4 w-4 mr-1" />{new Date(job.created_at).toLocaleDateString()} </div>
-                  <div className="flex items-center"> <DollarSign className="h-4 w-4 mr-1" />{job.budget} </div>
-                  <div className="flex items-center"> <Clock className="h-4 w-4 mr-1" />{job.timeline} </div>
+                  <div className="flex items-center"><MapPin className="h-4 w-4 mr-1" />{job.location}</div>
+                  <div className="flex items-center"><Calendar className="h-4 w-4 mr-1" />{new Date(job.created_at).toLocaleDateString()}</div>
+                  <div className="flex items-center"><DollarSign className="h-4 w-4 mr-1" />{job.budget}</div>
+                  <div className="flex items-center"><Clock className="h-4 w-4 mr-1" />{job.timeline}</div>
                 </div>
 
                 {job.assigned_tradie ? (
                   <div className="flex items-center pt-2 text-sm text-muted-foreground">
                     <User className="h-4 w-4 mr-2" />
-                    Assigned Tradie: {job.profile_centra_tradie?.first_name} {job.profile_centra_tradie?.last_name}
+                    Assigned Tradie: {job.assigned_tradie}
                   </div>
                 ) : leads.length > 0 ? (
                   <div className="pt-2">
@@ -196,9 +180,28 @@ const DashboardJobs = () => {
                 )}
 
                 <div className="flex gap-2 pt-4">
-                  <Button size="sm" variant="outline" onClick={() => navigate(`/dashboard/edit-job/${job.id}`)}> Edit </Button>
-                  <Button size="sm" variant="default" disabled={!job.assigned_tradie} onClick={() => updateStatus(job.id, "completed")}> Mark as Completed </Button>
-                  <Button size="sm" variant="destructive" onClick={() => updateStatus(job.id, "cancelled")}> Cancel Job </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => navigate(`/dashboard/edit-job/${job.id}`)}
+                  >
+                    Edit
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    disabled={!job.assigned_tradie}
+                    onClick={() => updateStatus(job.id, "completed")}
+                  >
+                    Mark as Completed
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="destructive"
+                    onClick={() => updateStatus(job.id, "cancelled")}
+                  >
+                    Cancel Job
+                  </Button>
                 </div>
               </div>
             );
