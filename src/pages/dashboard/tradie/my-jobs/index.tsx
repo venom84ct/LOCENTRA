@@ -54,12 +54,8 @@ const MyJobsPage = () => {
                 <Card
                   key={lead.id}
                   className={`border ${
-                    isAssigned
-                      ? "bg-[#CAEEC2] border-green-600"
-                      : job.is_emergency
-                      ? "border-red-600 border-2"
-                      : "border-gray-200"
-                  }`}
+                    isAssigned ? "bg-[#CAEEC2] border-green-600" : "border-gray-200"
+                  } ${job.is_emergency ? "border-red-600 border-2" : ""}`}
                 >
                   <CardHeader>
                     <CardTitle className="flex justify-between items-center">
