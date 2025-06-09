@@ -1,3 +1,5 @@
+// File: src/pages/dashboard/jobs.tsx
+
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { useNavigate } from "react-router-dom";
@@ -27,7 +29,7 @@ const DashboardJobs = () => {
       .single();
 
     if (profileError || !profileData) {
-      console.error("❌ Failed to fetch profile:", profileError?.message);
+      console.error("\u274C Failed to fetch profile:", profileError?.message);
       return;
     }
 
@@ -40,7 +42,7 @@ const DashboardJobs = () => {
       .order("created_at", { ascending: false });
 
     if (jobsError) {
-      console.error("❌ Failed to fetch jobs:", jobsError.message);
+      console.error("\u274C Failed to fetch jobs:", jobsError.message);
     }
 
     const visibleJobs = (jobsData || []).filter(
@@ -78,9 +80,13 @@ const DashboardJobs = () => {
       .eq("homeowner_id", user.id);
 
     if (error) {
-      console.error("❌ Failed to update job:", error.message);
+      console.error("\u274C Failed to update job:", error.message);
     } else {
-      navigate(`/dashboard/review/${jobId}`);
+      if (newStatus === "completed") {
+        navigate(`/dashboard/review/${jobId}`);
+      } else {
+        await refetchJobs(user.id);
+      }
     }
   };
 
@@ -210,7 +216,11 @@ const DashboardJobs = () => {
                 <Button
                   size="sm"
                   variant="destructive"
-                  onClick={() => updateStatus(job.id, "cancelled")}
+                  onClick={() => {
+                    if (window.confirm("Are you sure you want to cancel this job?")) {
+                      updateStatus(job.id, "cancelled");
+                    }
+                  }}
                 >
                   Cancel Job
                 </Button>
