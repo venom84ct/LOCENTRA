@@ -5,7 +5,6 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, DollarSign, MapPin, Clock, User, Plus, AlertCircle } from "lucide-react";
-import { Select } from "@/components/ui/select";
 
 const DashboardJobs = () => {
   const [jobs, setJobs] = useState<any[]>([]);
@@ -57,7 +56,10 @@ const DashboardJobs = () => {
   }, []);
 
   const updateStatus = async (jobId: string, newStatus: string) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+
     const { error } = await supabase
       .from("jobs")
       .update({ status: newStatus.toLowerCase() })
@@ -74,10 +76,7 @@ const DashboardJobs = () => {
   };
 
   const assignTradie = async (jobId: string, tradieId: string) => {
-    await supabase
-      .from("jobs")
-      .update({ assigned_tradie: tradieId })
-      .eq("id", jobId);
+    await supabase.from("jobs").update({ assigned_tradie: tradieId }).eq("id", jobId);
     await refetchJobs(profile.id);
   };
 
@@ -134,7 +133,9 @@ const DashboardJobs = () => {
                   </div>
                   <div className="flex flex-col items-end space-y-1">
                     {job.is_emergency && (
-                      <Badge variant="destructive" className="text-xs">Emergency</Badge>
+                      <Badge variant="destructive" className="text-xs">
+                        Emergency
+                      </Badge>
                     )}
                     {renderStatusLabel(job)}
                   </div>
@@ -143,7 +144,12 @@ const DashboardJobs = () => {
                 {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
                   <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                     {job.image_urls.map((url: string, idx: number) => (
-                      <img key={idx} src={url} alt="" className="w-full h-32 object-cover rounded border" />
+                      <img
+                        key={idx}
+                        src={url}
+                        alt=""
+                        className="w-full h-32 object-cover rounded border"
+                      />
                     ))}
                   </div>
                 )}
@@ -151,10 +157,22 @@ const DashboardJobs = () => {
                 <p className="text-sm">{job.description}</p>
 
                 <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
-                  <div className="flex items-center"><MapPin className="h-4 w-4 mr-1" />{job.location}</div>
-                  <div className="flex items-center"><Calendar className="h-4 w-4 mr-1" />{new Date(job.created_at).toLocaleDateString()}</div>
-                  <div className="flex items-center"><DollarSign className="h-4 w-4 mr-1" />{job.budget}</div>
-                  <div className="flex items-center"><Clock className="h-4 w-4 mr-1" />{job.timeline}</div>
+                  <div className="flex items-center">
+                    <MapPin className="h-4 w-4 mr-1" />
+                    {job.location}
+                  </div>
+                  <div className="flex items-center">
+                    <Calendar className="h-4 w-4 mr-1" />
+                    {new Date(job.created_at).toLocaleDateString()}
+                  </div>
+                  <div className="flex items-center">
+                    <DollarSign className="h-4 w-4 mr-1" />
+                    {job.budget}
+                  </div>
+                  <div className="flex items-center">
+                    <Clock className="h-4 w-4 mr-1" />
+                    {job.timeline}
+                  </div>
                 </div>
 
                 {job.assigned_tradie ? (
@@ -170,16 +188,21 @@ const DashboardJobs = () => {
                       onChange={(e) => assignTradie(job.id, e.target.value)}
                       defaultValue=""
                     >
-                      <option disabled value="">Select tradie...</option>
+                      <option disabled value="">
+                        Select tradie...
+                      </option>
                       {leads.map((lead: any) => (
                         <option key={lead.tradie_id} value={lead.tradie_id}>
-                          {lead.profile_centra_tradie.first_name} {lead.profile_centra_tradie.last_name}
+                          {lead.profile_centra_tradie.first_name}{" "}
+                          {lead.profile_centra_tradie.last_name}
                         </option>
                       ))}
                     </select>
                   </div>
                 ) : (
-                  <p className="text-sm text-muted-foreground">No tradies have purchased this lead yet.</p>
+                  <p className="text-sm text-muted-foreground">
+                    No tradies have purchased this lead yet.
+                  </p>
                 )}
 
                 <div className="flex gap-2 pt-4">
@@ -201,7 +224,6 @@ const DashboardJobs = () => {
                   <Button
                     size="sm"
                     variant="destructive"
-                    disabled={!job.assigned_tradie}
                     onClick={() => updateStatus(job.id, "cancelled")}
                   >
                     Cancel Job
@@ -217,4 +239,3 @@ const DashboardJobs = () => {
 };
 
 export default DashboardJobs;
-
