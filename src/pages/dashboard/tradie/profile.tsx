@@ -37,18 +37,36 @@ const TradieProfilePage = () => {
         .eq("tradie_id", user.id);
 
       if (!error && data) {
+        // Safe portfolio parsing
+        let fixedPortfolio: string[] = [];
+
+        if (Array.isArray(data.portfolio)) {
+          fixedPortfolio = data.portfolio;
+        } else if (typeof data.portfolio === "string") {
+          try {
+            const parsed = JSON.parse(data.portfolio);
+            if (Array.isArray(parsed)) {
+              fixedPortfolio = parsed;
+            }
+          } catch {
+            console.warn("Fixing malformed portfolio string for user:", user.id);
+            await supabase
+              .from("profile_centra_tradie")
+              .update({ portfolio: [] })
+              .eq("id", user.id);
+          }
+        }
+
         setProfile({
           ...data,
-          portfolio: Array.isArray(data.portfolio)
-            ? data.portfolio
-            : typeof data.portfolio === "string"
-            ? JSON.parse(data.portfolio)
-            : [],
+          portfolio: fixedPortfolio,
           reviews: reviews || [],
         });
       }
+
       setLoading(false);
     };
+
     fetchProfile();
   }, []);
 
@@ -150,7 +168,6 @@ const TradieProfilePage = () => {
                     {profile.first_name} {profile.last_name}
                   </CardTitle>
 
-                  {/* Badges */}
                   {profile.weekly_badge === "gold" && (
                     <div className="flex justify-center items-center mt-1 text-yellow-500">
                       <Trophy className="h-5 w-5 mr-1" />
