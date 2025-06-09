@@ -1,3 +1,4 @@
+// src/components/dashboard/DashboardJobs.tsx
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import {
@@ -8,14 +9,13 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
 const DashboardJobs = () => {
   const [jobs, setJobs] = useState<any[]>([]);
   const [userId, setUserId] = useState<string>("");
-
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -28,12 +28,12 @@ const DashboardJobs = () => {
 
       const { data, error } = await supabase
         .from("jobs")
-        .select(\`
+        .select(`
           *,
           profile_centra_resident(first_name, avatar_url),
           profile_centra_tradie!assigned_tradie(first_name, last_name),
           job_leads(id, tradie_id, profile_centra_tradie(first_name, last_name))
-        \`)
+        `)
         .eq("homeowner_id", user.id)
         .order("created_at", { ascending: false });
 
@@ -53,9 +53,7 @@ const DashboardJobs = () => {
 
     if (!error) {
       setJobs((prev) =>
-        prev.map((j) =>
-          j.id === jobId ? { ...j, status: "cancelled" } : j
-        )
+        prev.map((j) => (j.id === jobId ? { ...j, status: "cancelled" } : j))
       );
     }
   };
@@ -68,9 +66,7 @@ const DashboardJobs = () => {
 
     if (!error) {
       setJobs((prev) =>
-        prev.map((j) =>
-          j.id === jobId ? { ...j, assigned_tradie: tradieId } : j
-        )
+        prev.map((j) => (j.id === jobId ? { ...j, assigned_tradie: tradieId } : j))
       );
     }
   };
@@ -82,12 +78,15 @@ const DashboardJobs = () => {
       .eq("id", jobId);
 
     if (!error) {
-      navigate(\`/dashboard/review/\${jobId}\`);
+      setJobs((prev) =>
+        prev.map((j) => (j.id === jobId ? { ...j, status: "completed" } : j))
+      );
+      navigate(`/dashboard/review/${jobId}`);
     }
   };
 
   return (
-    <DashboardLayout userType="centraResident">
+    <DashboardLayout>
       <div className="p-6 space-y-4">
         <h1 className="text-2xl font-bold mb-4">Your Posted Jobs</h1>
         {jobs.length === 0 ? (
@@ -104,7 +103,9 @@ const DashboardJobs = () => {
             return (
               <Card
                 key={job.id}
-                className={\`p-4 \${isAssigned ? "bg-[#CAEEC2]" : "bg-white"} \${isEmergency ? "border-red-500 border-2" : ""}\`}
+                className={`p-4 ${
+                  isAssigned ? "bg-[#CAEEC2]" : "bg-white"
+                } ${isEmergency ? "border-red-500 border-2" : ""}`}
               >
                 <CardHeader>
                   <CardTitle className="flex justify-between items-center">
@@ -115,7 +116,7 @@ const DashboardJobs = () => {
                       )}
                     </div>
                     {isCompleted ? (
-                      <Badge variant="success">Completed</Badge>
+                      <Badge className="bg-green-700 text-white">Completed</Badge>
                     ) : isAssigned ? (
                       <Badge variant="outline">In Progress</Badge>
                     ) : (
@@ -179,9 +180,7 @@ const DashboardJobs = () => {
                     <div className="flex gap-2 mt-3">
                       <Button
                         variant="default"
-                        onClick={() =>
-                          navigate(\`/dashboard/edit-job/\${job.id}\`)
-                        }
+                        onClick={() => navigate(`/dashboard/edit-job/${job.id}`)}
                       >
                         <Pencil className="w-4 h-4 mr-2" />
                         Edit
@@ -196,14 +195,16 @@ const DashboardJobs = () => {
                     </div>
                   )}
 
-                  {isAssigned && !isCompleted && (
-                    <Button
-                      variant="success"
-                      className="mt-3"
-                      onClick={() => handleMarkComplete(job.id)}
-                    >
-                      ✅ Mark as Complete & Leave Review
-                    </Button>
+                  {isAssigned && !isCancelled && !isCompleted && (
+                    <div className="mt-3">
+                      <Button
+                        variant="success"
+                        onClick={() => handleMarkComplete(job.id)}
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Mark as Complete
+                      </Button>
+                    </div>
                   )}
 
                   {isCancelled && (
