@@ -1,5 +1,3 @@
-// src/pages/dashboard/tradie/profile.tsx
-
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import DashboardLayout from "@/components/layout/DashboardLayout";
