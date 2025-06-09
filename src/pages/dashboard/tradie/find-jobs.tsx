@@ -127,13 +127,12 @@ const FindJobsPage = () => {
     const matchesEmergency = showEmergencyOnly ? job.is_emergency === true : true;
 
     const isPurchased = purchasedLeads.includes(job.id);
-    const isAssignedToAnother = job.assigned_tradie && job.assigned_tradie !== userId;
 
     return (
       matchesSearch &&
       matchesCategory &&
       matchesEmergency &&
-      (!job.assigned_tradie || job.assigned_tradie === userId || isPurchased)
+      (!job.assigned_tradie || isPurchased)
     );
   });
 
