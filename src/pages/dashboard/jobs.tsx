@@ -1,193 +1,140 @@
-
-// src/components/dashboard/DashboardJobs.tsx
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash2, CheckCircle } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import DashboardLayout from "@/components/layout/DashboardLayout";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { MessageSquare, MapPin, Calendar, DollarSign, Trash2 } from "lucide-react";
 
-const DashboardJobs = () => {
-  const [jobs, setJobs] = useState<any[]>([]);
-  const [userId, setUserId] = useState<string>("");
-
-  const navigate = useNavigate();
+const MyJobsPage = () => {
+  const [leads, setLeads] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
-    const fetchJobs = async () => {
+    const fetchData = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
-      setUserId(user.id);
+      setUser(user);
 
       const { data, error } = await supabase
-        .from("jobs")
-        .select(\`
-          *,
-          profile_centra_tradie!assigned_tradie(first_name, last_name),
-          job_leads(id, tradie_id, profile_centra_tradie(first_name, last_name))
-        \`)
-        .eq("homeowner_id", user.id)
-        .order("created_at", { ascending: false });
+        .from("job_leads")
+        .select("*, jobs(*, profile_centra_resident(first_name, last_name, avatar_url))")
+        .eq("tradie_id", user.id);
 
-      if (!error) {
-        setJobs(data || []);
-      }
+      if (error) console.error(error);
+      else setLeads(data);
     };
-
-    fetchJobs();
+    fetchData();
   }, []);
 
-  const handleCancelJob = async (jobId: string) => {
-    const { error } = await supabase
-      .from("jobs")
-      .update({ status: "cancelled" })
-      .eq("id", jobId);
-    if (!error) {
-      setJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, status: "cancelled" } : j)));
-    }
-  };
-
-  const handleMarkAsComplete = async (jobId: string) => {
-    const { error } = await supabase
-      .from("jobs")
-      .update({ status: "completed" })
-      .eq("id", jobId);
-    if (!error) {
-      setJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, status: "completed" } : j)));
-    }
-  };
-
-  const handleAssignTradie = async (jobId: string, tradieId: string) => {
-    const { error } = await supabase
-      .from("jobs")
-      .update({ assigned_tradie: tradieId })
-      .eq("id", jobId);
-
-    if (!error) {
-      setJobs((prev) => prev.map((j) => (j.id === jobId ? { ...j, assigned_tradie: tradieId } : j)));
-    }
+  const handleDeleteLead = async (jobId: string) => {
+    if (!user) return;
+    await supabase.from("job_leads").delete().match({ job_id: jobId, tradie_id: user.id });
+    setLeads((prev) => prev.filter((l) => l.job_id !== jobId));
   };
 
   return (
-    <DashboardLayout userType="centraResident">
-      <div className="p-6 space-y-4">
-        <h1 className="text-2xl font-bold mb-4">Your Posted Jobs</h1>
-        {jobs.length === 0 ? (
-          <p>No jobs posted yet.</p>
-        ) : (
-          jobs.map((job) => {
-            const isAssigned = !!job.assigned_tradie;
-            const isCancelled = job.status === "cancelled";
-            const isCompleted = job.status === "completed";
-            const isEmergency = job.is_emergency;
-            const assignedTradie = job.profile_centra_tradie;
-            const tradieOptions = job.job_leads || [];
+    <DashboardLayout userType="tradie" user={user}>
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-2xl font-bold mb-6">My Jobs</h1>
+        <div className="space-y-4">
+          {leads.length === 0 ? (
+            <p>No job leads found.</p>
+          ) : (
+            leads.map((lead) => {
+              const job = lead.jobs;
+              const profile = job.profile_centra_resident;
+              const isAssigned = job.assigned_tradie === user.id;
+              const isUnassigned = !job.assigned_tradie;
 
-            return (
-              <Card
-                key={job.id}
-                className={\`p-4 \${isAssigned ? "bg-[#CAEEC2]" : "bg-white"} \${isEmergency ? "border-red-500 border-2" : ""}\`}
-              >
-                <CardHeader>
-                  <CardTitle className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      {job.title}
-                      {isEmergency && <Badge variant="destructive">Emergency</Badge>}
+              return (
+                <Card
+                  key={lead.id}
+                  className={`border ${
+                    isAssigned ? "bg-[#CAEEC2] border-green-600" : "border-gray-200"
+                  } ${job.is_emergency ? "border-red-600 border-2" : ""}`}
+                >
+                  <CardHeader>
+                    <CardTitle className="flex justify-between items-center">
+                      <span>{job.title}</span>
+                      <div className="flex gap-2">
+                        {isAssigned && <Badge variant="outline">Assigned to you</Badge>}
+                        {isUnassigned && <Badge variant="secondary">Open</Badge>}
+                        {job.is_emergency && <Badge variant="destructive">Emergency</Badge>}
+                      </div>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="mb-2 text-muted-foreground text-sm">{job.description}</p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm mb-3 text-muted-foreground">
+                      <div className="flex items-center">
+                        <MapPin className="w-4 h-4 mr-2" /> {job.location}
+                      </div>
+                      <div className="flex items-center">
+                        <Calendar className="w-4 h-4 mr-2" />
+                        {new Date(job.created_at).toLocaleDateString()}
+                      </div>
+                      <div className="flex items-center">
+                        <DollarSign className="w-4 h-4 mr-2" /> {job.budget}
+                      </div>
                     </div>
-                    {isCompleted ? (
-                      <Badge variant="default">Completed</Badge>
-                    ) : isAssigned ? (
-                      <Badge variant="outline">In Progress</Badge>
-                    ) : (
-                      <Badge variant="secondary">Open for Quotes</Badge>
-                    )}
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  <p className="text-sm text-muted-foreground">{job.description}</p>
-                  <div className="text-sm text-muted-foreground">
-                    Budget: ${job.budget} | Location: {job.location} | Timeline: {job.timeline}
-                  </div>
 
-                  {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
-                      {job.image_urls.map((url: string, idx: number) => (
-                        <a key={idx} href={url} target="_blank" rel="noreferrer">
-                          <img src={url} className="w-full h-24 object-cover rounded" />
-                        </a>
-                      ))}
-                    </div>
-                  )}
-
-                  {isAssigned && assignedTradie && (
-                    <p className="text-sm text-green-800 font-medium">
-                      Assigned to: {assignedTradie.first_name} {assignedTradie.last_name}
-                    </p>
-                  )}
-
-                  {!isAssigned && !isCancelled && tradieOptions.length > 0 && (
-                    <div className="mt-3">
-                      <label className="text-sm font-medium mr-2">Assign Tradie:</label>
-                      <select
-                        onChange={(e) => handleAssignTradie(job.id, e.target.value)}
-                        defaultValue=""
-                        className="border rounded p-1"
-                      >
-                        <option value="" disabled>Select tradie</option>
-                        {tradieOptions.map((lead: any) => (
-                          <option key={lead.tradie_id} value={lead.tradie_id}>
-                            {lead.profile_centra_tradie.first_name}{" "}
-                            {lead.profile_centra_tradie.last_name}
-                          </option>
+                    {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mb-3">
+                        {job.image_urls.map((url: string, idx: number) => (
+                          <a href={url} target="_blank" rel="noopener noreferrer" key={idx}>
+                            <img
+                              src={url}
+                              alt={`Job image ${idx + 1}`}
+                              className="w-full h-24 object-cover rounded border"
+                            />
+                          </a>
                         ))}
-                      </select>
-                    </div>
-                  )}
+                      </div>
+                    )}
 
-                  {!isAssigned && !isCancelled && !isCompleted && (
-                    <div className="flex gap-2 mt-3">
-                      <Button variant="default" onClick={() => navigate(\`/dashboard/edit-job/\${job.id}\`)}>
-                        <Pencil className="w-4 h-4 mr-2" />
-                        Edit
+                    <div className="flex items-center gap-3">
+                      {profile && (
+                        <div className="flex items-center gap-2">
+                          <Avatar>
+                            <AvatarImage src={profile.avatar_url} />
+                            <AvatarFallback>{profile.first_name?.[0]}</AvatarFallback>
+                          </Avatar>
+                          <span>
+                            {profile.first_name} {profile.last_name}
+                          </span>
+                        </div>
+                      )}
+                      <Button
+                        onClick={() =>
+                          (window.location.href = `/dashboard/tradie/messages?jobId=${job.id}`)
+                        }
+                        className="ml-auto"
+                      >
+                        <MessageSquare className="w-4 h-4 mr-2" /> Message
                       </Button>
-                      <Button variant="destructive" onClick={() => handleCancelJob(job.id)}>
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Cancel Job
-                      </Button>
+                      {!isAssigned && (
+                        <Button
+                          variant="ghost"
+                          onClick={() => handleDeleteLead(job.id)}
+                          className="text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4 mr-1" /> Delete Lead
+                        </Button>
+                      )}
                     </div>
-                  )}
-
-                  {isAssigned && !isCompleted && !isCancelled && (
-                    <Button
-                      variant="outline"
-                      className="mt-3"
-                      onClick={() => handleMarkAsComplete(job.id)}
-                    >
-                      <CheckCircle className="w-4 h-4 mr-2" />
-                      Mark as Complete
-                    </Button>
-                  )}
-
-                  {isCancelled && (
-                    <p className="text-sm text-red-500 mt-2">This job was cancelled.</p>
-                  )}
-                </CardContent>
-              </Card>
-            );
-          })
-        )}
+                  </CardContent>
+                </Card>
+              );
+            })
+          )}
+        </div>
       </div>
     </DashboardLayout>
   );
 };
 
-export default DashboardJobs;
+export default MyJobsPage;
