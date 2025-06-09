@@ -57,15 +57,6 @@ const TopTradiesPage = () => {
     fetchTopTradies();
   }, []);
 
-  const renderStars = (rating: number) => (
-    <div className="flex">
-      {Array.from({ length: 5 }).map((_, i) => (
-        <Star key={i} className={`h-4 w-4 ${i < Math.round(rating) ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`} />
-      ))}
-      <span className="ml-1 text-sm">{rating.toFixed(1)}</span>
-    </div>
-  );
-
   return (
     <DashboardLayout userType="tradie">
       <div className="p-6 max-w-5xl mx-auto">
@@ -85,36 +76,64 @@ const TopTradiesPage = () => {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            {tradies.map((tradie, index) => (
-              <div
-                key={tradie.id}
-                className={`flex items-center justify-between p-4 rounded-lg border ${getRankClass(index + 1)}`}
-              >
-                <div className="flex items-center">
-                  <div className="bg-primary/10 text-primary font-bold h-10 w-10 rounded-full flex items-center justify-center mr-4">
-                    {getBadgeIcon(index + 1)}
+            {tradies.length === 0 ? (
+              <p className="text-sm text-muted-foreground px-4 pb-4">
+                No tradies on the leaderboard yet.
+              </p>
+            ) : (
+              tradies.map((tradie, index) => {
+                const rating = tradie.rating_avg ?? 0;
+                const jobsCompleted = tradie.jobs_completed ?? 0;
+                const score = tradie.score ?? 0;
+
+                return (
+                  <div
+                    key={tradie.id}
+                    className={`flex items-center justify-between p-4 rounded-lg border ${getRankClass(index + 1)}`}
+                  >
+                    <div className="flex items-center">
+                      <div className="bg-primary/10 text-primary font-bold h-10 w-10 rounded-full flex items-center justify-center mr-4">
+                        {getBadgeIcon(index + 1)}
+                      </div>
+                      <Avatar className="h-12 w-12 mr-4">
+                        <AvatarImage src={tradie.avatar_url} />
+                        <AvatarFallback>
+                          {(tradie.first_name?.[0] || "") + (tradie.last_name?.[0] || "")}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-medium">
+                          {tradie.first_name} {tradie.last_name}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {tradie.trade_category || "Unspecified"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="flex justify-end">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`h-4 w-4 ${
+                              i < Math.round(rating)
+                                ? "fill-yellow-400 text-yellow-400"
+                                : "text-gray-300"
+                            }`}
+                          />
+                        ))}
+                        <span className="ml-1 text-sm">{rating.toFixed(1)}</span>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        <CheckCircle className="h-3 w-3 inline text-green-500 mr-1" />
+                        {jobsCompleted} jobs completed
+                      </div>
+                      <p className="text-primary font-bold mt-1">{score} points</p>
+                    </div>
                   </div>
-                  <Avatar className="h-12 w-12 mr-4">
-                    <AvatarImage src={tradie.avatar_url} />
-                    <AvatarFallback>
-                      {(tradie.first_name?.[0] || "") + (tradie.last_name?.[0] || "")}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium">{tradie.first_name} {tradie.last_name}</p>
-                    <p className="text-sm text-muted-foreground">{tradie.trade_category}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <div className="flex justify-end">{renderStars(tradie.rating_avg || 0)}</div>
-                  <div className="text-sm text-muted-foreground">
-                    <CheckCircle className="h-3 w-3 inline text-green-500 mr-1" />
-                    {tradie.jobs_completed || 0} jobs completed
-                  </div>
-                  <p className="text-primary font-bold mt-1">{tradie.score} points</p>
-                </div>
-              </div>
-            ))}
+                );
+              })
+            )}
           </CardContent>
         </Card>
       </div>
