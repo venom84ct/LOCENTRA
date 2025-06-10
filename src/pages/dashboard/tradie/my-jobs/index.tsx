@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessageSquare, MapPin, Calendar, DollarSign, Trash2 } from "lucide-react";
+import { MessageSquare, MapPin, Calendar, DollarSign, Trash2, CheckCircle } from "lucide-react";
 
 const MyJobsPage = () => {
   const [leads, setLeads] = useState<any[]>([]);
@@ -48,6 +48,7 @@ const MyJobsPage = () => {
               const job = lead.jobs;
               const profile = job.profile_centra_resident;
               const isAssigned = job.assigned_tradie === user.id;
+              const isCompleted = job.status === "completed";
               const isUnassigned = !job.assigned_tradie;
 
               return (
@@ -61,7 +62,12 @@ const MyJobsPage = () => {
                     <CardTitle className="flex justify-between items-center">
                       <span>{job.title}</span>
                       <div className="flex gap-2">
-                        {isAssigned && <Badge variant="outline">Assigned to you</Badge>}
+                        {isCompleted && (
+                          <Badge className="bg-green-700 text-white">Completed</Badge>
+                        )}
+                        {isAssigned && !isCompleted && (
+                          <Badge variant="outline">Assigned to you</Badge>
+                        )}
                         {isUnassigned && <Badge variant="secondary">Open</Badge>}
                         {job.is_emergency && <Badge variant="destructive">Emergency</Badge>}
                       </div>
@@ -116,13 +122,15 @@ const MyJobsPage = () => {
                       >
                         <MessageSquare className="w-4 h-4 mr-2" /> Message
                       </Button>
-                      {!isAssigned && (
+
+                      {/* Allow delete after completion */}
+                      {isAssigned && isCompleted && (
                         <Button
                           variant="ghost"
                           onClick={() => handleDeleteLead(job.id)}
                           className="text-red-600"
                         >
-                          <Trash2 className="w-4 h-4 mr-1" /> Delete Lead
+                          <Trash2 className="w-4 h-4 mr-1" /> Delete Job
                         </Button>
                       )}
                     </div>
