@@ -14,7 +14,6 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 
 const DashboardJobs = () => {
   const [jobs, setJobs] = useState<any[]>([]);
-  const [userId, setUserId] = useState<string>("");
   const [user, setUser] = useState<any>(null);
   const [reviewedJobs, setReviewedJobs] = useState<string[]>([]);
   const navigate = useNavigate();
@@ -25,7 +24,6 @@ const DashboardJobs = () => {
     } = await supabase.auth.getUser();
     if (!user) return;
     setUser(user);
-    setUserId(user.id);
 
     const { data, error } = await supabase
       .from("jobs")
@@ -38,9 +36,7 @@ const DashboardJobs = () => {
       .eq("homeowner_id", user.id)
       .order("created_at", { ascending: false });
 
-    if (!error) {
-      setJobs(data || []);
-    }
+    if (!error) setJobs(data || []);
 
     const { data: reviewsData } = await supabase
       .from("reviews")
@@ -55,36 +51,18 @@ const DashboardJobs = () => {
   }, []);
 
   const handleCancelJob = async (jobId: string) => {
-    const { error } = await supabase
-      .from("jobs")
-      .update({ status: "cancelled" })
-      .eq("id", jobId);
-
-    if (!error) {
-      fetchJobs();
-    }
+    const { error } = await supabase.from("jobs").update({ status: "cancelled" }).eq("id", jobId);
+    if (!error) fetchJobs();
   };
 
   const handleAssignTradie = async (jobId: string, tradieId: string) => {
-    const { error } = await supabase
-      .from("jobs")
-      .update({ assigned_tradie: tradieId })
-      .eq("id", jobId);
-
-    if (!error) {
-      fetchJobs();
-    }
+    const { error } = await supabase.from("jobs").update({ assigned_tradie: tradieId }).eq("id", jobId);
+    if (!error) fetchJobs();
   };
 
   const handleMarkComplete = async (jobId: string) => {
-    const { error } = await supabase
-      .from("jobs")
-      .update({ status: "completed" })
-      .eq("id", jobId);
-
-    if (!error) {
-      fetchJobs();
-    }
+    const { error } = await supabase.from("jobs").update({ status: "completed" }).eq("id", jobId);
+    if (!error) fetchJobs();
   };
 
   const goToReviewPage = (jobId: string) => {
@@ -147,9 +125,8 @@ const DashboardJobs = () => {
 
                   {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
-                      {job.image_urls
-                        .filter((url: string) => typeof url === "string" && url.startsWith("http"))
-                        .map((url: string, idx: number) => (
+                      {job.image_urls.map((url: string, idx: number) => (
+                        typeof url === "string" && (
                           <a key={idx} href={url} target="_blank" rel="noreferrer">
                             <img
                               src={url}
@@ -157,7 +134,8 @@ const DashboardJobs = () => {
                               alt={`Job image ${idx + 1}`}
                             />
                           </a>
-                        ))}
+                        )
+                      ))}
                     </div>
                   )}
 
