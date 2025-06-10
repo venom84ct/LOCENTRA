@@ -13,7 +13,7 @@ import { Pencil, Trash2, CheckCircle, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 
-const JobsPage = () => {
+const DashboardJobs = () => {
   const [jobs, setJobs] = useState<any[]>([]);
   const [userId, setUserId] = useState<string>("");
   const navigate = useNavigate();
@@ -106,9 +106,9 @@ const JobsPage = () => {
             return (
               <Card
                 key={job.id}
-                className={`p-4 ${isAssigned ? "bg-[#CAEEC2]" : "bg-white"} ${
-                  isEmergency ? "border-red-500 border-2" : ""
-                }`}
+                className={`p-4 ${
+                  isAssigned ? "bg-[#CAEEC2]" : "bg-white"
+                } ${isEmergency ? "border-red-500 border-2" : ""}`}
               >
                 <CardHeader>
                   <CardTitle className="flex justify-between items-center">
@@ -128,20 +128,17 @@ const JobsPage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <p className="text-sm text-muted-foreground">{job.description}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {job.description}
+                  </p>
                   <div className="text-sm text-muted-foreground">
-                    Budget: ${job.budget} | Location: {job.location} | Timeline:{" "}
-                    {job.timeline}
+                    Budget: ${job.budget} | Location: {job.location} | Timeline: {job.timeline}
                   </div>
-
                   {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
                       {job.image_urls.map((url: string, idx: number) => (
-                        <a key={idx} href={url} target="_blank" rel="noreferrer">
-                          <img
-                            src={url}
-                            className="w-full h-24 object-cover rounded"
-                          />
+                        <a key={idx} href={url} target="_blank">
+                          <img src={url} className="w-full h-24 object-cover rounded" />
                         </a>
                       ))}
                     </div>
@@ -149,20 +146,15 @@ const JobsPage = () => {
 
                   {isAssigned && assignedTradie && (
                     <p className="text-sm text-green-800 font-medium">
-                      Assigned to: {assignedTradie.first_name}{" "}
-                      {assignedTradie.last_name}
+                      Assigned to: {assignedTradie.first_name} {assignedTradie.last_name}
                     </p>
                   )}
 
                   {!isAssigned && !isCancelled && tradieOptions.length > 0 && (
                     <div className="mt-3">
-                      <label className="text-sm font-medium mr-2">
-                        Assign Tradie:
-                      </label>
+                      <label className="text-sm font-medium mr-2">Assign Tradie:</label>
                       <select
-                        onChange={(e) =>
-                          handleAssignTradie(job.id, e.target.value)
-                        }
+                        onChange={(e) => handleAssignTradie(job.id, e.target.value)}
                         defaultValue=""
                         className="border rounded p-1"
                       >
@@ -171,8 +163,7 @@ const JobsPage = () => {
                         </option>
                         {tradieOptions.map((lead: any) => (
                           <option key={lead.tradie_id} value={lead.tradie_id}>
-                            {lead.profile_centra_tradie.first_name}{" "}
-                            {lead.profile_centra_tradie.last_name}
+                            {lead.profile_centra_tradie.first_name} {lead.profile_centra_tradie.last_name}
                           </option>
                         ))}
                       </select>
@@ -181,17 +172,11 @@ const JobsPage = () => {
 
                   {!isAssigned && !isCancelled && (
                     <div className="flex gap-2 mt-3">
-                      <Button
-                        variant="default"
-                        onClick={() => navigate(`/dashboard/edit-job/${job.id}`)}
-                      >
+                      <Button variant="default" onClick={() => navigate(`/dashboard/edit-job/${job.id}`)}>
                         <Pencil className="w-4 h-4 mr-2" />
                         Edit
                       </Button>
-                      <Button
-                        variant="destructive"
-                        onClick={() => handleCancelJob(job.id)}
-                      >
+                      <Button variant="destructive" onClick={() => handleCancelJob(job.id)}>
                         <Trash2 className="w-4 h-4 mr-2" />
                         Cancel Job
                       </Button>
@@ -200,10 +185,7 @@ const JobsPage = () => {
 
                   {isAssigned && !isCancelled && !isCompleted && (
                     <div className="mt-3">
-                      <Button
-                        variant="success"
-                        onClick={() => handleMarkComplete(job.id)}
-                      >
+                      <Button variant="success" onClick={() => handleMarkComplete(job.id)}>
                         <CheckCircle className="w-4 h-4 mr-2" />
                         Mark as Complete
                       </Button>
@@ -212,10 +194,7 @@ const JobsPage = () => {
 
                   {isCompleted && (
                     <div className="mt-3">
-                      <Button
-                        variant="default"
-                        onClick={() => goToReviewPage(job.id)}
-                      >
+                      <Button variant="default" onClick={() => goToReviewPage(job.id)}>
                         <Star className="w-4 h-4 mr-2" />
                         Leave a Review
                       </Button>
@@ -223,9 +202,7 @@ const JobsPage = () => {
                   )}
 
                   {isCancelled && (
-                    <p className="text-sm text-red-500 mt-2">
-                      This job was cancelled.
-                    </p>
+                    <p className="text-sm text-red-500 mt-2">This job was cancelled.</p>
                   )}
                 </CardContent>
               </Card>
@@ -237,4 +214,4 @@ const JobsPage = () => {
   );
 };
 
-export default JobsPage;
+export default DashboardJobs;
