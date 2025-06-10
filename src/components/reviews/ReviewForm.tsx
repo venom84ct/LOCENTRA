@@ -1,76 +1,48 @@
-import React, { useState } from "react";
+// src/pages/dashboard/review/[jobId].tsx
+import React, { useEffect, useState } from "react";
+import { useParams } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
-import { Star } from "lucide-react";
+import DashboardLayout from "@/components/layout/DashboardLayout";
+import ReviewForm from "@/components/reviews/ReviewForm";
 
-interface ReviewFormProps {
-  jobId: string;
-  tradieId: string;
-  jobTitle: string;
-}
+const ReviewPage = () => {
+  const { jobId } = useParams();
+  const [tradieId, setTradieId] = useState<string>("");
+  const [jobTitle, setJobTitle] = useState<string>("");
+  const [user, setUser] = useState<any>(null);
 
-const ReviewForm: React.FC<ReviewFormProps> = ({ jobId, tradieId, jobTitle }) => {
-  const [rating, setRating] = useState<number>(0);
-  const [comment, setComment] = useState<string>("");
-  const [submitting, setSubmitting] = useState(false);
+  useEffect(() => {
+    const fetchUserAndJob = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      setUser(user);
 
-  const handleSubmit = async () => {
-    setSubmitting(true);
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) {
-      alert("You must be logged in to leave a review.");
-      setSubmitting(false);
-      return;
-    }
+      if (!jobId) return;
+      const { data, error } = await supabase
+        .from("jobs")
+        .select("title, assigned_tradie")
+        .eq("id", jobId)
+        .single();
 
-    const { error } = await supabase.from("reviews").insert({
-      job_id: jobId,
-      tradie_id: tradieId,
-      homeowner_id: user.id, // Required for RLS
-      reviewer_id: user.id,
-      reviewer_name: user.email || "Anonymous",
-      comment,
-      rating,
-    });
+      if (!error && data) {
+        setTradieId(data.assigned_tradie);
+        setJobTitle(data.title);
+      }
+    };
 
-    setSubmitting(false);
-    if (error) {
-      console.error(error);
-      alert("Failed to submit review");
-    } else {
-      setRating(0);
-      setComment("");
-      alert("Review submitted successfully");
-    }
-  };
+    fetchUserAndJob();
+  }, [jobId]);
+
+  if (!jobId || !tradieId || !user) return <p>Loading...</p>;
 
   return (
-    <div className="border rounded p-4 space-y-2">
-      <h3 className="font-semibold">Leave a review for: {jobTitle}</h3>
-      <div className="flex items-center space-x-1">
-        {[1, 2, 3, 4, 5].map((val) => (
-          <Star
-            key={val}
-            className={`w-5 h-5 cursor-pointer ${
-              rating >= val ? "text-yellow-500" : "text-gray-300"
-            }`}
-            onClick={() => setRating(val)}
-          />
-        ))}
+    <DashboardLayout userType="centraResident" user={user}>
+      <div className="max-w-xl mx-auto">
+        <ReviewForm jobId={jobId} tradieId={tradieId} jobTitle={jobTitle} />
       </div>
-      <Textarea
-        placeholder="Write your feedback..."
-        value={comment}
-        onChange={(e) => setComment(e.target.value)}
-      />
-      <Button onClick={handleSubmit} disabled={submitting || rating === 0 || !comment.trim()}>
-        Submit Review
-      </Button>
-    </div>
+    </DashboardLayout>
   );
 };
 
-export default ReviewForm;
+export default ReviewPage;
