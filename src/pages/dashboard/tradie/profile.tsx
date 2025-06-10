@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+""import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
@@ -22,34 +22,33 @@ const TradieProfilePage = () => {
 
   useEffect(() => {
     const fetchProfile = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
+      const { data: profileData, error: profileError } = await supabase
         .from("profile_centra_tradie")
         .select("*")
         .eq("id", user.id)
         .single();
 
-      const { data: reviews } = await supabase
+      const { data: reviewData, error: reviewError } = await supabase
         .from("reviews")
-        .select("*")
+        .select("rating, comment, reviewer_name")
         .eq("tradie_id", user.id);
 
-      if (!error && data) {
-        // Safe portfolio parsing
+      if (!profileError && profileData) {
         let fixedPortfolio: string[] = [];
-
-        if (Array.isArray(data.portfolio)) {
-          fixedPortfolio = data.portfolio;
-        } else if (typeof data.portfolio === "string") {
+        if (Array.isArray(profileData.portfolio)) {
+          fixedPortfolio = profileData.portfolio;
+        } else if (typeof profileData.portfolio === "string") {
           try {
-            const parsed = JSON.parse(data.portfolio);
+            const parsed = JSON.parse(profileData.portfolio);
             if (Array.isArray(parsed)) {
               fixedPortfolio = parsed;
             }
           } catch {
-            console.warn("Fixing malformed portfolio string for user:", user.id);
             await supabase
               .from("profile_centra_tradie")
               .update({ portfolio: [] })
@@ -57,10 +56,22 @@ const TradieProfilePage = () => {
           }
         }
 
+        const ratingSum = reviewData?.reduce((sum, r) => sum + r.rating, 0) || 0;
+        const ratingCount = reviewData?.length || 0;
+        const ratingAvg = ratingCount > 0 ? ratingSum / ratingCount : 0;
+
+        // Update rating summary
+        await supabase
+          .from("profile_centra_tradie")
+          .update({ rating_avg: ratingAvg, rating_count: ratingCount })
+          .eq("id", user.id);
+
         setProfile({
-          ...data,
+          ...profileData,
           portfolio: fixedPortfolio,
-          reviews: reviews || [],
+          reviews: reviewData || [],
+          rating_avg: ratingAvg,
+          rating_count: ratingCount,
         });
       }
 
@@ -157,109 +168,7 @@ const TradieProfilePage = () => {
 
         {profile?.first_name ? (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader className="text-center">
-                  <Avatar className="w-20 h-20 mx-auto">
-                    <AvatarImage src={profile.avatar_url} />
-                    <AvatarFallback>{(profile.first_name || "").slice(0, 2)}</AvatarFallback>
-                  </Avatar>
-                  <CardTitle className="text-xl font-bold mt-2">
-                    {profile.first_name} {profile.last_name}
-                  </CardTitle>
-
-                  {profile.weekly_badge === "gold" && (
-                    <div className="flex justify-center items-center mt-1 text-yellow-500">
-                      <Trophy className="h-5 w-5 mr-1" />
-                      <span className="text-sm font-medium">Top Tradie of the Week</span>
-                    </div>
-                  )}
-                  {profile.weekly_badge === "silver" && (
-                    <div className="flex justify-center items-center mt-1 text-gray-400">
-                      <Medal className="h-5 w-5 mr-1" />
-                      <span className="text-sm font-medium">2nd Place This Week</span>
-                    </div>
-                  )}
-                  {profile.weekly_badge === "bronze" && (
-                    <div className="flex justify-center items-center mt-1 text-amber-700">
-                      <Medal className="h-5 w-5 mr-1" />
-                      <span className="text-sm font-medium">3rd Place This Week</span>
-                    </div>
-                  )}
-
-                  <p className="text-muted-foreground">{profile.email}</p>
-                  <div className="text-sm mt-2 space-y-1">
-                    <div className="flex items-center justify-center">
-                      <Phone className="h-4 w-4 mr-2" /> {profile.phone || "N/A"}
-                    </div>
-                    <div className="flex items-center justify-center">
-                      <MapPin className="h-4 w-4 mr-2" /> {profile.address || "No address"}
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-center mt-2 text-yellow-500">
-                    <Star className="w-4 h-4 mr-1" />
-                    {profile.rating_avg?.toFixed(1) || "0.0"} ({profile.rating_count || 0} reviews)
-                  </div>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {editing && (
-                    <Input type="file" onChange={(e) => setAvatarFile(e.target.files?.[0] || null)} />
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardHeader>
-                  <CardTitle>Profile Details</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {editing ? (
-                    <>
-                      <Textarea placeholder="About Me" value={profile.bio || ""} onChange={(e) => setProfile({ ...profile, bio: e.target.value })} />
-                      <Input placeholder="ABN" value={profile.abn || ""} onChange={(e) => setProfile({ ...profile, abn: e.target.value })} />
-                      <Input placeholder="License" value={profile.license || ""} onChange={(e) => setProfile({ ...profile, license: e.target.value })} />
-                      <Input placeholder="Trade Category" value={profile.trade_category || ""} onChange={(e) => setProfile({ ...profile, trade_category: e.target.value })} />
-                      <Input type="file" multiple accept="image/*" onChange={(e) => setPortfolioFiles(e.target.files)} />
-                      <Button onClick={handleSave}>Save Changes</Button>
-                    </>
-                  ) : (
-                    <>
-                      <p><strong>About Me:</strong> {profile.bio || "N/A"}</p>
-                      <p><strong>ABN:</strong> {profile.abn || "N/A"}</p>
-                      <p><strong>License:</strong> {profile.license || "N/A"}</p>
-                      <p><strong>Trade Category:</strong> {profile.trade_category || "N/A"}</p>
-                    </>
-                  )}
-                </CardContent>
-              </Card>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Portfolio</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {(profile.portfolio || []).slice(0, 6).map((url: string, idx: number) => (
-                    <div key={idx} className="relative group">
-                      <img
-                        src={url}
-                        alt={`Portfolio ${idx + 1}`}
-                        className="w-full h-32 object-cover rounded border"
-                      />
-                      {editing && (
-                        <button
-                          onClick={() => handleDeleteImage(url)}
-                          className="absolute top-1 right-1 bg-white rounded-full p-1 shadow hover:bg-red-100"
-                        >
-                          <Trash className="w-4 h-4 text-red-500" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            {/* ...existing profile and portfolio UI... */}
 
             <Card>
               <CardHeader>
@@ -269,8 +178,8 @@ const TradieProfilePage = () => {
                 {profile.reviews?.length ? (
                   profile.reviews.map((r: any, i: number) => (
                     <div key={i} className="p-3 border rounded">
-                      <p className="text-sm font-medium">{r.reviewer_name}</p>
-                      <p className="text-sm text-muted-foreground">{r.comment}</p>
+                      <p className="text-sm font-medium">{r.reviewer_name || "Anonymous"}</p>
+                      <p className="text-sm text-muted-foreground">{r.comment || "No comment"}</p>
                       <div className="flex items-center text-yellow-500">
                         {[...Array(r.rating)].map((_, i) => (
                           <Star key={i} className="w-4 h-4" />
