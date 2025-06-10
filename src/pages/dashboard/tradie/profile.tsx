@@ -11,7 +11,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import { Star, MapPin, Phone, Trash, Trophy, Medal } from "lucide-react";
+import { Star, Trash } from "lucide-react";
 
 const TradieProfilePage = () => {
   const [profile, setProfile] = useState<any>(null);
@@ -159,73 +159,31 @@ const TradieProfilePage = () => {
           {!editing && <Button onClick={() => setEditing(true)}>Edit Profile</Button>}
         </div>
 
-        {profile?.first_name ? (
-          <>
-            {/* Portfolio Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Portfolio</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                  {profile.portfolio?.slice(0, 6).map((url: string, idx: number) => (
-                    <div key={idx} className="relative group">
-                      <img src={url} alt={`Portfolio ${idx + 1}`} className="w-full h-32 object-cover rounded border" />
-                      {editing && (
-                        <button
-                          onClick={() => handleDeleteImage(url)}
-                          className="absolute top-1 right-1 bg-white rounded-full p-1 shadow hover:bg-red-100"
-                        >
-                          <Trash className="w-4 h-4 text-red-500" />
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+        {/* Tradie Details */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Basic Info</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <p><strong>Name:</strong> {profile.first_name} {profile.last_name}</p>
+            <p><strong>Bio:</strong> {profile.bio || "N/A"}</p>
+            <p><strong>Trade Category:</strong> {profile.trade_category || "N/A"}</p>
+            <p><strong>ABN:</strong> {profile.abn || "N/A"}</p>
+            <p><strong>License:</strong> {profile.license || "N/A"}</p>
+            <p><strong>Average Rating:</strong> {profile.rating_avg?.toFixed(1) || "0"} ⭐ ({profile.rating_count} reviews)</p>
+          </CardContent>
+        </Card>
 
-            {/* Reviews Section */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Reviews</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {profile.reviews.length > 0 ? (
-                  profile.reviews.map((r: any, i: number) => (
-                    <div key={i} className="border rounded p-3">
-                      <div className="flex items-center space-x-3 mb-1">
-                        <Avatar className="w-8 h-8">
-                          <AvatarImage src={r.profile_centra_resident?.avatar_url} />
-                          <AvatarFallback>
-                            {(r.profile_centra_resident?.first_name || "U")[0]}
-                          </AvatarFallback>
-                        </Avatar>
-                        <p className="font-medium text-sm">
-                          {r.profile_centra_resident?.first_name || "Unknown"}{" "}
-                          {r.profile_centra_resident?.last_name || ""}
-                        </p>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-1">{r.comment || "No comment"}</p>
-                      <div className="flex items-center text-yellow-500">
-                        {[...Array(r.rating)].map((_, i) => (
-                          <Star key={i} className="w-4 h-4" />
-                        ))}
-                      </div>
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-muted-foreground text-sm">No reviews available.</p>
-                )}
-              </CardContent>
-            </Card>
-          </>
-        ) : (
-          <p className="text-muted-foreground">Profile is empty. Please complete your details.</p>
-        )}
-      </div>
-    </DashboardLayout>
-  );
-};
-
-export default TradieProfilePage;
+        {/* Portfolio Section */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Portfolio</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+              {profile.portfolio?.slice(0, 6).map((url: string, idx: number) => (
+                <div key={idx} className="relative group">
+                  <img src={url} alt={`Portfolio ${idx + 1}`} className="w-full h-32 object-cover rounded border" />
+                  {editing && (
+                    <button
+                      onClick={() => handleDeleteImage(url)}
