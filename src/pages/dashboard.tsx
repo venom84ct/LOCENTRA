@@ -1,69 +1,233 @@
+// src/pages/dashboard/jobs.tsx
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
-import DashboardLayout from "@/components/layout/DashboardLayout";
-import CentraResidentDashboard from "@/components/dashboard/HomeownerDashboard";
-import TradieDashboard from "@/components/dashboard/TradieDashboard";
 import { supabase } from "@/lib/supabaseClient";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Pencil, Trash2, CheckCircle, Star } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 
-const Dashboard = () => {
+const DashboardJobs = () => {
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [userId, setUserId] = useState<string>("");
   const [user, setUser] = useState<any>(null);
-  const [userType, setUserType] = useState<"centraResident" | "tradie" | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [reviewedJobs, setReviewedJobs] = useState<string[]>([]);
   const navigate = useNavigate();
+  const location = useLocation(); // ✅ Track route changes
 
   useEffect(() => {
-    const fetchUserProfile = async () => {
-      const { data: sessionData } = await supabase.auth.getUser();
-      const userId = sessionData?.user?.id;
+    const fetchJobs = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      setUser(user);
+      setUserId(user.id);
 
-      if (!userId) {
-        navigate("/login");
-        return;
+      const { data, error } = await supabase
+        .from("jobs")
+        .select(`
+          *,
+          profile_centra_resident(first_name, avatar_url),
+          profile_centra_tradie!assigned_tradie(first_name, last_name),
+          job_leads(id, tradie_id, profile_centra_tradie(first_name, last_name))
+        `)
+        .eq("homeowner_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (!error) {
+        setJobs(data || []);
       }
 
-      // Try to get as homeowner first
-      const { data: residentData, error: residentError } = await supabase
-        .from("profile_centra_resident")
-        .select("*")
-        .eq("id", userId)
-        .single();
+      const { data: reviewsData } = await supabase
+        .from("reviews")
+        .select("job_id")
+        .eq("reviewer_id", user.id);
 
-      if (residentData) {
-        setUserType(residentData.role === "tradie" ? "tradie" : "centraResident");
-        setUser(residentData);
-        setLoading(false);
-        return;
-      }
-
-      // If not in resident, try tradie profile
-      const { data: tradieData, error: tradieError } = await supabase
-        .from("profile_centra_tradie")
-        .select("*")
-        .eq("id", userId)
-        .single();
-
-      if (tradieData) {
-        setUserType("tradie");
-        setUser(tradieData);
-        setLoading(false);
-        return;
-      }
-
-      console.error("Error fetching user profile:", residentError || tradieError);
-      navigate("/login");
+      setReviewedJobs(reviewsData?.map((r: any) => r.job_id) || []);
     };
 
-    fetchUserProfile();
-  }, [navigate]);
+    fetchJobs();
+  }, [location]); // ✅ Refresh on route change
 
-  if (loading) return <div className="p-8">Loading dashboard...</div>;
-  if (!userType || !user) return <div className="p-8 text-red-600">Unable to load user.</div>;
+  const handleCancelJob = async (jobId: string) => {
+    const { error } = await supabase
+      .from("jobs")
+      .update({ status: "cancelled" })
+      .eq("id", jobId);
+
+    if (!error) {
+      setJobs((prev) => prev.filter((j) => j.id !== jobId));
+    }
+  };
+
+  const handleAssignTradie = async (jobId: string, tradieId: string) => {
+    const { error } = await supabase
+      .from("jobs")
+      .update({ assigned_tradie: tradieId })
+      .eq("id", jobId);
+
+    if (!error) {
+      setJobs((prev) =>
+        prev.map((j) =>
+          j.id === jobId ? { ...j, assigned_tradie: tradieId } : j
+        )
+      );
+    }
+  };
+
+  const handleMarkComplete = async (jobId: string) => {
+    const { error } = await supabase
+      .from("jobs")
+      .update({ status: "completed" })
+      .eq("id", jobId);
+
+    if (!error) {
+      setJobs((prev) =>
+        prev.map((j) => (j.id === jobId ? { ...j, status: "completed" } : j))
+      );
+    }
+  };
+
+  const goToReviewPage = (jobId: string) => {
+    navigate(`/dashboard/review/${jobId}`);
+  };
+
+  if (!user) return <p>Loading...</p>;
 
   return (
-    <DashboardLayout userType={userType} user={user}>
-      {userType === "tradie" ? <TradieDashboard profile={user} /> : <CentraResidentDashboard />}
+    <DashboardLayout userType="centraResident" user={user}>
+      <div className="p-6 space-y-4">
+        <h1 className="text-2xl font-bold mb-4">Your Posted Jobs</h1>
+        {jobs
+          .filter((job) => {
+            if (job.status === "cancelled") return false;
+            if (job.status === "completed" && reviewedJobs.includes(job.id)) return false;
+            return true;
+          })
+          .map((job) => {
+            const isAssigned = !!job.assigned_tradie;
+            const isCompleted = job.status === "completed";
+            const isEmergency = job.is_emergency;
+            const assignedTradie = job.profile_centra_tradie;
+            const tradieOptions = job.job_leads || [];
+            const hasReview = reviewedJobs.includes(job.id);
+
+            return (
+              <Card
+                key={job.id}
+                className={`p-4 ${
+                  isAssigned ? "bg-[#CAEEC2]" : "bg-white"
+                } ${isEmergency ? "border-red-500 border-2" : ""}`}
+              >
+                <CardHeader>
+                  <CardTitle className="flex justify-between items-center">
+                    <div className="flex items-center gap-2">
+                      {job.title}
+                      {isEmergency && (
+                        <Badge variant="destructive">Emergency</Badge>
+                      )}
+                    </div>
+                    {isCompleted ? (
+                      <Badge className="bg-green-700 text-white">
+                        {hasReview ? "Reviewed" : "Awaiting Review"}
+                      </Badge>
+                    ) : isAssigned ? (
+                      <Badge variant="outline">In Progress</Badge>
+                    ) : (
+                      <Badge variant="secondary">Open for Quotes</Badge>
+                    )}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <p className="text-sm text-muted-foreground">{job.description}</p>
+                  <div className="text-sm text-muted-foreground">
+                    Budget: ${job.budget} | Location: {job.location} | Timeline: {job.timeline}
+                  </div>
+
+                  {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+                      {job.image_urls.map((url: string, idx: number) => (
+                        <a key={idx} href={url} target="_blank">
+                          <img src={url} className="w-full h-24 object-cover rounded" />
+                        </a>
+                      ))}
+                    </div>
+                  )}
+
+                  {isAssigned && assignedTradie && (
+                    <p className="text-sm text-green-800 font-medium">
+                      Assigned to: {assignedTradie.first_name} {assignedTradie.last_name}
+                    </p>
+                  )}
+
+                  {!isAssigned && tradieOptions.length > 0 && (
+                    <div className="mt-3">
+                      <label className="text-sm font-medium mr-2">Assign Tradie:</label>
+                      <select
+                        onChange={(e) => handleAssignTradie(job.id, e.target.value)}
+                        defaultValue=""
+                        className="border rounded p-1"
+                      >
+                        <option value="" disabled>Select tradie</option>
+                        {tradieOptions.map((lead: any) => (
+                          <option key={lead.tradie_id} value={lead.tradie_id}>
+                            {lead.profile_centra_tradie.first_name} {lead.profile_centra_tradie.last_name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+
+                  {!isAssigned && (
+                    <div className="flex gap-2 mt-3">
+                      <Button
+                        variant="default"
+                        onClick={() => navigate(`/dashboard/edit-job/${job.id}`)}
+                      >
+                        <Pencil className="w-4 h-4 mr-2" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        onClick={() => handleCancelJob(job.id)}
+                      >
+                        <Trash2 className="w-4 h-4 mr-2" />
+                        Cancel Job
+                      </Button>
+                    </div>
+                  )}
+
+                  {isAssigned && !isCompleted && (
+                    <div className="mt-3">
+                      <Button variant="success" onClick={() => handleMarkComplete(job.id)}>
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Mark as Complete
+                      </Button>
+                    </div>
+                  )}
+
+                  {isCompleted && !hasReview && (
+                    <div className="mt-3">
+                      <Button variant="default" onClick={() => goToReviewPage(job.id)}>
+                        <Star className="w-4 h-4 mr-2" />
+                        Leave a Review
+                      </Button>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            );
+          })}
+      </div>
     </DashboardLayout>
   );
 };
 
-export default Dashboard;
+export default DashboardJobs;
