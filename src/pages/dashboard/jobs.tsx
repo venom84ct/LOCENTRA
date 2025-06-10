@@ -14,20 +14,18 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 
 const DashboardJobs = () => {
   const [jobs, setJobs] = useState<any[]>([]);
-  const [userId, setUserId] = useState<string>("");
   const [user, setUser] = useState<any>(null);
   const [reviewedJobs, setReviewedJobs] = useState<string[]>([]);
   const navigate = useNavigate();
 
-  const fetchJobs = async () => {
+  const fetchData = async () => {
     const {
       data: { user },
     } = await supabase.auth.getUser();
     if (!user) return;
     setUser(user);
-    setUserId(user.id);
 
-    const { data, error } = await supabase
+    const { data: jobData } = await supabase
       .from("jobs")
       .select(`
         *,
@@ -38,53 +36,32 @@ const DashboardJobs = () => {
       .eq("homeowner_id", user.id)
       .order("created_at", { ascending: false });
 
-    if (!error) {
-      setJobs(data || []);
-    }
-
     const { data: reviewsData } = await supabase
       .from("reviews")
       .select("job_id")
       .eq("reviewer_id", user.id);
 
+    setJobs(jobData || []);
     setReviewedJobs(reviewsData?.map((r: any) => r.job_id) || []);
   };
 
   useEffect(() => {
-    fetchJobs();
+    fetchData();
   }, []);
 
   const handleCancelJob = async (jobId: string) => {
-    const { error } = await supabase
-      .from("jobs")
-      .update({ status: "cancelled" })
-      .eq("id", jobId);
-
-    if (!error) {
-      fetchJobs();
-    }
+    await supabase.from("jobs").update({ status: "cancelled" }).eq("id", jobId);
+    fetchData();
   };
 
   const handleAssignTradie = async (jobId: string, tradieId: string) => {
-    const { error } = await supabase
-      .from("jobs")
-      .update({ assigned_tradie: tradieId })
-      .eq("id", jobId);
-
-    if (!error) {
-      fetchJobs();
-    }
+    await supabase.from("jobs").update({ assigned_tradie: tradieId }).eq("id", jobId);
+    fetchData();
   };
 
   const handleMarkComplete = async (jobId: string) => {
-    const { error } = await supabase
-      .from("jobs")
-      .update({ status: "completed" })
-      .eq("id", jobId);
-
-    if (!error) {
-      fetchJobs();
-    }
+    await supabase.from("jobs").update({ status: "completed" }).eq("id", jobId);
+    fetchData();
   };
 
   const goToReviewPage = (jobId: string) => {
@@ -99,10 +76,9 @@ const DashboardJobs = () => {
         <h1 className="text-2xl font-bold mb-4">Your Posted Jobs</h1>
         {jobs
           .filter((job) => {
-            const isCancelled = job.status === "cancelled";
-            const isReviewed = reviewedJobs.includes(job.id);
-            const isCompleted = job.status === "completed";
-            return !isCancelled && !(isCompleted && isReviewed);
+            if (job.status === "cancelled") return false;
+            if (job.status === "completed" && reviewedJobs.includes(job.id)) return false;
+            return true;
           })
           .map((job) => {
             const isAssigned = !!job.assigned_tradie;
@@ -111,14 +87,13 @@ const DashboardJobs = () => {
             const assignedTradie = job.profile_centra_tradie;
             const tradieOptions = job.job_leads || [];
             const hasReview = reviewedJobs.includes(job.id);
-            const awaitingReview = isCompleted && !hasReview;
 
             return (
               <Card
                 key={job.id}
-                className={`p-4 ${
-                  isAssigned ? "bg-[#CAEEC2]" : "bg-white"
-                } ${isEmergency ? "border-red-500 border-2" : ""}`}
+                className={`p-4 ${isAssigned ? "bg-[#CAEEC2]" : "bg-white"} ${
+                  isEmergency ? "border-red-500 border-2" : ""
+                }`}
               >
                 <CardHeader>
                   <CardTitle className="flex justify-between items-center">
@@ -128,10 +103,10 @@ const DashboardJobs = () => {
                         <Badge variant="destructive">Emergency</Badge>
                       )}
                     </div>
-                    {awaitingReview ? (
-                      <Badge className="bg-yellow-500 text-white">Awaiting Review</Badge>
-                    ) : isCompleted ? (
-                      <Badge className="bg-green-700 text-white">Reviewed</Badge>
+                    {isCompleted ? (
+                      <Badge className="bg-green-700 text-white">
+                        {hasReview ? "Reviewed" : "Awaiting Review"}
+                      </Badge>
                     ) : isAssigned ? (
                       <Badge variant="outline">In Progress</Badge>
                     ) : (
@@ -147,17 +122,15 @@ const DashboardJobs = () => {
 
                   {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
-                      {job.image_urls
-                        .filter((url: string) => typeof url === "string" && url.startsWith("http"))
-                        .map((url: string, idx: number) => (
-                          <a key={idx} href={url} target="_blank" rel="noreferrer">
-                            <img
-                              src={url}
-                              className="w-full h-24 object-cover rounded"
-                              alt={`Job image ${idx + 1}`}
-                            />
-                          </a>
-                        ))}
+                      {job.image_urls.map((url: string, idx: number) => (
+                        <a key={idx} href={url} target="_blank" rel="noreferrer">
+                          <img
+                            src={url}
+                            alt={`Job Image ${idx + 1}`}
+                            className="w-full h-24 object-cover rounded"
+                          />
+                        </a>
+                      ))}
                     </div>
                   )}
 
@@ -178,7 +151,8 @@ const DashboardJobs = () => {
                         <option value="" disabled>Select tradie</option>
                         {tradieOptions.map((lead: any) => (
                           <option key={lead.tradie_id} value={lead.tradie_id}>
-                            {lead.profile_centra_tradie.first_name} {lead.profile_centra_tradie.last_name}
+                            {lead.profile_centra_tradie.first_name}{" "}
+                            {lead.profile_centra_tradie.last_name}
                           </option>
                         ))}
                       </select>
@@ -213,7 +187,7 @@ const DashboardJobs = () => {
                     </div>
                   )}
 
-                  {awaitingReview && (
+                  {isCompleted && !hasReview && (
                     <div className="mt-3">
                       <Button variant="default" onClick={() => goToReviewPage(job.id)}>
                         <Star className="w-4 h-4 mr-2" />
