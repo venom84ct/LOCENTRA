@@ -1,4 +1,3 @@
-// src/components/reviews/ReviewForm.tsx
 import React, { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Textarea } from "@/components/ui/textarea";
@@ -21,11 +20,16 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ jobId, tradieId, jobTitle }) =>
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      alert("You must be logged in to leave a review.");
+      setSubmitting(false);
+      return;
+    }
 
     const { error } = await supabase.from("reviews").insert({
       job_id: jobId,
       tradie_id: tradieId,
+      homeowner_id: user.id, // Required for RLS
       reviewer_id: user.id,
       reviewer_name: user.email || "Anonymous",
       comment,
@@ -33,8 +37,10 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ jobId, tradieId, jobTitle }) =>
     });
 
     setSubmitting(false);
-    if (error) alert("Failed to submit review");
-    else {
+    if (error) {
+      console.error(error);
+      alert("Failed to submit review");
+    } else {
       setRating(0);
       setComment("");
       alert("Review submitted successfully");
@@ -48,7 +54,9 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ jobId, tradieId, jobTitle }) =>
         {[1, 2, 3, 4, 5].map((val) => (
           <Star
             key={val}
-            className={`w-5 h-5 cursor-pointer ${rating >= val ? "text-yellow-500" : "text-gray-300"}`}
+            className={`w-5 h-5 cursor-pointer ${
+              rating >= val ? "text-yellow-500" : "text-gray-300"
+            }`}
             onClick={() => setRating(val)}
           />
         ))}
