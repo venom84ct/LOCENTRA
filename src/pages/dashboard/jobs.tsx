@@ -1,4 +1,4 @@
-// src/components/dashboard/DashboardLayout.tsx
+// src/components/layout/DashboardLayout.tsx
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import {
