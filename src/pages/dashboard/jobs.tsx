@@ -16,6 +16,7 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 const DashboardJobs = () => {
   const [jobs, setJobs] = useState<any[]>([]);
   const [userId, setUserId] = useState<string>("");
+  const [user, setUser] = useState<any>(null);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -24,6 +25,7 @@ const DashboardJobs = () => {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
+      setUser(user);
       setUserId(user.id);
 
       const { data, error } = await supabase
@@ -88,8 +90,10 @@ const DashboardJobs = () => {
     navigate(`/dashboard/review/${jobId}`);
   };
 
+  if (!user) return <p>Loading...</p>;
+
   return (
-    <DashboardLayout>
+    <DashboardLayout userType="centraResident" user={user}>
       <div className="p-6 space-y-4">
         <h1 className="text-2xl font-bold mb-4">Your Posted Jobs</h1>
         {jobs.length === 0 ? (
@@ -134,6 +138,7 @@ const DashboardJobs = () => {
                   <div className="text-sm text-muted-foreground">
                     Budget: ${job.budget} | Location: {job.location} | Timeline: {job.timeline}
                   </div>
+
                   {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
                       {job.image_urls.map((url: string, idx: number) => (
@@ -158,9 +163,7 @@ const DashboardJobs = () => {
                         defaultValue=""
                         className="border rounded p-1"
                       >
-                        <option value="" disabled>
-                          Select tradie
-                        </option>
+                        <option value="" disabled>Select tradie</option>
                         {tradieOptions.map((lead: any) => (
                           <option key={lead.tradie_id} value={lead.tradie_id}>
                             {lead.profile_centra_tradie.first_name} {lead.profile_centra_tradie.last_name}
@@ -172,11 +175,17 @@ const DashboardJobs = () => {
 
                   {!isAssigned && !isCancelled && (
                     <div className="flex gap-2 mt-3">
-                      <Button variant="default" onClick={() => navigate(`/dashboard/edit-job/${job.id}`)}>
+                      <Button
+                        variant="default"
+                        onClick={() => navigate(`/dashboard/edit-job/${job.id}`)}
+                      >
                         <Pencil className="w-4 h-4 mr-2" />
                         Edit
                       </Button>
-                      <Button variant="destructive" onClick={() => handleCancelJob(job.id)}>
+                      <Button
+                        variant="destructive"
+                        onClick={() => handleCancelJob(job.id)}
+                      >
                         <Trash2 className="w-4 h-4 mr-2" />
                         Cancel Job
                       </Button>
