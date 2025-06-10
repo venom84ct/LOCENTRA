@@ -1,4 +1,4 @@
-// src/components/reviews/ReviewForm.tsx
+// --- ReviewForm.tsx ---
 import React, { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,17 +34,20 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ jobId, tradieId, jobTitle }) =>
       reviewer_name: user.email || "Anonymous",
       comment,
       rating,
+      created_at: new Date().toISOString(),
     });
 
-    setSubmitting(false);
-    if (error) {
-      console.error(error);
-      alert("Failed to submit review");
-    } else {
+    if (!error) {
+      await supabase.from("jobs").update({ reviewed: true }).eq("id", jobId);
       setRating(0);
       setComment("");
       alert("Review submitted successfully");
+    } else {
+      console.error(error);
+      alert("Failed to submit review");
     }
+
+    setSubmitting(false);
   };
 
   return (
@@ -65,11 +68,35 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ jobId, tradieId, jobTitle }) =>
         onChange={(e) => setComment(e.target.value)}
       />
       <Button onClick={handleSubmit} disabled={submitting || rating === 0 || !comment.trim()}>
-        {submitting ? "Submitting..." : "Submit Review"}
+        Submit Review
       </Button>
     </div>
   );
 };
 
 export default ReviewForm;
+
+// --- DashboardJobs.tsx (Excerpt for Review Button) ---
+{isCompleted && !job.reviewed && (
+  <div className="mt-3">
+    <Button
+      variant="default"
+      onClick={() => goToReviewPage(job.id)}
+    >
+      <Star className="w-4 h-4 mr-2" />
+      Leave a Review
+    </Button>
+  </div>
+)}
+
+// --- TradieProfilePage.tsx (Review Section Avg Calculation) ---
+const avgRating = profile.reviews.length > 0
+  ? profile.reviews.reduce((sum: number, r: any) => sum + r.rating, 0) / profile.reviews.length
+  : 0;
+
+<div className="flex items-center justify-center mt-2 text-yellow-500">
+  <Star className="w-4 h-4 mr-1" />
+  {avgRating.toFixed(1)} ({profile.reviews.length} reviews)
+</div>
+
 
