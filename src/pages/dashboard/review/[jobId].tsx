@@ -14,15 +14,17 @@ const ReviewJobPage = () => {
   const [profile, setProfile] = useState<any>(null);
   const [rating, setRating] = useState<number>(0);
   const [comment, setComment] = useState("");
+  const [job, setJob] = useState<any>(null);
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    const fetchUserProfile = async () => {
+    const fetchProfileAndJob = async () => {
       const {
         data: { user },
+        error: userError,
       } = await supabase.auth.getUser();
 
-      if (!user) return;
+      if (userError || !user) return;
 
       const { data: profileData } = await supabase
         .from("profile_centra_resident")
@@ -30,11 +32,18 @@ const ReviewJobPage = () => {
         .eq("id", user.id)
         .single();
 
-      setProfile(profileData);
+      const { data: jobData } = await supabase
+        .from("jobs")
+        .select("id, title, assigned_tradie")
+        .eq("id", jobId)
+        .single();
+
+      setProfile({ ...profileData, email: user.email });
+      setJob(jobData);
     };
 
-    fetchUserProfile();
-  }, []);
+    fetchProfileAndJob();
+  }, [jobId]);
 
   const handleSubmit = async () => {
     if (!rating || rating < 1 || rating > 5) {
@@ -42,33 +51,42 @@ const ReviewJobPage = () => {
       return;
     }
 
-    setSubmitting(true);
-
-    const { error: insertError } = await supabase.from("reviews").insert({
-      job_id: jobId,
-      rating,
-      comment,
-      created_at: new Date().toISOString(),
-    });
-
-    if (insertError) {
-      alert("Failed to submit review.");
-      setSubmitting(false);
+    if (!job?.assigned_tradie) {
+      alert("This job has no assigned tradie.");
       return;
     }
 
-    // Redirect back to dashboard
-    navigate("/dashboard");
+    setSubmitting(true);
+
+    const { error } = await supabase.from("reviews").insert({
+      job_id: job.id,
+      tradie_id: job.assigned_tradie,
+      homeowner_id: profile.id, // needed for RLS
+      reviewer_id: profile.id,
+      reviewer_name: profile.email || "Anonymous",
+      rating,
+      comment,
+    });
+
+    setSubmitting(false);
+
+    if (error) {
+      console.error(error);
+      alert("Failed to submit review.");
+    } else {
+      alert("Review submitted successfully!");
+      navigate("/dashboard");
+    }
   };
 
-  if (!profile) return <div className="p-6">Loading...</div>;
+  if (!profile || !job) return <div className="p-6">Loading...</div>;
 
   return (
     <DashboardLayout user={profile} userType="centraResident">
       <div className="max-w-2xl mx-auto p-6">
         <Card>
           <CardHeader>
-            <CardTitle>Leave a Review</CardTitle>
+            <CardTitle>Leave a Review for: {job.title}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
