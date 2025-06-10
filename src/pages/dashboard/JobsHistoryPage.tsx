@@ -35,7 +35,10 @@ const JobsHistoryPage = () => {
 
       const { data: jobsData } = await supabase
         .from("jobs")
-        .select("*")
+        .select(`
+          *,
+          profile_centra_tradie!assigned_tradie(first_name, last_name)
+        `)
         .eq("homeowner_id", profileData.id)
         .eq("status", "completed")
         .order("created_at", { ascending: false });
@@ -91,7 +94,6 @@ const JobsHistoryPage = () => {
                 </div>
               </div>
 
-              {/* Image if available */}
               {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
                 <a
                   href={job.image_urls[0]}
@@ -127,10 +129,10 @@ const JobsHistoryPage = () => {
                 </div>
               </div>
 
-              {job.assigned_tradie && (
+              {job.profile_centra_tradie && (
                 <div className="flex items-center pt-2 text-sm text-muted-foreground">
                   <User className="h-4 w-4 mr-2" />
-                  Assigned Tradie: {job.assigned_tradie}
+                  Assigned Tradie: {job.profile_centra_tradie.first_name} {job.profile_centra_tradie.last_name}
                 </div>
               )}
 
