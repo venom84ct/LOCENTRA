@@ -22,9 +22,6 @@ interface DashboardLayoutProps {
   children: React.ReactNode;
 }
 
-// Prevent duplicate sidebar rendering
-const isLayoutRendered = typeof window !== "undefined" && !!document.getElementById("sidebar-wrapper");
-
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   userType,
   user,
@@ -65,10 +62,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           { name: "Help", path: "/dashboard/tradie/help", icon: HelpCircle },
         ];
 
-  if (isLayoutRendered) return <>{children}</>;
-
   return (
-    <div className="min-h-screen flex bg-gray-50" id="sidebar-wrapper">
+    <div className="min-h-screen flex bg-gray-50">
       {/* Sidebar */}
       <aside className="w-64 bg-white shadow-md p-6 hidden md:block">
         <div className="mb-6">
