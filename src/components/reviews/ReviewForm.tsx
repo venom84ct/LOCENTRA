@@ -1,3 +1,4 @@
+// src/components/reviews/ReviewForm.tsx
 import React, { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import { Textarea } from "@/components/ui/textarea";
@@ -29,8 +30,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ jobId, tradieId, jobTitle }) =>
     const { error } = await supabase.from("reviews").insert({
       job_id: jobId,
       tradie_id: tradieId,
-      homeowner_id: user.id, // Required for RLS
-      reviewer_id: user.id,
+      homeowner_id: user.id,
       reviewer_name: user.email || "Anonymous",
       comment,
       rating,
@@ -54,9 +54,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ jobId, tradieId, jobTitle }) =>
         {[1, 2, 3, 4, 5].map((val) => (
           <Star
             key={val}
-            className={`w-5 h-5 cursor-pointer ${
-              rating >= val ? "text-yellow-500" : "text-gray-300"
-            }`}
+            className={`w-5 h-5 cursor-pointer ${rating >= val ? "text-yellow-500" : "text-gray-300"}`}
             onClick={() => setRating(val)}
           />
         ))}
@@ -67,10 +65,11 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ jobId, tradieId, jobTitle }) =>
         onChange={(e) => setComment(e.target.value)}
       />
       <Button onClick={handleSubmit} disabled={submitting || rating === 0 || !comment.trim()}>
-        Submit Review
+        {submitting ? "Submitting..." : "Submit Review"}
       </Button>
     </div>
   );
 };
 
 export default ReviewForm;
+
