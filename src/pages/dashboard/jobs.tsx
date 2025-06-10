@@ -19,14 +19,25 @@ const DashboardJobs = () => {
   const [reviewedJobs, setReviewedJobs] = useState<string[]>([]);
   const navigate = useNavigate();
 
+  const fetchReviewedJobs = async (uid: string) => {
+    const { data: reviewsData } = await supabase
+      .from("reviews")
+      .select("job_id")
+      .eq("reviewer_id", uid);
+
+    setReviewedJobs(reviewsData?.map((r: any) => r.job_id) || []);
+  };
+
   useEffect(() => {
     const fetchJobs = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
+
       setUser(user);
       setUserId(user.id);
+      await fetchReviewedJobs(user.id);
 
       const { data, error } = await supabase
         .from("jobs")
@@ -42,13 +53,6 @@ const DashboardJobs = () => {
       if (!error) {
         setJobs(data || []);
       }
-
-      const { data: reviewsData } = await supabase
-        .from("reviews")
-        .select("job_id")
-        .eq("reviewer_id", user.id);
-
-      setReviewedJobs(reviewsData?.map((r: any) => r.job_id) || []);
     };
 
     fetchJobs();
@@ -133,8 +137,8 @@ const DashboardJobs = () => {
                       )}
                     </div>
                     {isCompleted ? (
-                      <Badge className="bg-green-700 text-white">
-                        {hasReview ? "Reviewed" : "Completed"}
+                      <Badge className={`text-white ${hasReview ? "bg-green-700" : "bg-yellow-600"}`}>
+                        {hasReview ? "Reviewed" : "Awaiting Review"}
                       </Badge>
                     ) : isAssigned ? (
                       <Badge variant="outline">In Progress</Badge>
