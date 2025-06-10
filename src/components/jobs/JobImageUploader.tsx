@@ -53,4 +53,3 @@ const JobImageUploader: React.FC<JobImageUploaderProps> = ({ onUploadComplete })
 };
 
 export default JobImageUploader;
-
