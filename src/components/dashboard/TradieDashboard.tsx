@@ -46,9 +46,9 @@ const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
       })
     : "Unknown";
 
-  const activeJobs = profile.jobs?.filter((j) => j.status === "open").length || 0;
+  const activeJobs = profile.jobs?.filter((j) => j.status !== "completed" && j.status !== "cancelled").length || 0;
   const completedJobs = profile.jobs?.filter((j) => j.status === "completed").length || 0;
-  const totalJobs = activeJobs + completedJobs;
+  const totalJobs = profile.jobs?.length || 0;
 
   return (
     <div className="p-4 space-y-6 max-w-7xl mx-auto">
