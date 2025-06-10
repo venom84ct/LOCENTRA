@@ -1,4 +1,3 @@
-// src/pages/dashboard/jobs.tsx
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import {
@@ -17,33 +16,41 @@ const DashboardJobs = () => {
   const [jobs, setJobs] = useState<any[]>([]);
   const [userId, setUserId] = useState<string>("");
   const [user, setUser] = useState<any>(null);
+  const [reviewedJobs, setReviewedJobs] = useState<string[]>([]);
   const navigate = useNavigate();
 
+  const fetchJobs = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+    setUser(user);
+    setUserId(user.id);
+
+    const { data, error } = await supabase
+      .from("jobs")
+      .select(`
+        *,
+        profile_centra_resident(first_name, avatar_url),
+        profile_centra_tradie!assigned_tradie(first_name, last_name),
+        job_leads(id, tradie_id, profile_centra_tradie(first_name, last_name))
+      `)
+      .eq("homeowner_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (!error) {
+      setJobs(data || []);
+    }
+
+    const { data: reviewsData } = await supabase
+      .from("reviews")
+      .select("job_id")
+      .eq("reviewer_id", user.id);
+
+    setReviewedJobs(reviewsData?.map((r: any) => r.job_id) || []);
+  };
+
   useEffect(() => {
-    const fetchJobs = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-      setUser(user);
-      setUserId(user.id);
-
-      const { data, error } = await supabase
-        .from("jobs")
-        .select(`
-          *,
-          profile_centra_resident(first_name, avatar_url),
-          profile_centra_tradie!assigned_tradie(first_name, last_name),
-          job_leads(id, tradie_id, profile_centra_tradie(first_name, last_name))
-        `)
-        .eq("homeowner_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (!error) {
-        setJobs(data || []);
-      }
-    };
-
     fetchJobs();
   }, []);
 
@@ -54,9 +61,7 @@ const DashboardJobs = () => {
       .eq("id", jobId);
 
     if (!error) {
-      setJobs((prev) =>
-        prev.map((j) => (j.id === jobId ? { ...j, status: "cancelled" } : j))
-      );
+      fetchJobs();
     }
   };
 
@@ -67,9 +72,7 @@ const DashboardJobs = () => {
       .eq("id", jobId);
 
     if (!error) {
-      setJobs((prev) =>
-        prev.map((j) => (j.id === jobId ? { ...j, assigned_tradie: tradieId } : j))
-      );
+      fetchJobs();
     }
   };
 
@@ -80,9 +83,7 @@ const DashboardJobs = () => {
       .eq("id", jobId);
 
     if (!error) {
-      setJobs((prev) =>
-        prev.map((j) => (j.id === jobId ? { ...j, status: "completed" } : j))
-      );
+      fetchJobs();
     }
   };
 
@@ -96,16 +97,21 @@ const DashboardJobs = () => {
     <DashboardLayout userType="centraResident" user={user}>
       <div className="p-6 space-y-4">
         <h1 className="text-2xl font-bold mb-4">Your Posted Jobs</h1>
-        {jobs.length === 0 ? (
-          <p>No jobs posted yet.</p>
-        ) : (
-          jobs.map((job) => {
-            const isAssigned = !!job.assigned_tradie;
+        {jobs
+          .filter((job) => {
             const isCancelled = job.status === "cancelled";
+            const isReviewed = reviewedJobs.includes(job.id);
+            const isCompleted = job.status === "completed";
+            return !isCancelled && !(isCompleted && isReviewed);
+          })
+          .map((job) => {
+            const isAssigned = !!job.assigned_tradie;
             const isCompleted = job.status === "completed";
             const isEmergency = job.is_emergency;
             const assignedTradie = job.profile_centra_tradie;
             const tradieOptions = job.job_leads || [];
+            const hasReview = reviewedJobs.includes(job.id);
+            const awaitingReview = isCompleted && !hasReview;
 
             return (
               <Card
@@ -122,8 +128,10 @@ const DashboardJobs = () => {
                         <Badge variant="destructive">Emergency</Badge>
                       )}
                     </div>
-                    {isCompleted ? (
-                      <Badge className="bg-green-700 text-white">Completed</Badge>
+                    {awaitingReview ? (
+                      <Badge className="bg-yellow-500 text-white">Awaiting Review</Badge>
+                    ) : isCompleted ? (
+                      <Badge className="bg-green-700 text-white">Reviewed</Badge>
                     ) : isAssigned ? (
                       <Badge variant="outline">In Progress</Badge>
                     ) : (
@@ -132,20 +140,24 @@ const DashboardJobs = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <p className="text-sm text-muted-foreground">
-                    {job.description}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{job.description}</p>
                   <div className="text-sm text-muted-foreground">
                     Budget: ${job.budget} | Location: {job.location} | Timeline: {job.timeline}
                   </div>
 
                   {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
-                      {job.image_urls.map((url: string, idx: number) => (
-                        <a key={idx} href={url} target="_blank">
-                          <img src={url} className="w-full h-24 object-cover rounded" />
-                        </a>
-                      ))}
+                      {job.image_urls
+                        .filter((url: string) => typeof url === "string" && url.startsWith("http"))
+                        .map((url: string, idx: number) => (
+                          <a key={idx} href={url} target="_blank" rel="noreferrer">
+                            <img
+                              src={url}
+                              className="w-full h-24 object-cover rounded"
+                              alt={`Job image ${idx + 1}`}
+                            />
+                          </a>
+                        ))}
                     </div>
                   )}
 
@@ -155,7 +167,7 @@ const DashboardJobs = () => {
                     </p>
                   )}
 
-                  {!isAssigned && !isCancelled && tradieOptions.length > 0 && (
+                  {!isAssigned && tradieOptions.length > 0 && (
                     <div className="mt-3">
                       <label className="text-sm font-medium mr-2">Assign Tradie:</label>
                       <select
@@ -173,7 +185,7 @@ const DashboardJobs = () => {
                     </div>
                   )}
 
-                  {!isAssigned && !isCancelled && (
+                  {!isAssigned && (
                     <div className="flex gap-2 mt-3">
                       <Button
                         variant="default"
@@ -192,7 +204,7 @@ const DashboardJobs = () => {
                     </div>
                   )}
 
-                  {isAssigned && !isCancelled && !isCompleted && (
+                  {isAssigned && !isCompleted && (
                     <div className="mt-3">
                       <Button variant="success" onClick={() => handleMarkComplete(job.id)}>
                         <CheckCircle className="w-4 h-4 mr-2" />
@@ -201,7 +213,7 @@ const DashboardJobs = () => {
                     </div>
                   )}
 
-                  {isCompleted && (
+                  {awaitingReview && (
                     <div className="mt-3">
                       <Button variant="default" onClick={() => goToReviewPage(job.id)}>
                         <Star className="w-4 h-4 mr-2" />
@@ -209,15 +221,10 @@ const DashboardJobs = () => {
                       </Button>
                     </div>
                   )}
-
-                  {isCancelled && (
-                    <p className="text-sm text-red-500 mt-2">This job was cancelled.</p>
-                  )}
                 </CardContent>
               </Card>
             );
-          })
-        )}
+          })}
       </div>
     </DashboardLayout>
   );
