@@ -1,4 +1,3 @@
-// src/pages/dashboard/jobs.tsx
 import React, { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import {
@@ -17,6 +16,7 @@ const DashboardJobs = () => {
   const [jobs, setJobs] = useState<any[]>([]);
   const [userId, setUserId] = useState<string>("");
   const [user, setUser] = useState<any>(null);
+  const [reviewedJobs, setReviewedJobs] = useState<string[]>([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -42,6 +42,13 @@ const DashboardJobs = () => {
       if (!error) {
         setJobs(data || []);
       }
+
+      const { data: reviewsData } = await supabase
+        .from("reviews")
+        .select("job_id")
+        .eq("reviewer_id", user.id);
+
+      setReviewedJobs(reviewsData?.map((r: any) => r.job_id) || []);
     };
 
     fetchJobs();
@@ -54,9 +61,7 @@ const DashboardJobs = () => {
       .eq("id", jobId);
 
     if (!error) {
-      setJobs((prev) =>
-        prev.map((j) => (j.id === jobId ? { ...j, status: "cancelled" } : j))
-      );
+      setJobs((prev) => prev.filter((j) => j.id !== jobId));
     }
   };
 
@@ -68,7 +73,9 @@ const DashboardJobs = () => {
 
     if (!error) {
       setJobs((prev) =>
-        prev.map((j) => (j.id === jobId ? { ...j, assigned_tradie: tradieId } : j))
+        prev.map((j) =>
+          j.id === jobId ? { ...j, assigned_tradie: tradieId } : j
+        )
       );
     }
   };
@@ -96,16 +103,19 @@ const DashboardJobs = () => {
     <DashboardLayout userType="centraResident" user={user}>
       <div className="p-6 space-y-4">
         <h1 className="text-2xl font-bold mb-4">Your Posted Jobs</h1>
-        {jobs.length === 0 ? (
-          <p>No jobs posted yet.</p>
-        ) : (
-          jobs.map((job) => {
+        {jobs
+          .filter((job) => {
+            if (job.status === "cancelled") return false;
+            if (job.status === "completed" && reviewedJobs.includes(job.id)) return false;
+            return true;
+          })
+          .map((job) => {
             const isAssigned = !!job.assigned_tradie;
-            const isCancelled = job.status === "cancelled";
             const isCompleted = job.status === "completed";
             const isEmergency = job.is_emergency;
             const assignedTradie = job.profile_centra_tradie;
             const tradieOptions = job.job_leads || [];
+            const hasReview = reviewedJobs.includes(job.id);
 
             return (
               <Card
@@ -123,7 +133,9 @@ const DashboardJobs = () => {
                       )}
                     </div>
                     {isCompleted ? (
-                      <Badge className="bg-green-700 text-white">Completed</Badge>
+                      <Badge className="bg-green-700 text-white">
+                        {hasReview ? "Reviewed" : "Completed"}
+                      </Badge>
                     ) : isAssigned ? (
                       <Badge variant="outline">In Progress</Badge>
                     ) : (
@@ -132,9 +144,7 @@ const DashboardJobs = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-2">
-                  <p className="text-sm text-muted-foreground">
-                    {job.description}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{job.description}</p>
                   <div className="text-sm text-muted-foreground">
                     Budget: ${job.budget} | Location: {job.location} | Timeline: {job.timeline}
                   </div>
@@ -155,7 +165,7 @@ const DashboardJobs = () => {
                     </p>
                   )}
 
-                  {!isAssigned && !isCancelled && tradieOptions.length > 0 && (
+                  {!isAssigned && tradieOptions.length > 0 && (
                     <div className="mt-3">
                       <label className="text-sm font-medium mr-2">Assign Tradie:</label>
                       <select
@@ -173,7 +183,7 @@ const DashboardJobs = () => {
                     </div>
                   )}
 
-                  {!isAssigned && !isCancelled && (
+                  {!isAssigned && (
                     <div className="flex gap-2 mt-3">
                       <Button
                         variant="default"
@@ -192,7 +202,7 @@ const DashboardJobs = () => {
                     </div>
                   )}
 
-                  {isAssigned && !isCancelled && !isCompleted && (
+                  {isAssigned && !isCompleted && (
                     <div className="mt-3">
                       <Button variant="success" onClick={() => handleMarkComplete(job.id)}>
                         <CheckCircle className="w-4 h-4 mr-2" />
@@ -201,7 +211,7 @@ const DashboardJobs = () => {
                     </div>
                   )}
 
-                  {isCompleted && (
+                  {isCompleted && !hasReview && (
                     <div className="mt-3">
                       <Button variant="default" onClick={() => goToReviewPage(job.id)}>
                         <Star className="w-4 h-4 mr-2" />
@@ -209,15 +219,10 @@ const DashboardJobs = () => {
                       </Button>
                     </div>
                   )}
-
-                  {isCancelled && (
-                    <p className="text-sm text-red-500 mt-2">This job was cancelled.</p>
-                  )}
                 </CardContent>
               </Card>
             );
-          })
-        )}
+          })}
       </div>
     </DashboardLayout>
   );
