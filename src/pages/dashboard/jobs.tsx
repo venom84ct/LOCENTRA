@@ -19,25 +19,14 @@ const DashboardJobs = () => {
   const [reviewedJobs, setReviewedJobs] = useState<string[]>([]);
   const navigate = useNavigate();
 
-  const fetchReviewedJobs = async (uid: string) => {
-    const { data: reviewsData } = await supabase
-      .from("reviews")
-      .select("job_id")
-      .eq("reviewer_id", uid);
-
-    setReviewedJobs(reviewsData?.map((r: any) => r.job_id) || []);
-  };
-
   useEffect(() => {
     const fetchJobs = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
-
       setUser(user);
       setUserId(user.id);
-      await fetchReviewedJobs(user.id);
 
       const { data, error } = await supabase
         .from("jobs")
@@ -53,6 +42,13 @@ const DashboardJobs = () => {
       if (!error) {
         setJobs(data || []);
       }
+
+      const { data: reviewsData } = await supabase
+        .from("reviews")
+        .select("job_id")
+        .eq("reviewer_id", user.id);
+
+      setReviewedJobs(reviewsData?.map((r: any) => r.job_id) || []);
     };
 
     fetchJobs();
@@ -109,9 +105,10 @@ const DashboardJobs = () => {
         <h1 className="text-2xl font-bold mb-4">Your Posted Jobs</h1>
         {jobs
           .filter((job) => {
-            if (job.status === "cancelled") return false;
-            if (job.status === "completed" && reviewedJobs.includes(job.id)) return false;
-            return true;
+            const isCancelled = job.status === "cancelled";
+            const isReviewed = reviewedJobs.includes(job.id);
+            const isCompleted = job.status === "completed";
+            return !isCancelled && !(isCompleted && isReviewed);
           })
           .map((job) => {
             const isAssigned = !!job.assigned_tradie;
@@ -137,8 +134,8 @@ const DashboardJobs = () => {
                       )}
                     </div>
                     {isCompleted ? (
-                      <Badge className={`text-white ${hasReview ? "bg-green-700" : "bg-yellow-600"}`}>
-                        {hasReview ? "Reviewed" : "Awaiting Review"}
+                      <Badge className="bg-green-700 text-white">
+                        {hasReview ? "Reviewed" : "Completed"}
                       </Badge>
                     ) : isAssigned ? (
                       <Badge variant="outline">In Progress</Badge>
@@ -155,11 +152,17 @@ const DashboardJobs = () => {
 
                   {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
-                      {job.image_urls.map((url: string, idx: number) => (
-                        <a key={idx} href={url} target="_blank">
-                          <img src={url} className="w-full h-24 object-cover rounded" />
-                        </a>
-                      ))}
+                      {job.image_urls
+                        .filter((url: string) => typeof url === "string" && url.startsWith("http"))
+                        .map((url: string, idx: number) => (
+                          <a key={idx} href={url} target="_blank" rel="noreferrer">
+                            <img
+                              src={url}
+                              className="w-full h-24 object-cover rounded"
+                              alt={`Job image ${idx + 1}`}
+                            />
+                          </a>
+                        ))}
                     </div>
                   )}
 
