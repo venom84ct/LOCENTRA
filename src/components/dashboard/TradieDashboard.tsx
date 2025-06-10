@@ -1,5 +1,3 @@
-// src/components/dashboard/TradieDashboard.tsx
-
 import React from "react";
 import {
   Card,
@@ -19,7 +17,9 @@ import {
   PlusCircle,
   Star,
   Hammer,
+  Wallet,
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface TradieProfile {
   first_name?: string;
@@ -35,6 +35,8 @@ interface TradieProfile {
 }
 
 const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
+  const navigate = useNavigate();
+
   const fullName = `${profile.first_name || ""} ${profile.last_name || ""}`.trim();
   const joinDate = profile?.created_at
     ? new Date(profile.created_at).toLocaleDateString("en-AU", {
@@ -116,17 +118,29 @@ const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
             <CardDescription>Manage your jobs and activity</CardDescription>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button className="w-full" variant="default">
+            <Button
+              className="w-full"
+              variant="default"
+              onClick={() => navigate("/dashboard/tradie/my-jobs")}
+            >
               <PlusCircle className="mr-2 h-4 w-4" />
-              Post a New Job
+              Purchased Leads
             </Button>
-            <Button className="w-full" variant="outline">
+            <Button
+              className="w-full"
+              variant="outline"
+              onClick={() => navigate("/dashboard/tradie/messages")}
+            >
               <MessageSquare className="mr-2 h-4 w-4" />
               Messages
             </Button>
-            <Button className="w-full" variant="outline">
-              <ClipboardList className="mr-2 h-4 w-4" />
-              Job History
+            <Button
+              className="w-full"
+              variant="outline"
+              onClick={() => navigate("/dashboard/tradie/wallet")}
+            >
+              <Wallet className="mr-2 h-4 w-4" />
+              Wallet
             </Button>
           </CardContent>
         </Card>
