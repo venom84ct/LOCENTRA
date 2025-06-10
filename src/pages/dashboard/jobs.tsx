@@ -19,38 +19,38 @@ const DashboardJobs = () => {
   const [reviewedJobs, setReviewedJobs] = useState<string[]>([]);
   const navigate = useNavigate();
 
+  const fetchJobs = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+    setUser(user);
+    setUserId(user.id);
+
+    const { data, error } = await supabase
+      .from("jobs")
+      .select(`
+        *,
+        profile_centra_resident(first_name, avatar_url),
+        profile_centra_tradie!assigned_tradie(first_name, last_name),
+        job_leads(id, tradie_id, profile_centra_tradie(first_name, last_name))
+      `)
+      .eq("homeowner_id", user.id)
+      .order("created_at", { ascending: false });
+
+    if (!error) {
+      setJobs(data || []);
+    }
+
+    const { data: reviewsData } = await supabase
+      .from("reviews")
+      .select("job_id")
+      .eq("reviewer_id", user.id);
+
+    setReviewedJobs(reviewsData?.map((r: any) => r.job_id) || []);
+  };
+
   useEffect(() => {
-    const fetchJobs = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      if (!user) return;
-      setUser(user);
-      setUserId(user.id);
-
-      const { data, error } = await supabase
-        .from("jobs")
-        .select(`
-          *,
-          profile_centra_resident(first_name, avatar_url),
-          profile_centra_tradie!assigned_tradie(first_name, last_name),
-          job_leads(id, tradie_id, profile_centra_tradie(first_name, last_name))
-        `)
-        .eq("homeowner_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (!error) {
-        setJobs(data || []);
-      }
-
-      const { data: reviewsData } = await supabase
-        .from("reviews")
-        .select("job_id")
-        .eq("reviewer_id", user.id);
-
-      setReviewedJobs(reviewsData?.map((r: any) => r.job_id) || []);
-    };
-
     fetchJobs();
   }, []);
 
@@ -61,7 +61,7 @@ const DashboardJobs = () => {
       .eq("id", jobId);
 
     if (!error) {
-      setJobs((prev) => prev.filter((j) => j.id !== jobId));
+      fetchJobs();
     }
   };
 
@@ -72,11 +72,7 @@ const DashboardJobs = () => {
       .eq("id", jobId);
 
     if (!error) {
-      setJobs((prev) =>
-        prev.map((j) =>
-          j.id === jobId ? { ...j, assigned_tradie: tradieId } : j
-        )
-      );
+      fetchJobs();
     }
   };
 
@@ -87,9 +83,7 @@ const DashboardJobs = () => {
       .eq("id", jobId);
 
     if (!error) {
-      setJobs((prev) =>
-        prev.map((j) => (j.id === jobId ? { ...j, status: "completed" } : j))
-      );
+      fetchJobs();
     }
   };
 
@@ -117,6 +111,7 @@ const DashboardJobs = () => {
             const assignedTradie = job.profile_centra_tradie;
             const tradieOptions = job.job_leads || [];
             const hasReview = reviewedJobs.includes(job.id);
+            const awaitingReview = isCompleted && !hasReview;
 
             return (
               <Card
@@ -133,10 +128,10 @@ const DashboardJobs = () => {
                         <Badge variant="destructive">Emergency</Badge>
                       )}
                     </div>
-                    {isCompleted ? (
-                      <Badge className="bg-green-700 text-white">
-                        {hasReview ? "Reviewed" : "Completed"}
-                      </Badge>
+                    {awaitingReview ? (
+                      <Badge className="bg-yellow-500 text-white">Awaiting Review</Badge>
+                    ) : isCompleted ? (
+                      <Badge className="bg-green-700 text-white">Reviewed</Badge>
                     ) : isAssigned ? (
                       <Badge variant="outline">In Progress</Badge>
                     ) : (
@@ -218,7 +213,7 @@ const DashboardJobs = () => {
                     </div>
                   )}
 
-                  {isCompleted && !hasReview && (
+                  {awaitingReview && (
                     <div className="mt-3">
                       <Button variant="default" onClick={() => goToReviewPage(job.id)}>
                         <Star className="w-4 h-4 mr-2" />
