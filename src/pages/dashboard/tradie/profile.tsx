@@ -27,7 +27,7 @@ const TradieProfilePage = () => {
       } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data: profileData, error: profileError } = await supabase
+      const { data: profileData } = await supabase
         .from("profile_centra_tradie")
         .select("*")
         .eq("id", user.id)
@@ -35,48 +35,40 @@ const TradieProfilePage = () => {
 
       const { data: reviewData } = await supabase
         .from("reviews")
-        .select("rating, comment, reviewer_name")
+        .select("rating, comment, homeowner_id, profile_centra_resident(first_name, last_name, avatar_url)")
         .eq("tradie_id", user.id);
 
-      if (!profileError && profileData) {
-        let fixedPortfolio: string[] = [];
-
-        if (Array.isArray(profileData.portfolio)) {
-          fixedPortfolio = profileData.portfolio;
-        } else if (typeof profileData.portfolio === "string") {
-          try {
-            const parsed = JSON.parse(profileData.portfolio);
-            if (Array.isArray(parsed)) {
-              fixedPortfolio = parsed;
-            }
-          } catch {
-            await supabase
-              .from("profile_centra_tradie")
-              .update({ portfolio: [] })
-              .eq("id", user.id);
-          }
+      let fixedPortfolio: string[] = [];
+      if (Array.isArray(profileData.portfolio)) {
+        fixedPortfolio = profileData.portfolio;
+      } else if (typeof profileData.portfolio === "string") {
+        try {
+          const parsed = JSON.parse(profileData.portfolio);
+          if (Array.isArray(parsed)) fixedPortfolio = parsed;
+        } catch {
+          await supabase
+            .from("profile_centra_tradie")
+            .update({ portfolio: [] })
+            .eq("id", user.id);
         }
-
-        const ratingSum = reviewData?.reduce((sum, r) => sum + r.rating, 0) || 0;
-        const ratingCount = reviewData?.length || 0;
-        const ratingAvg = ratingCount > 0 ? ratingSum / ratingCount : 0;
-
-        await supabase
-          .from("profile_centra_tradie")
-          .update({
-            rating_avg: ratingAvg,
-            rating_count: ratingCount,
-          })
-          .eq("id", user.id);
-
-        setProfile({
-          ...profileData,
-          portfolio: fixedPortfolio,
-          reviews: reviewData || [],
-          rating_avg: ratingAvg,
-          rating_count: ratingCount,
-        });
       }
+
+      const ratingSum = reviewData?.reduce((sum, r) => sum + r.rating, 0) || 0;
+      const ratingCount = reviewData?.length || 0;
+      const ratingAvg = ratingCount > 0 ? ratingSum / ratingCount : 0;
+
+      await supabase
+        .from("profile_centra_tradie")
+        .update({ rating_avg: ratingAvg, rating_count: ratingCount })
+        .eq("id", user.id);
+
+      setProfile({
+        ...profileData,
+        portfolio: fixedPortfolio,
+        reviews: reviewData || [],
+        rating_avg: ratingAvg,
+        rating_count: ratingCount,
+      });
 
       setLoading(false);
     };
@@ -136,8 +128,6 @@ const TradieProfilePage = () => {
             .from("portfolio")
             .getPublicUrl(data.path);
           uploadedUrls.push(url.publicUrl);
-        } else {
-          alert(`Upload failed for ${file.name}: ${error?.message}`);
         }
       }
 
@@ -171,62 +161,52 @@ const TradieProfilePage = () => {
 
         {profile?.first_name ? (
           <>
+            {/* Portfolio Section */}
             <Card>
-              <CardHeader className="text-center">
-                <Avatar className="w-20 h-20 mx-auto">
-                  <AvatarImage src={profile.avatar_url} />
-                  <AvatarFallback>{(profile.first_name || "").slice(0, 2)}</AvatarFallback>
-                </Avatar>
-                <CardTitle className="text-xl font-bold mt-2">
-                  {profile.first_name} {profile.last_name}
-                </CardTitle>
-
-                {profile.weekly_badge === "gold" && (
-                  <div className="flex justify-center items-center mt-1 text-yellow-500">
-                    <Trophy className="h-5 w-5 mr-1" />
-                    <span className="text-sm font-medium">Top Tradie of the Week</span>
-                  </div>
-                )}
-                {profile.weekly_badge === "silver" && (
-                  <div className="flex justify-center items-center mt-1 text-gray-400">
-                    <Medal className="h-5 w-5 mr-1" />
-                    <span className="text-sm font-medium">2nd Place This Week</span>
-                  </div>
-                )}
-                {profile.weekly_badge === "bronze" && (
-                  <div className="flex justify-center items-center mt-1 text-amber-700">
-                    <Medal className="h-5 w-5 mr-1" />
-                    <span className="text-sm font-medium">3rd Place This Week</span>
-                  </div>
-                )}
-
-                <p className="text-muted-foreground">{profile.email}</p>
-                <div className="text-sm mt-2 space-y-1">
-                  <div className="flex items-center justify-center">
-                    <Phone className="h-4 w-4 mr-2" /> {profile.phone || "N/A"}
-                  </div>
-                  <div className="flex items-center justify-center">
-                    <MapPin className="h-4 w-4 mr-2" /> {profile.address || "No address"}
-                  </div>
-                </div>
-                <div className="flex items-center justify-center mt-2 text-yellow-500">
-                  <Star className="w-4 h-4 mr-1" />
-                  {profile.rating_avg?.toFixed(1) || "0.0"} ({profile.rating_count || 0} reviews)
-                </div>
+              <CardHeader>
+                <CardTitle>Portfolio</CardTitle>
               </CardHeader>
-              <CardContent>{editing && <Input type="file" onChange={(e) => setAvatarFile(e.target.files?.[0] || null)} />}</CardContent>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                  {profile.portfolio?.slice(0, 6).map((url: string, idx: number) => (
+                    <div key={idx} className="relative group">
+                      <img src={url} alt={`Portfolio ${idx + 1}`} className="w-full h-32 object-cover rounded border" />
+                      {editing && (
+                        <button
+                          onClick={() => handleDeleteImage(url)}
+                          className="absolute top-1 right-1 bg-white rounded-full p-1 shadow hover:bg-red-100"
+                        >
+                          <Trash className="w-4 h-4 text-red-500" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
             </Card>
 
+            {/* Reviews Section */}
             <Card>
               <CardHeader>
                 <CardTitle>Reviews</CardTitle>
               </CardHeader>
-              <CardContent className="space-y-2">
-                {profile.reviews?.length ? (
+              <CardContent className="space-y-4">
+                {profile.reviews.length > 0 ? (
                   profile.reviews.map((r: any, i: number) => (
-                    <div key={i} className="p-3 border rounded">
-                      <p className="text-sm font-medium">{r.reviewer_name || "Anonymous"}</p>
-                      <p className="text-sm text-muted-foreground">{r.comment || "No comment"}</p>
+                    <div key={i} className="border rounded p-3">
+                      <div className="flex items-center space-x-3 mb-1">
+                        <Avatar className="w-8 h-8">
+                          <AvatarImage src={r.profile_centra_resident?.avatar_url} />
+                          <AvatarFallback>
+                            {(r.profile_centra_resident?.first_name || "U")[0]}
+                          </AvatarFallback>
+                        </Avatar>
+                        <p className="font-medium text-sm">
+                          {r.profile_centra_resident?.first_name || "Unknown"}{" "}
+                          {r.profile_centra_resident?.last_name || ""}
+                        </p>
+                      </div>
+                      <p className="text-sm text-muted-foreground mb-1">{r.comment || "No comment"}</p>
                       <div className="flex items-center text-yellow-500">
                         {[...Array(r.rating)].map((_, i) => (
                           <Star key={i} className="w-4 h-4" />
