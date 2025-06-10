@@ -1,68 +1,152 @@
-// src/pages/dashboard/tradie/index.tsx
+import React from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  MapPin,
+  Gift,
+  ClipboardList,
+  MessageSquare,
+  PlusCircle,
+  Star,
+  Hammer,
+  Wallet,
+} from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-import React, { useEffect, useState } from "react";
-import { supabase } from "@/lib/supabaseClient";
-import DashboardLayout from "@/components/layout/DashboardLayout";
-import TradieDashboard from "@/components/dashboard/TradieDashboard";
+interface TradieProfile {
+  first_name?: string;
+  last_name?: string;
+  avatar_url?: string;
+  address?: string;
+  created_at?: string;
+  credits?: number;
+  rating_avg?: number;
+  rating_count?: number;
+  trade_category?: string;
+  jobs?: { status: string }[];
+}
 
-const TradieDashboardPage = () => {
-  const [profile, setProfile] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
+const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
+  const navigate = useNavigate();
 
-  useEffect(() => {
-    const fetchProfileAndJobs = async () => {
-      const {
-        data: { user },
-        error: userError,
-      } = await supabase.auth.getUser();
+  const fullName = `${profile.first_name || ""} ${profile.last_name || ""}`.trim();
+  const joinDate = profile?.created_at
+    ? new Date(profile.created_at).toLocaleDateString("en-AU", {
+        year: "numeric",
+        month: "long",
+        day: "numeric",
+      })
+    : "Unknown";
 
-      if (userError || !user) {
-        console.error("User fetch error:", userError);
-        setLoading(false);
-        return;
-      }
-
-      // Fetch tradie profile
-      const { data: profileData, error: profileError } = await supabase
-        .from("profile_centra_tradie")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-
-      if (profileError || !profileData) {
-        console.error("Profile fetch error:", profileError);
-        setLoading(false);
-        return;
-      }
-
-      // Fetch jobs assigned to this tradie
-      const { data: jobData, error: jobError } = await supabase
-        .from("jobs")
-        .select("status")
-        .eq("assigned_tradie", user.id);
-
-      if (jobError) {
-        console.error("Job fetch error:", jobError);
-      }
-
-      setProfile({
-        ...profileData,
-        jobs: jobData || [],
-      });
-
-      setLoading(false);
-    };
-
-    fetchProfileAndJobs();
-  }, []);
-
-  if (loading) return <div className="p-6">Loading...</div>;
+  const activeJobs = profile.jobs?.filter((j) => j.status === "open").length || 0;
+  const completedJobs = profile.jobs?.filter((j) => j.status === "completed").length || 0;
+  const totalJobs = activeJobs + completedJobs;
 
   return (
-    <DashboardLayout userType="tradie" user={profile}>
-      <TradieDashboard profile={profile} />
-    </DashboardLayout>
+    <div className="p-4 space-y-6 max-w-7xl mx-auto">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Profile Summary */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Profile</CardTitle>
+            <CardDescription>Your account information</CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center space-x-4">
+            <Avatar className="h-14 w-14">
+              <AvatarImage src={profile.avatar_url} />
+              <AvatarFallback>{fullName.slice(0, 2).toUpperCase() || "TR"}</AvatarFallback>
+            </Avatar>
+            <div className="text-sm">
+              <p className="font-semibold">{fullName || "Tradie"}</p>
+              <p className="text-muted-foreground">Member since {joinDate}</p>
+              {profile.address && (
+                <div className="flex items-center text-xs text-muted-foreground mt-1">
+                  <MapPin className="h-4 w-4 mr-1" /> {profile.address}
+                </div>
+              )}
+              {profile.trade_category && (
+                <div className="flex items-center text-xs text-muted-foreground mt-1">
+                  <Hammer className="h-4 w-4 mr-1" /> {profile.trade_category}
+                </div>
+              )}
+              <div className="text-xs mt-1">
+                <Gift className="inline h-4 w-4 mr-1" />
+                {profile.credits || 0} credits
+              </div>
+              <div className="text-xs text-yellow-500 flex items-center mt-1">
+                <Star className="h-4 w-4 mr-1" />
+                {profile.rating_avg?.toFixed(1) || "0.0"} ({profile.rating_count || 0} reviews)
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Job Summary */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Job Summary</CardTitle>
+            <CardDescription>Overview of your job activity</CardDescription>
+          </CardHeader>
+          <CardContent className="text-sm space-y-1">
+            <div className="flex justify-between">
+              <span>Active Jobs</span>
+              <span>{activeJobs}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Completed</span>
+              <span>{completedJobs}</span>
+            </div>
+            <div className="flex justify-between font-medium">
+              <span>Total Jobs</span>
+              <span>{totalJobs}</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Quick Actions */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Manage your jobs and activity</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Button
+              className="w-full"
+              variant="default"
+              onClick={() => navigate("/dashboard/tradie/my-jobs")}
+            >
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Purchased Leads
+            </Button>
+            <Button
+              className="w-full"
+              variant="outline"
+              onClick={() => navigate("/dashboard/tradie/messages")}
+            >
+              <MessageSquare className="mr-2 h-4 w-4" />
+              Messages
+            </Button>
+            <Button
+              className="w-full"
+              variant="outline"
+              onClick={() => navigate("/dashboard/tradie/wallet")}
+            >
+              <Wallet className="mr-2 h-4 w-4" />
+              Wallet
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
   );
 };
 
-export default TradieDashboardPage;
+export default TradieDashboard;
