@@ -19,11 +19,13 @@ const DashboardJobs = () => {
   const navigate = useNavigate();
 
   const fetchJobs = async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
     setUser(user);
 
-    const { data: jobsData } = await supabase
+    const { data, error } = await supabase
       .from("jobs")
       .select(`
         *,
@@ -34,12 +36,14 @@ const DashboardJobs = () => {
       .eq("homeowner_id", user.id)
       .order("created_at", { ascending: false });
 
-    setJobs(jobsData || []);
+    if (!error) {
+      setJobs(data || []);
+    }
 
     const { data: reviewsData } = await supabase
       .from("reviews")
       .select("job_id")
-      .eq("reviewer_id", user.id);
+      .eq("homeowner_id", user.id); // ✅ use homeowner_id instead of reviewer_id
 
     setReviewedJobs(reviewsData?.map((r: any) => r.job_id) || []);
   };
@@ -49,18 +53,36 @@ const DashboardJobs = () => {
   }, []);
 
   const handleCancelJob = async (jobId: string) => {
-    await supabase.from("jobs").update({ status: "cancelled" }).eq("id", jobId);
-    fetchJobs();
+    const { error } = await supabase
+      .from("jobs")
+      .update({ status: "cancelled" })
+      .eq("id", jobId);
+
+    if (!error) {
+      fetchJobs();
+    }
   };
 
   const handleAssignTradie = async (jobId: string, tradieId: string) => {
-    await supabase.from("jobs").update({ assigned_tradie: tradieId }).eq("id", jobId);
-    fetchJobs();
+    const { error } = await supabase
+      .from("jobs")
+      .update({ assigned_tradie: tradieId })
+      .eq("id", jobId);
+
+    if (!error) {
+      fetchJobs();
+    }
   };
 
   const handleMarkComplete = async (jobId: string) => {
-    await supabase.from("jobs").update({ status: "completed" }).eq("id", jobId);
-    fetchJobs();
+    const { error } = await supabase
+      .from("jobs")
+      .update({ status: "completed" })
+      .eq("id", jobId);
+
+    if (!error) {
+      fetchJobs();
+    }
   };
 
   const goToReviewPage = (jobId: string) => {
@@ -92,7 +114,9 @@ const DashboardJobs = () => {
             return (
               <Card
                 key={job.id}
-                className={`p-4 ${isAssigned ? "bg-[#CAEEC2]" : "bg-white"} ${isEmergency ? "border-red-500 border-2" : ""}`}
+                className={`p-4 ${
+                  isAssigned ? "bg-[#CAEEC2]" : "bg-white"
+                } ${isEmergency ? "border-red-500 border-2" : ""}`}
               >
                 <CardHeader>
                   <CardTitle className="flex justify-between items-center">
@@ -122,7 +146,7 @@ const DashboardJobs = () => {
                   {Array.isArray(job.image_urls) && job.image_urls.length > 0 && (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
                       {job.image_urls
-                        .filter((url: string) => typeof url === "string")
+                        .filter((url: string) => typeof url === "string" && url.startsWith("http"))
                         .map((url: string, idx: number) => (
                           <a key={idx} href={url} target="_blank" rel="noreferrer">
                             <img
@@ -161,11 +185,17 @@ const DashboardJobs = () => {
 
                   {!isAssigned && (
                     <div className="flex gap-2 mt-3">
-                      <Button variant="default" onClick={() => navigate(`/dashboard/edit-job/${job.id}`)}>
+                      <Button
+                        variant="default"
+                        onClick={() => navigate(`/dashboard/edit-job/${job.id}`)}
+                      >
                         <Pencil className="w-4 h-4 mr-2" />
                         Edit
                       </Button>
-                      <Button variant="destructive" onClick={() => handleCancelJob(job.id)}>
+                      <Button
+                        variant="destructive"
+                        onClick={() => handleCancelJob(job.id)}
+                      >
                         <Trash2 className="w-4 h-4 mr-2" />
                         Cancel Job
                       </Button>
