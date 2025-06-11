@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
@@ -18,7 +18,9 @@ import {
   MessageSquare,
   Calendar,
   User,
+  Briefcase,
 } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 
 interface Notification {
   id: string;
@@ -27,110 +29,86 @@ interface Notification {
   timestamp: string;
   type: "info" | "success" | "warning" | "error";
   read: boolean;
-  relatedTo?: {
-    type: "job" | "message" | "tradie" | "system";
-    id: string;
-    name?: string;
-    avatar?: string;
-  };
+  related_type?: "job" | "message" | "homeowner" | "system";
+  related_id?: string;
+  related_name?: string;
+  related_avatar?: string;
 }
 
-const mockNotifications: Notification[] = [
-  {
-    id: "notif1",
-    title: "New Quote Received",
-    description:
-      "Mike Johnson has sent a quote for your Bathroom Renovation job.",
-    timestamp: "2023-06-14 15:30",
-    type: "info",
-    read: false,
-    relatedTo: {
-      type: "tradie",
-      id: "tradie1",
-      name: "Mike Johnson",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mike",
-    },
-  },
-  {
-    id: "notif2",
-    title: "Job Status Updated",
-    description: "Your Electrical Rewiring job has been marked as completed.",
-    timestamp: "2023-06-13 10:15",
-    type: "success",
-    read: false,
-    relatedTo: {
-      type: "job",
-      id: "job3",
-    },
-  },
-  {
-    id: "notif3",
-    title: "Upcoming Appointment",
-    description:
-      "Reminder: Sarah Williams will arrive tomorrow at 9am for your Electrical Rewiring job.",
-    timestamp: "2023-05-29 17:45",
-    type: "warning",
-    read: true,
-    relatedTo: {
-      type: "tradie",
-      id: "tradie2",
-      name: "Sarah Williams",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-    },
-  },
-  {
-    id: "notif4",
-    title: "System Maintenance",
-    description:
-      "Locentra will be undergoing maintenance on June 30th from 2am to 4am.",
-    timestamp: "2023-05-25 09:30",
-    type: "error",
-    read: true,
-    relatedTo: {
-      type: "system",
-      id: "system1",
-    },
-  },
-];
-
-const NotificationsPage = () => {
+const TradieNotificationsPage = () => {
   const navigate = useNavigate();
-  // Mock user data - in a real app, this would come from authentication
-  const user = {
-    name: "John Smith",
-    email: "john.smith@example.com",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-    unreadMessages: 2,
-    unreadNotifications: 3,
-  };
+  const [user, setUser] = useState<any>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const [notifications, setNotifications] =
-    useState<Notification[]>(mockNotifications);
+  useEffect(() => {
+    const fetchUserAndNotifications = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        setLoading(false);
+        return;
+      }
 
-  const markAsRead = (id: string) => {
-    setNotifications(
-      notifications.map((notification) =>
-        notification.id === id ? { ...notification, read: true } : notification,
-      ),
+      setUser(user);
+
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("recipient_id", user.id)
+        .order("timestamp", { ascending: false });
+
+      if (!error && data) {
+        setNotifications(data);
+      }
+
+      setLoading(false);
+    };
+
+    fetchUserAndNotifications();
+  }, []);
+
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel("realtime:notifications")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `recipient_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const newNotif = payload.new;
+          setNotifications((prev) => [newNotif, ...prev]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
+  const markAsRead = async (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
+    await supabase.from("notifications").update({ read: true }).eq("id", id);
   };
 
-  const markAllAsRead = () => {
-    setNotifications(
-      notifications.map((notification) => ({ ...notification, read: true })),
-    );
+  const markAllAsRead = async () => {
+    const updated = notifications.map((n) => ({ ...n, read: true }));
+    setNotifications(updated);
+    await supabase.from("notifications").update({ read: true }).eq("recipient_id", user.id);
   };
 
-  const handleViewJob = (jobId: string) => {
-    navigate(`/dashboard/jobs?jobId=${jobId}`);
-  };
-
-  const handleViewMessage = (messageId: string) => {
-    navigate(`/dashboard/messages?messageId=${messageId}`);
-  };
-
-  const handleViewProfile = (tradieId: string, tradieName: string) => {
-    navigate(`/dashboard/find-tradie?tradieId=${tradieId}`);
+  const handleView = (type: string, id: string, name?: string) => {
+    if (type === "job") navigate(`/dashboard/tradie/my-jobs?jobId=${id}`);
+    if (type === "message") navigate(`/dashboard/tradie/messages?messageId=${id}`);
+    if (type === "homeowner") navigate(`/dashboard/tradie/messages?contactId=${id}`);
   };
 
   const getNotificationIcon = (type: string) => {
@@ -149,14 +127,7 @@ const NotificationsPage = () => {
   };
 
   return (
-    <DashboardLayout
-      userType={
-        window.location.pathname.includes("tradie")
-          ? "tradie"
-          : "centraResident"
-      }
-      user={user}
-    >
+    <DashboardLayout userType="tradie" user={user || { name: "", avatar: "" }}>
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-6">
@@ -166,104 +137,60 @@ const NotificationsPage = () => {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 gap-4">
-            {notifications.map((notification) => (
-              <Card
-                key={notification.id}
-                className={`bg-white ${!notification.read ? "border-primary" : ""}`}
-              >
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center">
-                      <div className="mr-3">
-                        {getNotificationIcon(notification.type)}
+          {loading ? (
+            <p className="text-center text-gray-500">Loading...</p>
+          ) : notifications.length === 0 ? (
+            <p className="text-center text-gray-500">No notifications yet.</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {notifications.map((n) => (
+                <Card key={n.id} className={`bg-white ${!n.read ? "border-primary" : ""}`}>
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center">
+                        <div className="mr-3">{getNotificationIcon(n.type)}</div>
+                        <div>
+                          <CardTitle className="text-base flex items-center">
+                            {n.title}
+                            {!n.read && <Badge variant="default" className="ml-2">New</Badge>}
+                          </CardTitle>
+                          <CardDescription className="text-xs">{n.timestamp}</CardDescription>
+                        </div>
                       </div>
-                      <div>
-                        <CardTitle className="text-base flex items-center">
-                          {notification.title}
-                          {!notification.read && (
-                            <Badge variant="default" className="ml-2">
-                              New
-                            </Badge>
-                          )}
-                        </CardTitle>
-                        <CardDescription className="text-xs">
-                          {notification.timestamp}
-                        </CardDescription>
-                      </div>
-                    </div>
-                    {notification.relatedTo?.type === "tradie" &&
-                      notification.relatedTo.avatar && (
+                      {n.related_avatar && (
                         <Avatar className="h-8 w-8">
-                          <AvatarImage
-                            src={notification.relatedTo.avatar}
-                            alt={notification.relatedTo.name || ""}
-                          />
-                          <AvatarFallback>
-                            {(notification.relatedTo.name || "").substring(
-                              0,
-                              2,
-                            )}
-                          </AvatarFallback>
+                          <AvatarImage src={n.related_avatar} alt={n.related_name || ""} />
+                          <AvatarFallback>{(n.related_name || "").substring(0, 2)}</AvatarFallback>
                         </Avatar>
                       )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm">{notification.description}</p>
-                  <div className="flex justify-end mt-4 space-x-2">
-                    {!notification.read && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => markAsRead(notification.id)}
-                      >
-                        Mark as Read
-                      </Button>
-                    )}
-                    {notification.relatedTo?.type === "job" && (
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          handleViewJob(notification.relatedTo?.id || "")
-                        }
-                      >
-                        View Job
-                      </Button>
-                    )}
-                    {notification.relatedTo?.type === "message" && (
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          handleViewMessage(notification.relatedTo?.id || "")
-                        }
-                      >
-                        View Message
-                      </Button>
-                    )}
-                    {notification.relatedTo?.type === "tradie" && (
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          handleViewProfile(
-                            notification.relatedTo?.id || "",
-                            notification.relatedTo?.name || "",
-                          )
-                        }
-                      >
-                        <User className="h-4 w-4 mr-2" />
-                        View Profile
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm mb-4">{n.description}</p>
+                    <div className="flex justify-end gap-2">
+                      {!n.read && (
+                        <Button variant="outline" size="sm" onClick={() => markAsRead(n.id)}>
+                          Mark as Read
+                        </Button>
+                      )}
+                      {n.related_type && n.related_id && (
+                        <Button size="sm" onClick={() => handleView(n.related_type!, n.related_id!, n.related_name)}>
+                          {n.related_type === "job" && <Briefcase className="h-4 w-4 mr-2" />}
+                          {n.related_type === "message" && <MessageSquare className="h-4 w-4 mr-2" />}
+                          {n.related_type === "homeowner" && <User className="h-4 w-4 mr-2" />}
+                          View
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>
   );
 };
 
-export default NotificationsPage;
+export default TradieNotificationsPage;
