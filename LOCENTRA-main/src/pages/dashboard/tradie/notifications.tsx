@@ -130,50 +130,54 @@ const TradieNotificationsPage = () => {
             </Button>
           </div>
 
-          <div className="grid grid-cols-1 gap-4">
-            {notifications.map((n) => (
-              <Card key={n.id} className={`bg-white ${!n.read ? "border-primary" : ""}`}>
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start">
-                    <div className="flex items-center">
-                      <div className="mr-3">{getNotificationIcon(n.type)}</div>
-                      <div>
-                        <CardTitle className="text-base flex items-center">
-                          {n.title}
-                          {!n.read && <Badge variant="default" className="ml-2">New</Badge>}
-                        </CardTitle>
-                        <CardDescription className="text-xs">{n.timestamp}</CardDescription>
+          {notifications.length === 0 ? (
+            <p className="text-center text-gray-500">No notifications yet.</p>
+          ) : (
+            <div className="grid grid-cols-1 gap-4">
+              {notifications.map((n) => (
+                <Card key={n.id} className={`bg-white ${!n.read ? "border-primary" : ""}`}>
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-start">
+                      <div className="flex items-center">
+                        <div className="mr-3">{getNotificationIcon(n.type)}</div>
+                        <div>
+                          <CardTitle className="text-base flex items-center">
+                            {n.title}
+                            {!n.read && <Badge variant="default" className="ml-2">New</Badge>}
+                          </CardTitle>
+                          <CardDescription className="text-xs">{n.timestamp}</CardDescription>
+                        </div>
                       </div>
+                      {n.related_avatar && (
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={n.related_avatar} alt={n.related_name || ""} />
+                          <AvatarFallback>{(n.related_name || "").substring(0, 2)}</AvatarFallback>
+                        </Avatar>
+                      )}
                     </div>
-                    {n.related_avatar && (
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={n.related_avatar} alt={n.related_name || ""} />
-                        <AvatarFallback>{(n.related_name || "").substring(0, 2)}</AvatarFallback>
-                      </Avatar>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm mb-4">{n.description}</p>
-                  <div className="flex justify-end gap-2">
-                    {!n.read && (
-                      <Button variant="outline" size="sm" onClick={() => markAsRead(n.id)}>
-                        Mark as Read
-                      </Button>
-                    )}
-                    {n.related_type && n.related_id && (
-                      <Button size="sm" onClick={() => handleView(n.related_type!, n.related_id!, n.related_name)}>
-                        {n.related_type === "job" && <Briefcase className="h-4 w-4 mr-2" />}
-                        {n.related_type === "message" && <MessageSquare className="h-4 w-4 mr-2" />}
-                        {n.related_type === "homeowner" && <User className="h-4 w-4 mr-2" />}
-                        View
-                      </Button>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm mb-4">{n.description}</p>
+                    <div className="flex justify-end gap-2">
+                      {!n.read && (
+                        <Button variant="outline" size="sm" onClick={() => markAsRead(n.id)}>
+                          Mark as Read
+                        </Button>
+                      )}
+                      {n.related_type && n.related_id && (
+                        <Button size="sm" onClick={() => handleView(n.related_type!, n.related_id!, n.related_name)}>
+                          {n.related_type === "job" && <Briefcase className="h-4 w-4 mr-2" />}
+                          {n.related_type === "message" && <MessageSquare className="h-4 w-4 mr-2" />}
+                          {n.related_type === "homeowner" && <User className="h-4 w-4 mr-2" />}
+                          View
+                        </Button>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </DashboardLayout>
