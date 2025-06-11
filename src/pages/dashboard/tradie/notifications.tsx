@@ -26,7 +26,7 @@ interface Notification {
   id: string;
   title: string;
   description: string;
-  timestamp: string;
+  created_at: string;
   type: "info" | "success" | "warning" | "error";
   read: boolean;
   related_type?: "job" | "message" | "homeowner" | "system";
@@ -42,7 +42,9 @@ const TradieNotificationsPage = () => {
 
   useEffect(() => {
     const fetchUserAndNotifications = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
       if (!user) return;
       setUser(user);
 
@@ -52,7 +54,9 @@ const TradieNotificationsPage = () => {
         .eq("recipient_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (!error && data) {
+      if (error) {
+        console.error("Error fetching notifications:", error);
+      } else {
         setNotifications(data);
       }
     };
@@ -120,7 +124,7 @@ const TradieNotificationsPage = () => {
   };
 
   return (
-    <DashboardLayout userType="tradie" user={user}>
+    <DashboardLayout userType="tradie" user={user || { name: "", avatar: "" }}>
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-6">
@@ -137,7 +141,10 @@ const TradieNotificationsPage = () => {
           ) : (
             <div className="grid grid-cols-1 gap-4">
               {notifications.map((n) => (
-                <Card key={n.id} className={`bg-white ${!n.read ? "border-primary" : ""}`}>
+                <Card
+                  key={n.id}
+                  className={`bg-white ${!n.read ? "border-primary" : ""}`}
+                >
                   <CardHeader className="pb-2">
                     <div className="flex justify-between items-start">
                       <div className="flex items-center">
@@ -146,18 +153,22 @@ const TradieNotificationsPage = () => {
                           <CardTitle className="text-base flex items-center">
                             {n.title}
                             {!n.read && (
-                              <Badge variant="default" className="ml-2">New</Badge>
+                              <Badge variant="default" className="ml-2">
+                                New
+                              </Badge>
                             )}
                           </CardTitle>
                           <CardDescription className="text-xs">
-                            {new Date(n.timestamp).toLocaleString()}
+                            {new Date(n.created_at).toLocaleString()}
                           </CardDescription>
                         </div>
                       </div>
                       {n.related_avatar && (
                         <Avatar className="h-8 w-8">
                           <AvatarImage src={n.related_avatar} alt={n.related_name || ""} />
-                          <AvatarFallback>{(n.related_name || "").substring(0, 2)}</AvatarFallback>
+                          <AvatarFallback>
+                            {(n.related_name || "").substring(0, 2)}
+                          </AvatarFallback>
                         </Avatar>
                       )}
                     </div>
@@ -171,10 +182,19 @@ const TradieNotificationsPage = () => {
                         </Button>
                       )}
                       {n.related_type && n.related_id && (
-                        <Button size="sm" onClick={() => handleView(n.related_type!, n.related_id!, n.related_name)}>
-                          {n.related_type === "job" && <Briefcase className="h-4 w-4 mr-2" />}
-                          {n.related_type === "message" && <MessageSquare className="h-4 w-4 mr-2" />}
-                          {n.related_type === "homeowner" && <User className="h-4 w-4 mr-2" />}
+                        <Button
+                          size="sm"
+                          onClick={() => handleView(n.related_type!, n.related_id!, n.related_name)}
+                        >
+                          {n.related_type === "job" && (
+                            <Briefcase className="h-4 w-4 mr-2" />
+                          )}
+                          {n.related_type === "message" && (
+                            <MessageSquare className="h-4 w-4 mr-2" />
+                          )}
+                          {n.related_type === "homeowner" && (
+                            <User className="h-4 w-4 mr-2" />
+                          )}
                           View
                         </Button>
                       )}
