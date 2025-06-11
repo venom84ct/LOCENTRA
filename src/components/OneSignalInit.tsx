@@ -1,43 +1,34 @@
+// src/components/OneSignalInit.tsx
 import { useEffect } from "react";
+import { supabase } from "@/lib/supabaseClient";
 
 const OneSignalInit = () => {
   useEffect(() => {
-    const loadOneSignal = () => {
-      if (window.OneSignal) return;
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
+      // Load SDK
       const script = document.createElement("script");
       script.src = "https://cdn.onesignal.com/sdks/OneSignalSDK.js";
       script.async = true;
-
       script.onload = () => {
         window.OneSignal = window.OneSignal || [];
-
         window.OneSignal.push(() => {
           window.OneSignal.init({
-            appId: "b6d82074-2797-435a-9586-63bc0b55a696", // ✅ Your OneSignal App ID
-            notifyButton: {
-              enable: true,
-            },
-            promptOptions: {
-              actionMessage: "Allow notifications to get job updates and messages.",
-              acceptButtonText: "Allow",
-              cancelButtonText: "No thanks",
-            },
+            appId: "b6d82074-2797-435a-9586-63bc0b55a696",
+            notifyButton: { enable: true },
             allowLocalhostAsSecureOrigin: true,
           });
 
-          // ✅ Link current user (if logged in) for targeting via OneSignal
-          const userId = localStorage.getItem("userId"); // replace with actual ID logic if needed
-          if (userId) {
-            window.OneSignal.setExternalUserId(userId);
-          }
+          // This is REQUIRED to identify the user for push delivery
+          window.OneSignal.setExternalUserId(user.id);
         });
       };
-
       document.head.appendChild(script);
     };
 
-    loadOneSignal();
+    init();
   }, []);
 
   return null;
