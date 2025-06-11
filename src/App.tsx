@@ -1,8 +1,8 @@
 import { Suspense, lazy } from "react";
-import { useRoutes, Routes, Route } from "react-router-dom";
+import { Routes, Route, useRoutes } from "react-router-dom";
 import Home from "./components/home";
 import routes from "tempo-routes";
-import OneSignalInit from "./components/OneSignalInit"; // ✅ Added OneSignal
+import OneSignalInit from "./components/OneSignalInit"; // ✅ Correct placement
 
 // Lazy load core pages
 const Dashboard = lazy(() => import("./pages/dashboard"));
@@ -14,7 +14,7 @@ const Contact = lazy(() => import("./pages/contact"));
 const Login = lazy(() => import("./pages/login"));
 const Register = lazy(() => import("./pages/register"));
 
-// Dashboard-only pages
+// Homeowner dashboard pages
 const DashboardPostJob = lazy(() => import("./pages/dashboard/post-job"));
 const DashboardJobs = lazy(() => import("./pages/dashboard/jobs"));
 const DashboardJobHistory = lazy(() => import("./pages/dashboard/JobsHistoryPage"));
@@ -40,71 +40,64 @@ const TradieTopTradies = lazy(() => import("./pages/dashboard/tradie/top-tradies
 const TradieMyJobs = lazy(() => import("./pages/dashboard/tradie/my-jobs"));
 const TradieFindJobs = lazy(() => import("./pages/dashboard/tradie/find-jobs"));
 
-import OneSignalInit from "./components/OneSignalInit";
-
 function App() {
   return (
     <>
-      <OneSignalInit />
+      <OneSignalInit /> {/* ✅ Push initialized here */}
       <Suspense fallback={<p>Loading...</p>}>
         <Routes>
-          {/* your routes... */}
+          {/* Public routes */}
+          <Route path="/" element={<Home />} />
+          <Route path="/admin" element={<AdminPage />} />
+          <Route path="/how-it-works" element={<HowItWorks />} />
+          <Route path="/pricing" element={<Pricing />} />
+          <Route path="/about" element={<About />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+
+          {/* Dashboard landing pages */}
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/dashboard/tradie" element={<Dashboard />} />
+
+          {/* Homeowner routes */}
+          <Route path="/dashboard/jobs" element={<DashboardJobs />} />
+          <Route path="/dashboard/job-history" element={<DashboardJobHistory />} />
+          <Route path="/dashboard/edit-job/:id" element={<DashboardEditJob />} />
+          <Route path="/dashboard/messages" element={<DashboardMessages />} />
+          <Route path="/dashboard/notifications" element={<DashboardNotifications />} />
+          <Route path="/dashboard/rewards" element={<DashboardRewards />} />
+          <Route path="/dashboard/profile" element={<DashboardProfile />} />
+          <Route path="/dashboard/settings" element={<DashboardSettings />} />
+          <Route path="/dashboard/help" element={<DashboardHelp />} />
+          <Route path="/dashboard/wallet" element={<DashboardWallet />} />
+          <Route path="/dashboard/find-jobs" element={<DashboardFindJobs />} />
+          <Route path="/dashboard/find-tradie" element={<DashboardFindTradie />} />
+          <Route path="/dashboard/post-job" element={<DashboardPostJob />} />
+          <Route path="/dashboard/review/:jobId" element={<DashboardReview />} />
+
+          {/* Tradie routes */}
+          <Route path="/dashboard/tradie/messages" element={<TradieMessages />} />
+          <Route path="/dashboard/tradie/notifications" element={<TradieNotifications />} />
+          <Route path="/dashboard/tradie/profile" element={<TradieProfile />} />
+          <Route path="/dashboard/tradie/settings" element={<TradieSettings />} />
+          <Route path="/dashboard/tradie/help" element={<TradieHelp />} />
+          <Route path="/dashboard/tradie/top-tradies" element={<TradieTopTradies />} />
+          <Route path="/dashboard/tradie/my-jobs" element={<TradieMyJobs />} />
+          <Route path="/dashboard/tradie/find-jobs" element={<TradieFindJobs />} />
+
+          {/* Optional tempo route */}
+          {import.meta.env.VITE_TEMPO === "true" && (
+            <Route path="/tempobook/*" element={<></>} />
+          )}
         </Routes>
+
+        {/* Tempo route injection if enabled */}
         {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
       </Suspense>
     </>
   );
 }
 
-        {/* Public routes */}
-        <Route path="/" element={<Home />} />
-        <Route path="/admin" element={<AdminPage />} />
-        <Route path="/how-it-works" element={<HowItWorks />} />
-        <Route path="/pricing" element={<Pricing />} />
-        <Route path="/about" element={<About />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-
-        {/* Dashboard Homepages */}
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/dashboard/tradie" element={<Dashboard />} />
-
-        {/* Homeowner dashboard routes */}
-        <Route path="/dashboard/jobs" element={<DashboardJobs />} />
-        <Route path="/dashboard/job-history" element={<DashboardJobHistory />} />
-        <Route path="/dashboard/edit-job/:id" element={<DashboardEditJob />} />
-        <Route path="/dashboard/messages" element={<DashboardMessages />} />
-        <Route path="/dashboard/notifications" element={<DashboardNotifications />} />
-        <Route path="/dashboard/rewards" element={<DashboardRewards />} />
-        <Route path="/dashboard/profile" element={<DashboardProfile />} />
-        <Route path="/dashboard/settings" element={<DashboardSettings />} />
-        <Route path="/dashboard/help" element={<DashboardHelp />} />
-        <Route path="/dashboard/wallet" element={<DashboardWallet />} />
-        <Route path="/dashboard/find-jobs" element={<DashboardFindJobs />} />
-        <Route path="/dashboard/find-tradie" element={<DashboardFindTradie />} />
-        <Route path="/dashboard/post-job" element={<DashboardPostJob />} />
-        <Route path="/dashboard/review/:jobId" element={<DashboardReview />} />
-
-        {/* Tradie dashboard routes */}
-        <Route path="/dashboard/tradie/messages" element={<TradieMessages />} />
-        <Route path="/dashboard/tradie/notifications" element={<TradieNotifications />} />
-        <Route path="/dashboard/tradie/profile" element={<TradieProfile />} />
-        <Route path="/dashboard/tradie/settings" element={<TradieSettings />} />
-        <Route path="/dashboard/tradie/help" element={<TradieHelp />} />
-        <Route path="/dashboard/tradie/top-tradies" element={<TradieTopTradies />} />
-        <Route path="/dashboard/tradie/my-jobs" element={<TradieMyJobs />} />
-        <Route path="/dashboard/tradie/find-jobs" element={<TradieFindJobs />} />
-
-        {/* Tempo route if enabled */}
-        {import.meta.env.VITE_TEMPO === "true" && (
-          <Route path="/tempobook/*" element={<></>} />
-        )}
-      </Routes>
-
-      {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
-    </Suspense>
-  );
-}
-
 export default App;
+
