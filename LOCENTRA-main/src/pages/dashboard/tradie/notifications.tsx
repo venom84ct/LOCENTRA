@@ -125,9 +125,11 @@ const TradieNotificationsPage = () => {
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">Notifications</h1>
-            <Button variant="outline" size="sm" onClick={markAllAsRead}>
-              Mark All as Read
-            </Button>
+            {notifications.length > 0 && (
+              <Button variant="outline" size="sm" onClick={markAllAsRead}>
+                Mark All as Read
+              </Button>
+            )}
           </div>
 
           {notifications.length === 0 ? (
@@ -143,9 +145,13 @@ const TradieNotificationsPage = () => {
                         <div>
                           <CardTitle className="text-base flex items-center">
                             {n.title}
-                            {!n.read && <Badge variant="default" className="ml-2">New</Badge>}
+                            {!n.read && (
+                              <Badge variant="default" className="ml-2">New</Badge>
+                            )}
                           </CardTitle>
-                          <CardDescription className="text-xs">{n.timestamp}</CardDescription>
+                          <CardDescription className="text-xs">
+                            {new Date(n.timestamp).toLocaleString()}
+                          </CardDescription>
                         </div>
                       </div>
                       {n.related_avatar && (
