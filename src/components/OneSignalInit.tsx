@@ -13,7 +13,7 @@ const OneSignalInit = () => {
         window.OneSignal = window.OneSignal || [];
         window.OneSignal.push(() => {
           window.OneSignal.init({
-            appId: "akh4icftluagfcr3derrfq4yo",
+            appId: "b6d82074-2797-435a-9586-63bc0b55a696",
             notifyButton: {
               enable: true,
             },
