@@ -2,6 +2,7 @@ import { Suspense, lazy } from "react";
 import { useRoutes, Routes, Route } from "react-router-dom";
 import Home from "./components/home";
 import routes from "tempo-routes";
+import OneSignalInit from "./components/OneSignalInit"; // ✅ Added OneSignal
 
 // Lazy load core pages
 const Dashboard = lazy(() => import("./pages/dashboard"));
@@ -27,7 +28,7 @@ const DashboardHelp = lazy(() => import("./pages/dashboard/help"));
 const DashboardWallet = lazy(() => import("./pages/dashboard/wallet"));
 const DashboardFindJobs = lazy(() => import("./pages/dashboard/find-jobs"));
 const DashboardFindTradie = lazy(() => import("./pages/dashboard/find-tradie"));
-const DashboardReview = lazy(() => import("./pages/dashboard/review/[jobId]")); // ✅ Dynamic review page
+const DashboardReview = lazy(() => import("./pages/dashboard/review/[jobId]"));
 
 // Tradie dashboard pages
 const TradieMessages = lazy(() => import("./pages/dashboard/tradie/messages"));
@@ -42,6 +43,7 @@ const TradieFindJobs = lazy(() => import("./pages/dashboard/tradie/find-jobs"));
 function App() {
   return (
     <Suspense fallback={<p>Loading...</p>}>
+      <OneSignalInit /> {/* ✅ Injects OneSignal */}
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<Home />} />
@@ -71,7 +73,7 @@ function App() {
         <Route path="/dashboard/find-jobs" element={<DashboardFindJobs />} />
         <Route path="/dashboard/find-tradie" element={<DashboardFindTradie />} />
         <Route path="/dashboard/post-job" element={<DashboardPostJob />} />
-        <Route path="/dashboard/review/:jobId" element={<DashboardReview />} /> {/* ✅ Add dynamic review route */}
+        <Route path="/dashboard/review/:jobId" element={<DashboardReview />} />
 
         {/* Tradie dashboard routes */}
         <Route path="/dashboard/tradie/messages" element={<TradieMessages />} />
@@ -89,7 +91,6 @@ function App() {
         )}
       </Routes>
 
-      {/* Optional tempo route injection */}
       {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
     </Suspense>
   );
