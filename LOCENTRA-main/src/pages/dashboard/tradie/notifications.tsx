@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
@@ -31,60 +31,80 @@ interface Notification {
   read: boolean;
   related_type?: "job" | "message" | "homeowner" | "system";
   related_id?: string;
-  avatar_url?: string;
-  name?: string;
+  related_name?: string;
+  related_avatar?: string;
 }
 
 const TradieNotificationsPage = () => {
   const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
 
   useEffect(() => {
-    const fetchNotifications = async () => {
+    const fetchUserAndNotifications = async () => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
       if (!user) return;
+      setUser(user);
 
       const { data, error } = await supabase
         .from("notifications")
         .select("*")
-        .eq("user_id", user.id)
+        .eq("recipient_id", user.id)
         .order("timestamp", { ascending: false });
 
-      if (!error && data) setNotifications(data);
+      if (!error && data) {
+        setNotifications(data);
+      }
     };
 
-    fetchNotifications();
+    fetchUserAndNotifications();
   }, []);
 
+  // Realtime subscription
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel("realtime:notifications")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `recipient_id=eq.${user.id}`,
+        },
+        (payload) => {
+          const newNotif = payload.new;
+          setNotifications((prev) => [newNotif, ...prev]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user]);
+
   const markAsRead = async (id: string) => {
-    await supabase.from("notifications").update({ read: true }).eq("id", id);
     setNotifications((prev) =>
       prev.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
+    await supabase.from("notifications").update({ read: true }).eq("id", id);
   };
 
   const markAllAsRead = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) return;
-
-    await supabase.from("notifications").update({ read: true }).eq("user_id", user.id);
-    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+    const updated = notifications.map((n) => ({ ...n, read: true }));
+    setNotifications(updated);
+    await supabase.from("notifications").update({ read: true }).eq("recipient_id", user.id);
   };
 
-  const handleViewJob = (jobId: string) => {
-    navigate(`/dashboard/tradie/my-jobs?jobId=${jobId}`);
-  };
-
-  const handleViewMessage = (messageId: string) => {
-    navigate(`/dashboard/tradie/messages?messageId=${messageId}`);
-  };
-
-  const handleViewProfile = (homeownerId: string) => {
-    navigate(`/dashboard/tradie/messages?contactId=${homeownerId}`);
+  const handleView = (type: string, id: string, name?: string) => {
+    if (type === "job") navigate(`/dashboard/tradie/my-jobs?jobId=${id}`);
+    if (type === "message") navigate(`/dashboard/tradie/messages?messageId=${id}`);
+    if (type === "homeowner") navigate(`/dashboard/tradie/messages?contactId=${id}`);
   };
 
   const getNotificationIcon = (type: string) => {
@@ -103,7 +123,7 @@ const TradieNotificationsPage = () => {
   };
 
   return (
-    <DashboardLayout userType="tradie">
+    <DashboardLayout userType="tradie" user={user}>
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-6">
@@ -114,61 +134,43 @@ const TradieNotificationsPage = () => {
           </div>
 
           <div className="grid grid-cols-1 gap-4">
-            {notifications.map((notification) => (
-              <Card
-                key={notification.id}
-                className={`bg-white ${!notification.read ? "border-primary" : ""}`}
-              >
+            {notifications.map((n) => (
+              <Card key={n.id} className={`bg-white ${!n.read ? "border-primary" : ""}`}>
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start">
                     <div className="flex items-center">
-                      <div className="mr-3">
-                        {getNotificationIcon(notification.type)}
-                      </div>
+                      <div className="mr-3">{getNotificationIcon(n.type)}</div>
                       <div>
                         <CardTitle className="text-base flex items-center">
-                          {notification.title}
-                          {!notification.read && (
-                            <Badge variant="default" className="ml-2">
-                              New
-                            </Badge>
-                          )}
+                          {n.title}
+                          {!n.read && <Badge variant="default" className="ml-2">New</Badge>}
                         </CardTitle>
-                        <CardDescription className="text-xs">
-                          {new Date(notification.timestamp).toLocaleString()}
-                        </CardDescription>
+                        <CardDescription className="text-xs">{n.timestamp}</CardDescription>
                       </div>
                     </div>
-                    {notification.avatar_url && (
+                    {n.related_avatar && (
                       <Avatar className="h-8 w-8">
-                        <AvatarImage src={notification.avatar_url} alt={notification.name || ""} />
-                        <AvatarFallback>
-                          {(notification.name || "").substring(0, 2)}
-                        </AvatarFallback>
+                        <AvatarImage src={n.related_avatar} alt={n.related_name || ""} />
+                        <AvatarFallback>{(n.related_name || "").substring(0, 2)}</AvatarFallback>
                       </Avatar>
                     )}
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm">{notification.description}</p>
-                  <div className="flex justify-end mt-4 space-x-2">
-                    {!notification.read && (
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => markAsRead(notification.id)}
-                      >
+                  <p className="text-sm mb-4">{n.description}</p>
+                  <div className="flex justify-end gap-2">
+                    {!n.read && (
+                      <Button variant="outline" size="sm" onClick={() => markAsRead(n.id)}>
                         Mark as Read
                       </Button>
                     )}
-                    {notification.related_type === "job" && (
-                      <Button size="sm" onClick={() => handleViewJob(notification.related_id || "")}> <Briefcase className="h-4 w-4 mr-2" /> View Job </Button>
-                    )}
-                    {notification.related_type === "message" && (
-                      <Button size="sm" onClick={() => handleViewMessage(notification.related_id || "")}> <MessageSquare className="h-4 w-4 mr-2" /> View Message </Button>
-                    )}
-                    {notification.related_type === "homeowner" && (
-                      <Button size="sm" onClick={() => handleViewProfile(notification.related_id || "")}> <User className="h-4 w-4 mr-2" /> View Profile </Button>
+                    {n.related_type && n.related_id && (
+                      <Button size="sm" onClick={() => handleView(n.related_type!, n.related_id!, n.related_name)}>
+                        {n.related_type === "job" && <Briefcase className="h-4 w-4 mr-2" />}
+                        {n.related_type === "message" && <MessageSquare className="h-4 w-4 mr-2" />}
+                        {n.related_type === "homeowner" && <User className="h-4 w-4 mr-2" />}
+                        View
+                      </Button>
                     )}
                   </div>
                 </CardContent>
@@ -182,4 +184,3 @@ const TradieNotificationsPage = () => {
 };
 
 export default TradieNotificationsPage;
-
