@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
@@ -20,6 +20,7 @@ import {
   User,
   Briefcase,
 } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 
 interface Notification {
   id: string;
@@ -28,99 +29,50 @@ interface Notification {
   timestamp: string;
   type: "info" | "success" | "warning" | "error";
   read: boolean;
-  relatedTo?: {
-    type: "job" | "message" | "homeowner" | "system";
-    id: string;
-    name?: string;
-    avatar?: string;
-  };
+  related_type?: "job" | "message" | "homeowner" | "system";
+  related_id?: string;
+  avatar_url?: string;
+  name?: string;
 }
-
-const mockNotifications: Notification[] = [
-  {
-    id: "notif1",
-    title: "New Job Lead Available",
-    description: "A new plumbing job has been posted in your area.",
-    timestamp: "2023-06-14 15:30",
-    type: "info",
-    read: false,
-    relatedTo: {
-      type: "job",
-      id: "job1",
-    },
-  },
-  {
-    id: "notif2",
-    title: "Quote Accepted",
-    description:
-      "John Smith has accepted your quote for the Bathroom Renovation job.",
-    timestamp: "2023-06-13 10:15",
-    type: "success",
-    read: false,
-    relatedTo: {
-      type: "homeowner",
-      id: "homeowner1",
-      name: "John Smith",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-    },
-  },
-  {
-    id: "notif3",
-    title: "New Message",
-    description:
-      "You have a new message from Sarah Williams regarding the Toilet Installation job.",
-    timestamp: "2023-05-29 17:45",
-    type: "info",
-    read: true,
-    relatedTo: {
-      type: "message",
-      id: "msg2",
-      name: "Sarah Williams",
-      avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-    },
-  },
-  {
-    id: "notif4",
-    title: "System Maintenance",
-    description:
-      "Locentra will be undergoing maintenance on June 30th from 2am to 4am.",
-    timestamp: "2023-05-25 09:30",
-    type: "warning",
-    read: true,
-    relatedTo: {
-      type: "system",
-      id: "system1",
-    },
-  },
-];
 
 const TradieNotificationsPage = () => {
   const navigate = useNavigate();
-  // Mock user data - in a real app, this would come from authentication
-  const user = {
-    name: "Mike Johnson",
-    email: "mike.johnson@example.com",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mike",
-    trade: "Plumber",
-    unreadMessages: 1,
-    unreadNotifications: 2,
-  };
+  const [notifications, setNotifications] = useState<Notification[]>([]);
 
-  const [notifications, setNotifications] =
-    useState<Notification[]>(mockNotifications);
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
 
-  const markAsRead = (id: string) => {
-    setNotifications(
-      notifications.map((notification) =>
-        notification.id === id ? { ...notification, read: true } : notification,
-      ),
+      const { data, error } = await supabase
+        .from("notifications")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("timestamp", { ascending: false });
+
+      if (!error && data) setNotifications(data);
+    };
+
+    fetchNotifications();
+  }, []);
+
+  const markAsRead = async (id: string) => {
+    await supabase.from("notifications").update({ read: true }).eq("id", id);
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
   };
 
-  const markAllAsRead = () => {
-    setNotifications(
-      notifications.map((notification) => ({ ...notification, read: true })),
-    );
+  const markAllAsRead = async () => {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return;
+
+    await supabase.from("notifications").update({ read: true }).eq("user_id", user.id);
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
   };
 
   const handleViewJob = (jobId: string) => {
@@ -131,9 +83,7 @@ const TradieNotificationsPage = () => {
     navigate(`/dashboard/tradie/messages?messageId=${messageId}`);
   };
 
-  const handleViewProfile = (homeownerId: string, homeownerName: string) => {
-    // In a real app, this would navigate to a homeowner profile page
-    // For now, we'll just go to messages with a query param
+  const handleViewProfile = (homeownerId: string) => {
     navigate(`/dashboard/tradie/messages?contactId=${homeownerId}`);
   };
 
@@ -153,7 +103,7 @@ const TradieNotificationsPage = () => {
   };
 
   return (
-    <DashboardLayout userType="tradie" user={user}>
+    <DashboardLayout userType="tradie">
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-6">
@@ -185,25 +135,18 @@ const TradieNotificationsPage = () => {
                           )}
                         </CardTitle>
                         <CardDescription className="text-xs">
-                          {notification.timestamp}
+                          {new Date(notification.timestamp).toLocaleString()}
                         </CardDescription>
                       </div>
                     </div>
-                    {notification.relatedTo?.type === "homeowner" &&
-                      notification.relatedTo.avatar && (
-                        <Avatar className="h-8 w-8">
-                          <AvatarImage
-                            src={notification.relatedTo.avatar}
-                            alt={notification.relatedTo.name || ""}
-                          />
-                          <AvatarFallback>
-                            {(notification.relatedTo.name || "").substring(
-                              0,
-                              2,
-                            )}
-                          </AvatarFallback>
-                        </Avatar>
-                      )}
+                    {notification.avatar_url && (
+                      <Avatar className="h-8 w-8">
+                        <AvatarImage src={notification.avatar_url} alt={notification.name || ""} />
+                        <AvatarFallback>
+                          {(notification.name || "").substring(0, 2)}
+                        </AvatarFallback>
+                      </Avatar>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -218,41 +161,14 @@ const TradieNotificationsPage = () => {
                         Mark as Read
                       </Button>
                     )}
-                    {notification.relatedTo?.type === "job" && (
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          handleViewJob(notification.relatedTo?.id || "")
-                        }
-                      >
-                        <Briefcase className="h-4 w-4 mr-2" />
-                        View Job
-                      </Button>
+                    {notification.related_type === "job" && (
+                      <Button size="sm" onClick={() => handleViewJob(notification.related_id || "")}> <Briefcase className="h-4 w-4 mr-2" /> View Job </Button>
                     )}
-                    {notification.relatedTo?.type === "message" && (
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          handleViewMessage(notification.relatedTo?.id || "")
-                        }
-                      >
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        View Message
-                      </Button>
+                    {notification.related_type === "message" && (
+                      <Button size="sm" onClick={() => handleViewMessage(notification.related_id || "")}> <MessageSquare className="h-4 w-4 mr-2" /> View Message </Button>
                     )}
-                    {notification.relatedTo?.type === "homeowner" && (
-                      <Button
-                        size="sm"
-                        onClick={() =>
-                          handleViewProfile(
-                            notification.relatedTo?.id || "",
-                            notification.relatedTo?.name || "",
-                          )
-                        }
-                      >
-                        <User className="h-4 w-4 mr-2" />
-                        View Profile
-                      </Button>
+                    {notification.related_type === "homeowner" && (
+                      <Button size="sm" onClick={() => handleViewProfile(notification.related_id || "")}> <User className="h-4 w-4 mr-2" /> View Profile </Button>
                     )}
                   </div>
                 </CardContent>
@@ -266,3 +182,4 @@ const TradieNotificationsPage = () => {
 };
 
 export default TradieNotificationsPage;
+
