@@ -40,11 +40,22 @@ const TradieTopTradies = lazy(() => import("./pages/dashboard/tradie/top-tradies
 const TradieMyJobs = lazy(() => import("./pages/dashboard/tradie/my-jobs"));
 const TradieFindJobs = lazy(() => import("./pages/dashboard/tradie/find-jobs"));
 
+import OneSignalInit from "./components/OneSignalInit";
+
 function App() {
   return (
-    <Suspense fallback={<p>Loading...</p>}>
-      <OneSignalInit /> {/* ✅ Injects OneSignal */}
-      <Routes>
+    <>
+      <OneSignalInit />
+      <Suspense fallback={<p>Loading...</p>}>
+        <Routes>
+          {/* your routes... */}
+        </Routes>
+        {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
+      </Suspense>
+    </>
+  );
+}
+
         {/* Public routes */}
         <Route path="/" element={<Home />} />
         <Route path="/admin" element={<AdminPage />} />
