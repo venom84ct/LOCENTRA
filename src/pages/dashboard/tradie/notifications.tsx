@@ -50,7 +50,7 @@ const TradieNotificationsPage = () => {
         .from("notifications")
         .select("*")
         .eq("recipient_id", user.id)
-        .order("timestamp", { ascending: false });
+        .order("created_at", { ascending: false });
 
       if (!error && data) {
         setNotifications(data);
