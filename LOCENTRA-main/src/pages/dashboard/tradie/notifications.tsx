@@ -42,9 +42,7 @@ const TradieNotificationsPage = () => {
 
   useEffect(() => {
     const fetchUserAndNotifications = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       setUser(user);
 
@@ -62,7 +60,6 @@ const TradieNotificationsPage = () => {
     fetchUserAndNotifications();
   }, []);
 
-  // Realtime subscription
   useEffect(() => {
     if (!user) return;
 
