@@ -82,6 +82,18 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           fetchUnreadCounts();
         }
       )
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "messages",
+          filter: `${msgField}=eq.${user.id}`,
+        },
+        () => {
+          fetchUnreadCounts();
+        }
+      )
       .subscribe();
 
     const notifChannel = supabase
