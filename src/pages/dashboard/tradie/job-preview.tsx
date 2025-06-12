@@ -91,12 +91,17 @@ const JobPreviewPage = () => {
     }
 
     // Check if conversation already exists
-    const { data: existingConvo } = await supabase
+    const { data: existingConvo, error: convoError } = await supabase
       .from("conversations")
       .select("id")
       .eq("job_id", job.id)
       .eq("tradie_id", profile.id)
       .maybeSingle();
+
+    if (convoError && convoError.code !== "PGRST116") {
+      console.error("Failed to fetch conversation:", convoError);
+      return;
+    }
 
     if (!existingConvo) {
       await supabase.from("conversations").insert([
