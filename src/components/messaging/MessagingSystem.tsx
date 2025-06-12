@@ -41,7 +41,7 @@ const MessagingSystem = ({ userId, userName, userAvatar, userType }: Props) => {
 
     const { data, error } = await supabase
       .from("conversations")
-      .select("id, job_id, jobs(title)")
+      .select("id, job_id, tradie_id, homeowner_id, jobs(title)")
       .eq(field, userId)
       .order("created_at", { ascending: false });
 
@@ -50,12 +50,12 @@ const MessagingSystem = ({ userId, userName, userAvatar, userType }: Props) => {
       return;
     }
 
-    const mapped = data.map((c) => ({
+    const mapped = (data as any[]).map((c) => ({
       id: c.id,
       job_id: c.job_id,
       tradie_id: c.tradie_id,
       homeowner_id: c.homeowner_id,
-      job_title: c.jobs?.title || "",
+      job_title: c.jobs?.[0]?.title || "",
     }));
 
     setConversations(mapped);

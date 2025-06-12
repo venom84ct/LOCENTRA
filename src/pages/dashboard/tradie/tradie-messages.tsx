@@ -35,9 +35,14 @@ const TradieMessagesPage = () => {
   if (loading) return <div className="p-8">Loading messaging system...</div>;
 
   return (
-    <DashboardLayout user={profile} userType="centraTradie">
+    <DashboardLayout user={profile} userType="tradie">
       <div className="p-4">
-        <MessagingSystem user={profile} userType="tradie" />
+        <MessagingSystem
+          userId={profile.id}
+          userName={profile.first_name}
+          userAvatar={profile.avatar_url}
+          userType="tradie"
+        />
       </div>
     </DashboardLayout>
   );

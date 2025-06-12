@@ -35,7 +35,7 @@ const TradieMessagesIndexPage = () => {
   }, []);
 
   return (
-    <DashboardLayout userType="tradie">
+    <DashboardLayout userType="tradie" user={{ id: userId }}>
       <div className="p-4">
         <h1 className="text-2xl font-bold mb-4">Messages</h1>
         <SimpleMessagingSystem

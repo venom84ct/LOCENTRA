@@ -78,7 +78,7 @@ const TradieNotificationsPage = () => {
           filter: `recipient_id=eq.${user.id}`,
         },
         (payload) => {
-          const newNotif = payload.new;
+          const newNotif = payload.new as Notification;
           setNotifications((prev) => [newNotif, ...prev]);
         }
       )

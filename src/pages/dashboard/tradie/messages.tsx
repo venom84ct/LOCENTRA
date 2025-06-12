@@ -21,11 +21,11 @@ interface Conversation {
   id: string;
   jobs: {
     title: string;
-  };
+  }[];
   profile_centra_resident: {
     first_name: string;
     avatar_url: string;
-  };
+  }[];
 }
 
 const TradieMessagesPage = () => {
@@ -65,10 +65,12 @@ const TradieMessagesPage = () => {
     const fetchConversations = async () => {
       const { data } = await supabase
         .from("conversations")
-        .select("id, jobs(title), profile_centra_resident(first_name, avatar_url)")
+        .select(
+          "id, jobs(title), profile_centra_resident(first_name, avatar_url)"
+        )
         .eq("tradie_id", userId);
 
-      if (data) setConversations(data);
+      if (data) setConversations(data as Conversation[]);
     };
 
     fetchConversations();
@@ -179,17 +181,22 @@ const TradieMessagesPage = () => {
                 >
                   <div className="flex items-center gap-2">
                     <Avatar className="h-6 w-6">
-                      <AvatarImage src={conv.profile_centra_resident?.avatar_url || `https://robohash.org/${conv.id}`} />
+                      <AvatarImage
+                        src={
+                          conv.profile_centra_resident?.[0]?.avatar_url ||
+                          `https://robohash.org/${conv.id}`
+                        }
+                      />
                       <AvatarFallback>
-                        {conv.profile_centra_resident?.first_name?.[0] || "H"}
+                        {conv.profile_centra_resident?.[0]?.first_name?.[0] || "H"}
                       </AvatarFallback>
                     </Avatar>
                     <div>
                       <p className="text-sm font-medium">
-                        {conv.profile_centra_resident?.first_name || "Homeowner"}
+                        {conv.profile_centra_resident?.[0]?.first_name || "Homeowner"}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Job: {conv.jobs?.title || "Untitled"}
+                        Job: {conv.jobs?.[0]?.title || "Untitled"}
                       </p>
                     </div>
                   </div>
