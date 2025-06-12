@@ -5,13 +5,14 @@ import { supabase } from "@/lib/supabaseClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Trash2 } from "lucide-react";
+import { Trash2, Camera } from "lucide-react";
 
 interface Message {
   id: string;
   conversation_id: string;
   sender_id: string;
-  message: string;
+  message?: string;
+  image_url?: string;
   created_at: string;
 }
 
@@ -24,6 +25,8 @@ interface Conversation {
     first_name: string;
     avatar_url: string;
   };
+  homeowner_id: string;
+  tradie_id: string;
 }
 
 const HomeownerMessagesPage = () => {
@@ -37,6 +40,7 @@ const HomeownerMessagesPage = () => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchUserAndProfile = async () => {
@@ -62,7 +66,7 @@ const HomeownerMessagesPage = () => {
     const fetchConversations = async () => {
       const { data, error } = await supabase
         .from("conversations")
-        .select("id, jobs(title), profile_centra_tradie(first_name, avatar_url)")
+        .select("id, homeowner_id, tradie_id, jobs(title), profile_centra_tradie(first_name, avatar_url)")
         .eq("homeowner_id", userId);
 
       if (!error) setConversations(data || []);
@@ -114,15 +118,50 @@ const HomeownerMessagesPage = () => {
   const handleSend = async () => {
     if (!newMessage.trim() || !userId || !selectedConversationId) return;
 
+    const convo = conversations.find((c) => c.id === selectedConversationId);
+    if (!convo) return;
+
     const { error } = await supabase.from("messages").insert({
       conversation_id: selectedConversationId,
       sender_id: userId,
       message: newMessage.trim(),
+      is_read: false,
+      homeowner_id: convo.homeowner_id,
+      tradie_id: convo.tradie_id,
     });
 
     if (!error) {
       setNewMessage("");
     }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !userId || !selectedConversationId) return;
+
+    const convo = conversations.find((c) => c.id === selectedConversationId);
+    if (!convo) return;
+
+    const filePath = `${selectedConversationId}/${Date.now()}-${file.name}`;
+    const { error: uploadError } = await supabase.storage
+      .from("chat-images")
+      .upload(filePath, file);
+
+    if (uploadError) {
+      console.error("Upload failed:", uploadError.message);
+      return;
+    }
+
+    const { data } = supabase.storage.from("chat-images").getPublicUrl(filePath);
+
+    await supabase.from("messages").insert({
+      conversation_id: selectedConversationId,
+      sender_id: userId,
+      image_url: data.publicUrl,
+      is_read: false,
+      homeowner_id: convo.homeowner_id,
+      tradie_id: convo.tradie_id,
+    });
   };
 
   const handleDeleteConversation = async (id: string) => {
@@ -189,7 +228,14 @@ const HomeownerMessagesPage = () => {
                   msg.sender_id === userId ? "bg-red-100 ml-auto" : "bg-gray-100"
                 }`}
               >
-                {msg.message}
+                {msg.message && <p>{msg.message}</p>}
+                {msg.image_url && (
+                  <img
+                    src={msg.image_url}
+                    alt="Sent"
+                    className="mt-2 max-w-xs rounded border"
+                  />
+                )}
               </div>
             ))}
             <div ref={bottomRef} />
@@ -201,6 +247,15 @@ const HomeownerMessagesPage = () => {
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Type a message..."
             />
+            <input
+              type="file"
+              ref={fileInputRef}
+              hidden
+              onChange={handleImageUpload}
+            />
+            <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
+              <Camera className="w-4 h-4" />
+            </Button>
             <Button onClick={handleSend} disabled={!newMessage.trim()}>
               Send
             </Button>
