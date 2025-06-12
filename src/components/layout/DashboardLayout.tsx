@@ -260,9 +260,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         </div>
       </div>
 
-      <SheetContent side="left" className="w-64 p-0">
-        <div className="p-4">
-          <div className="mb-6 md:hidden">
+      <SheetContent side="left" className="w-64 bg-white shadow-md p-6">
+        <div className="mb-6 md:hidden">
             <div className="text-lg font-bold">
               {user?.first_name} {user?.last_name}
             </div>
@@ -310,7 +309,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               </button>
             </SheetClose>
           </nav>
-        </div>
       </SheetContent>
     </Sheet>
   );
