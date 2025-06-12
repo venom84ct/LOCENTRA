@@ -1,4 +1,3 @@
-// ✅ UPDATED TRADIE MESSAGES PAGE WITH is_read FIX & IMAGE SUPPORT
 import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -15,6 +14,7 @@ const MessagesPage = () => {
   const [newMessage, setNewMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [profile, setProfile] = useState<any>(null);
 
   useEffect(() => {
     const fetchUserAndConversations = async () => {
@@ -23,6 +23,14 @@ const MessagesPage = () => {
       } = await supabase.auth.getUser();
       if (!user) return;
       setUserId(user.id);
+
+      const { data: profileData } = await supabase
+        .from("profile_centra_tradie")
+        .select("*")
+        .eq("id", user.id)
+        .single();
+
+      setProfile(profileData);
 
       const { data, error } = await supabase
         .from("conversations")
@@ -36,7 +44,7 @@ const MessagesPage = () => {
   }, []);
 
   useEffect(() => {
-    if (!selectedConversation?.id || !userId) return;
+    if (!selectedConversation?.id) return;
 
     const fetchMessages = async () => {
       const { data, error } = await supabase
@@ -48,13 +56,6 @@ const MessagesPage = () => {
       if (!error) {
         setMessages(data || []);
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-
-        // Mark all messages not from current user as read
-        await supabase
-          .from("messages")
-          .update({ is_read: true })
-          .eq("conversation_id", selectedConversation.id)
-          .neq("sender_id", userId);
       }
     };
 
@@ -80,7 +81,7 @@ const MessagesPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedConversation, userId]);
+  }, [selectedConversation]);
 
   const handleSend = async () => {
     if (!newMessage.trim() || !userId || !selectedConversation) return;
@@ -89,33 +90,38 @@ const MessagesPage = () => {
       conversation_id: selectedConversation.id,
       sender_id: userId,
       message: newMessage.trim(),
-      is_read: false,
     });
 
-    if (!error) setNewMessage("");
+    if (!error) {
+      setNewMessage("");
+    }
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !selectedConversation?.id) return;
+    if (!file || !userId || !selectedConversation?.id) return;
 
-    const filePath = `${selectedConversation.id}/${Date.now()}-${file.name}`;
+    const ext = file.name.split(".").pop();
+    const filePath = `chat-images/${selectedConversation.id}/${Date.now()}.${ext}`;
+
     const { error: uploadError } = await supabase.storage
       .from("chat-images")
       .upload(filePath, file);
 
     if (uploadError) {
-      console.error("Upload failed:", uploadError.message);
+      console.error("Image upload failed:", uploadError.message);
       return;
     }
 
-    const { data: urlData } = supabase.storage.from("chat-images").getPublicUrl(filePath);
+    const { data } = supabase.storage.from("chat-images").getPublicUrl(filePath);
+
     await supabase.from("messages").insert({
       conversation_id: selectedConversation.id,
       sender_id: userId,
-      image_url: urlData.publicUrl,
-      is_read: false,
+      image_url: data.publicUrl,
     });
+
+    e.target.value = "";
   };
 
   const deleteConversation = async (id: string) => {
@@ -136,9 +142,9 @@ const MessagesPage = () => {
   const canMessage = isAssignedToTradie || (isUnassigned && hasReceivedReply);
 
   return (
-    <DashboardLayout userType="tradie">
+    <DashboardLayout userType="tradie" user={profile}>
       <div className="p-6 flex space-x-6">
-        {/* Sidebar */}
+        {/* Conversation List */}
         <div className="w-1/3 border rounded p-4 bg-white h-[600px] overflow-y-auto">
           <h2 className="font-semibold text-lg mb-4">Conversations</h2>
           {conversations.map((convo) => (
@@ -178,7 +184,7 @@ const MessagesPage = () => {
           ))}
         </div>
 
-        {/* Message Area */}
+        {/* Messages Panel */}
         <div className="flex-1 border rounded p-4 bg-white h-[600px] flex flex-col">
           <h2 className="font-semibold text-lg mb-2">Messages</h2>
           <div className="flex-1 overflow-y-auto space-y-2">
@@ -189,17 +195,22 @@ const MessagesPage = () => {
                   msg.sender_id === userId ? "bg-red-100 ml-auto" : "bg-gray-100"
                 }`}
               >
-                {msg.message && <p>{msg.message}</p>}
-                {msg.image_url && <img src={msg.image_url} alt="uploaded" className="mt-2 rounded max-w-xs" />}
+                {msg.message && <div>{msg.message}</div>}
+                {msg.image_url && (
+                  <img
+                    src={msg.image_url}
+                    alt="chat upload"
+                    className="mt-2 rounded max-w-xs border"
+                  />
+                )}
               </div>
             ))}
-            <div ref={bottomRef} />
-
             {!canMessage && (
               <div className="text-center text-muted-foreground text-sm mt-4">
                 You cannot message anymore. The job has been assigned to another tradie.
               </div>
             )}
+            <div ref={bottomRef} />
           </div>
 
           <div className="mt-4 flex gap-2">
@@ -209,9 +220,17 @@ const MessagesPage = () => {
               onChange={(e) => setNewMessage(e.target.value)}
               disabled={!canMessage}
             />
-            <input type="file" ref={fileInputRef} onChange={handleImageUpload} hidden />
+            <input
+              type="file"
+              accept="image/*"
+              ref={fileInputRef}
+              hidden
+              onChange={handleImageUpload}
+            />
             <Button onClick={() => fileInputRef.current?.click()} disabled={!canMessage}>📷</Button>
-            <Button onClick={handleSend} disabled={!newMessage.trim() || !canMessage}>Send</Button>
+            <Button onClick={handleSend} disabled={!newMessage.trim() || !canMessage}>
+              Send
+            </Button>
           </div>
         </div>
       </div>
