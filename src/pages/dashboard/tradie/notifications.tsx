@@ -20,6 +20,7 @@ import {
   User,
   Briefcase,
   Star,
+  Trash2,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -104,6 +105,11 @@ const TradieNotificationsPage = () => {
       .eq("recipient_id", user.id);
   };
 
+  const deleteNotification = async (id: string) => {
+    await supabase.from("notifications").delete().eq("id", id);
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  };
+
   const handleView = (type: string, id: string, name?: string) => {
     if (type === "job") navigate("/dashboard/tradie/my-jobs");
     if (type === "message") navigate(`/dashboard/tradie/messages?conversationId=${id}`);
@@ -186,7 +192,7 @@ const TradieNotificationsPage = () => {
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm mb-4">{n.description}</p>
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-2 flex-wrap">
                       {!n.read && (
                         <Button
                           variant="outline"
@@ -213,6 +219,14 @@ const TradieNotificationsPage = () => {
                           View
                         </Button>
                       )}
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => deleteNotification(n.id)}
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
