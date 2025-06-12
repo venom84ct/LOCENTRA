@@ -195,7 +195,13 @@ const HomeownerMessagesPage = () => {
         <div className="col-span-2">
           <h2 className="text-lg font-semibold mb-2">Messages</h2>
           <div className="border rounded p-4 bg-white h-[500px] overflow-y-auto">
-            {messages.map((msg) => (
+            {!selectedConversationId && (
+              <div className="text-center text-muted-foreground text-sm">
+                Select a conversation to start chatting.
+              </div>
+            )}
+            {selectedConversationId &&
+              messages.map((msg) => (
               <div
                 key={msg.id}
                 className={`my-2 max-w-sm px-4 py-2 rounded-lg ${
@@ -217,24 +223,32 @@ const HomeownerMessagesPage = () => {
             <div ref={bottomRef} />
           </div>
 
-          <div className="flex gap-2 mt-4">
-            <Input
-              value={newMessage}
-              onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type a message..."
-            />
-            <input
-              type="file"
-              accept="image/*"
-              ref={fileInputRef}
-              hidden
-              onChange={handleImageUpload}
-            />
-            <Button onClick={() => fileInputRef.current?.click()}>📷</Button>
-            <Button onClick={handleSend} disabled={!newMessage.trim()}>
+            <div className="flex gap-2 mt-4">
+              <Input
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Type a message..."
+              />
+              <input
+                type="file"
+                accept="image/*"
+                ref={fileInputRef}
+                hidden
+                onChange={handleImageUpload}
+              />
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={!selectedConversationId}
+            >
+              📷
+            </Button>
+            <Button
+              onClick={handleSend}
+              disabled={!newMessage.trim() || !selectedConversationId}
+            >
               Send
             </Button>
-          </div>
+            </div>
         </div>
       </div>
     </DashboardLayout>

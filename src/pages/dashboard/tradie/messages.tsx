@@ -188,7 +188,13 @@ const MessagesPage = () => {
         <div className="flex-1 border rounded p-4 bg-white h-[600px] flex flex-col">
           <h2 className="font-semibold text-lg mb-2">Messages</h2>
           <div className="flex-1 overflow-y-auto space-y-2">
-            {messages.map((msg) => (
+            {!selectedConversation && (
+              <div className="text-center text-muted-foreground text-sm">
+                Select a conversation to start chatting.
+              </div>
+            )}
+            {selectedConversation &&
+              messages.map((msg) => (
               <div
                 key={msg.id}
                 className={`max-w-xs px-4 py-2 rounded-lg ${
@@ -205,7 +211,7 @@ const MessagesPage = () => {
                 )}
               </div>
             ))}
-            {!canMessage && (
+            {!selectedConversation && !messages.length ? null : !canMessage && (
               <div className="text-center text-muted-foreground text-sm mt-4">
                 You cannot message anymore. The job has been assigned to another tradie.
               </div>
@@ -227,8 +233,16 @@ const MessagesPage = () => {
               hidden
               onChange={handleImageUpload}
             />
-            <Button onClick={() => fileInputRef.current?.click()} disabled={!canMessage}>📷</Button>
-            <Button onClick={handleSend} disabled={!newMessage.trim() || !canMessage}>
+            <Button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={!selectedConversation || !canMessage}
+            >
+              📷
+            </Button>
+            <Button
+              onClick={handleSend}
+              disabled={!newMessage.trim() || !selectedConversation || !canMessage}
+            >
               Send
             </Button>
           </div>
