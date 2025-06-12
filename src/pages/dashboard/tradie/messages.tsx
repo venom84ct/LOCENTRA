@@ -44,7 +44,7 @@ const MessagesPage = () => {
   }, []);
 
   useEffect(() => {
-    if (!selectedConversation?.id) return;
+    if (!selectedConversation?.id || !userId) return;
 
     const fetchMessages = async () => {
       const { data, error } = await supabase
@@ -59,7 +59,20 @@ const MessagesPage = () => {
       }
     };
 
+    const markMessagesAsRead = async () => {
+      const { error } = await supabase
+        .from("messages")
+        .update({ is_read: true })
+        .eq("conversation_id", selectedConversation.id)
+        .eq("tradie_id", userId)
+        .neq("sender_id", userId);
+      if (error) {
+        console.error("Failed to mark messages as read:", error.message);
+      }
+    };
+
     fetchMessages();
+    markMessagesAsRead();
 
     const channel = supabase
       .channel(`messages-${selectedConversation.id}`)
@@ -81,7 +94,7 @@ const MessagesPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedConversation]);
+  }, [selectedConversation, userId]);
 
   const handleSend = async () => {
     if (!newMessage.trim() || !userId || !selectedConversation) return;
