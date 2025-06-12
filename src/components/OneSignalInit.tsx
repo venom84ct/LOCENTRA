@@ -8,6 +8,11 @@ declare global {
 }
 
 const OneSignalInit = () => {
+  const appId = import.meta.env.VITE_ONESIGNAL_APP_ID;
+  if (!appId) {
+    console.warn("VITE_ONESIGNAL_APP_ID is not set");
+  }
+
   useEffect(() => {
     const loadOneSignal = () => {
       if (window.OneSignal) return;
@@ -20,7 +25,7 @@ const OneSignalInit = () => {
         window.OneSignal = window.OneSignal || [];
         window.OneSignal.push(function () {
           window.OneSignal.init({
-            appId: "b6d82074-2797-435a-9586-63bc0b55a696", // ✅ your correct OneSignal app ID
+            appId: appId,
             notifyButton: {
               enable: true,
             },
