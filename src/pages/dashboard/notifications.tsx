@@ -26,7 +26,7 @@ interface Notification {
   id: string;
   title: string;
   description: string;
-  timestamp: string;
+  created_at: string;
   type: "info" | "success" | "warning" | "error";
   read: boolean;
   related_type?: "job" | "message" | "homeowner" | "system";
@@ -35,7 +35,7 @@ interface Notification {
   related_avatar?: string;
 }
 
-const TradieNotificationsPage = () => {
+const HomeownerNotificationsPage = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -50,7 +50,7 @@ const TradieNotificationsPage = () => {
         .from("notifications")
         .select("*")
         .eq("recipient_id", user.id)
-        .order("timestamp", { ascending: false });
+        .order("created_at", { ascending: false });
 
       if (!error && data) {
         setNotifications(data);
@@ -99,9 +99,9 @@ const TradieNotificationsPage = () => {
   };
 
   const handleView = (type: string, id: string, name?: string) => {
-    if (type === "job") navigate(`/dashboard/tradie/my-jobs?jobId=${id}`);
-    if (type === "message") navigate(`/dashboard/tradie/messages?messageId=${id}`);
-    if (type === "homeowner") navigate(`/dashboard/tradie/messages?contactId=${id}`);
+    if (type === "job") navigate(`/dashboard/jobs`);
+    if (type === "message") navigate(`/dashboard/messages?conversationId=${id}`);
+    if (type === "homeowner") navigate(`/dashboard/messages?contactId=${id}`);
   };
 
   const getNotificationIcon = (type: string) => {
@@ -120,7 +120,7 @@ const TradieNotificationsPage = () => {
   };
 
   return (
-    <DashboardLayout userType="tradie" user={user}>
+    <DashboardLayout userType="centraResident" user={user}>
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-6">
@@ -150,7 +150,7 @@ const TradieNotificationsPage = () => {
                             )}
                           </CardTitle>
                           <CardDescription className="text-xs">
-                            {new Date(n.timestamp).toLocaleString()}
+                            {new Date(n.created_at).toLocaleString()}
                           </CardDescription>
                         </div>
                       </div>
@@ -190,4 +190,4 @@ const TradieNotificationsPage = () => {
   );
 };
 
-export default TradieNotificationsPage;
+export default HomeownerNotificationsPage;
