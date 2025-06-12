@@ -52,7 +52,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ conversationId }) => {
     const { error } = await supabase.from("messages").insert({
       conversation_id: conversationId,
       sender_id: currentUserId,
-      content: message,
+      message: message,
       image_url: imageUrl,
     });
 

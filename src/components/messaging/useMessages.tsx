@@ -5,7 +5,7 @@ interface Message {
   id: string;
   conversation_id: string;
   sender_id: string;
-  content: string;
+  message: string;
   image_url?: string;
   created_at: string;
   avatar_url?: string; // optional if you include avatars later
