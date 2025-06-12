@@ -10,6 +10,7 @@ interface Message {
   sender_id: string;
   message: string;
   created_at: string;
+  image_url?: string;
 }
 
 interface SimpleMessagingSystemProps {
@@ -31,6 +32,7 @@ const SimpleMessagingSystem: React.FC<SimpleMessagingSystemProps> = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const isTradie = userType === "tradie";
   const isOnlyAutoMessage =
@@ -91,6 +93,33 @@ const SimpleMessagingSystem: React.FC<SimpleMessagingSystemProps> = ({
     if (!error) setNewMessage("");
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !userId || !conversationId) return;
+
+    const ext = file.name.split(".").pop();
+    const filePath = `chat-images/${conversationId}/${Date.now()}.${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from("chat-images")
+      .upload(filePath, file);
+
+    if (uploadError) {
+      console.error("Image upload failed:", uploadError.message);
+      return;
+    }
+
+    const { data } = supabase.storage.from("chat-images").getPublicUrl(filePath);
+
+    await supabase.from("messages").insert({
+      conversation_id: conversationId,
+      sender_id: userId,
+      image_url: data.publicUrl,
+    });
+
+    e.target.value = "";
+  };
+
   return (
     <div className="max-w-3xl mx-auto p-4">
       {jobId && (
@@ -109,7 +138,14 @@ const SimpleMessagingSystem: React.FC<SimpleMessagingSystemProps> = ({
                 : "bg-gray-100"
             }`}
           >
-            {msg.message}
+            {msg.message && <div>{msg.message}</div>}
+            {msg.image_url && (
+              <img
+                src={msg.image_url}
+                alt="upload"
+                className="mt-2 rounded max-w-xs border inline-block"
+              />
+            )}
           </div>
         ))}
         {lockForTradie && (
@@ -127,6 +163,19 @@ const SimpleMessagingSystem: React.FC<SimpleMessagingSystemProps> = ({
           placeholder="Type a message..."
           disabled={lockForTradie}
         />
+        <input
+          type="file"
+          accept="image/*"
+          ref={fileInputRef}
+          onChange={handleImageUpload}
+          hidden
+        />
+        <Button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={lockForTradie}
+        >
+          📷
+        </Button>
         <Button onClick={handleSend} disabled={!newMessage.trim() || lockForTradie}>
           Send
         </Button>
