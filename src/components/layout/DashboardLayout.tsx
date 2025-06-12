@@ -40,27 +40,36 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   };
 
   useEffect(() => {
+    if (!user?.id) return;
+
     const fetchUnreadCounts = async () => {
+      const msgField = userType === "centraResident" ? "homeowner_id" : "tradie_id";
+
       const { count: msgCount } = await supabase
         .from("messages")
         .select("*", { count: "exact", head: true })
-        .eq("receiver_id", user.id)
+        .eq(msgField, user.id)
         .eq("is_read", false);
 
       const { count: notifCount } = await supabase
         .from("notifications")
         .select("*", { count: "exact", head: true })
-        .eq("user_id", user.id)
-        .eq("is_read", false);
+        .eq("recipient_id", user.id)
+        .eq("recipient_type", userType === "centraResident" ? "homeowner" : "tradie")
+        .eq("read", false);
 
       setUnreadMessages(msgCount || 0);
       setUnreadNotifications(notifCount || 0);
     };
 
     fetchUnreadCounts();
-  }, [user.id]);
+  }, [user?.id, userType]);
 
   useEffect(() => {
+    if (!user?.id) return;
+
+    const msgField = userType === "centraResident" ? "homeowner_id" : "tradie_id";
+
     const msgChannel = supabase
       .channel("realtime:messages")
       .on(
@@ -69,7 +78,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           event: "INSERT",
           schema: "public",
           table: "messages",
-          filter: `receiver_id=eq.${user.id}`,
+          filter: `${msgField}=eq.${user.id}`,
         },
         () => {
           setUnreadMessages((prev) => prev + 1);
@@ -85,7 +94,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           event: "INSERT",
           schema: "public",
           table: "notifications",
-          filter: `user_id=eq.${user.id}`,
+          filter: `recipient_id=eq.${user.id}`,
         },
         () => {
           setUnreadNotifications((prev) => prev + 1);
@@ -97,7 +106,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       supabase.removeChannel(msgChannel);
       supabase.removeChannel(notifChannel);
     };
-  }, [user.id]);
+  }, [user?.id, userType]);
 
   const navItems =
     userType === "centraResident"
@@ -173,7 +182,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                     <Icon className="h-5 w-5 mr-2" />
                     {item.name}
                   </div>
-                  {item.badgeCount > 0 && (
+                  {item.badgeCount && item.badgeCount > 0 && (
                     <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
                       {item.badgeCount}
                     </span>
