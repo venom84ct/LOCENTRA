@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Trash2 } from "lucide-react";
+import { toast } from "@/components/ui/use-toast";
 
 const HomeownerMessagesPage = () => {
   const [searchParams] = useSearchParams();
@@ -120,6 +121,11 @@ const HomeownerMessagesPage = () => {
 
     if (uploadError) {
       console.error("Image upload failed:", uploadError.message);
+      toast({
+        title: "Image upload failed",
+        description: uploadError.message,
+        variant: "destructive",
+      });
       return;
     }
 
@@ -127,11 +133,20 @@ const HomeownerMessagesPage = () => {
       .from("chat-images")
       .getPublicUrl(filePath);
 
-    await supabase.from("messages").insert({
+    const { error: insertError } = await supabase.from("messages").insert({
       conversation_id: selectedConversationId,
       sender_id: userId,
       image_url: data.publicUrl,
     });
+
+    if (insertError) {
+      console.error("Failed to save image message:", insertError.message);
+      toast({
+        title: "Failed to send image",
+        description: insertError.message,
+        variant: "destructive",
+      });
+    }
 
     e.target.value = "";
   };
