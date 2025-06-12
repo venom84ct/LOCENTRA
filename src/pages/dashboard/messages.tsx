@@ -1,10 +1,10 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useSearchParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { supabase } from "@/lib/supabaseClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Trash2 } from "lucide-react";
 
 interface Message {
@@ -14,18 +14,6 @@ interface Message {
   message: string;
   image_url?: string;
   created_at: string;
-  is_read: boolean;
-}
-
-interface Conversation {
-  id: string;
-  jobs: {
-    title: string;
-  }[];
-  profile_centra_tradie: {
-    first_name: string;
-    avatar_url: string;
-  }[];
 }
 
 const HomeownerMessagesPage = () => {
@@ -36,9 +24,8 @@ const HomeownerMessagesPage = () => {
   const [userId, setUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<any>(null);
   const [messages, setMessages] = useState<Message[]>([]);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [conversations, setConversations] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -63,37 +50,41 @@ const HomeownerMessagesPage = () => {
     if (!userId) return;
 
     const fetchConversations = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("conversations")
-        .select(
-          "id, jobs(title), profile_centra_tradie(first_name, avatar_url)"
-        )
+        .select(`
+          id,
+          jobs(title),
+          profile_centra_tradie(first_name, avatar_url)
+        `)
         .eq("homeowner_id", userId);
 
-      if (data) setConversations(data as Conversation[]);
+      if (!error) setConversations(data || []);
     };
 
     fetchConversations();
   }, [userId]);
 
   useEffect(() => {
-    if (!selectedConversationId || !userId) return;
+    if (!selectedConversationId) return;
 
     const fetchMessages = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("messages")
         .select("*")
         .eq("conversation_id", selectedConversationId)
         .order("created_at", { ascending: true });
 
-      if (data) {
-        setMessages(data);
+      if (!error) {
+        setMessages(data || []);
+        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+
+        // Mark messages as read
         await supabase
           .from("messages")
           .update({ is_read: true })
           .eq("conversation_id", selectedConversationId)
           .neq("sender_id", userId);
-        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
       }
     };
 
@@ -128,31 +119,9 @@ const HomeownerMessagesPage = () => {
       conversation_id: selectedConversationId,
       sender_id: userId,
       message: newMessage.trim(),
-      is_read: false,
     });
 
     setNewMessage("");
-  };
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !selectedConversationId || !userId) return;
-
-    const filePath = `${selectedConversationId}/${Date.now()}-${file.name}`;
-    const { error: uploadError } = await supabase.storage
-      .from("chat-images")
-      .upload(filePath, file);
-
-    if (uploadError) return console.error("Upload failed:", uploadError.message);
-
-    const { data } = supabase.storage.from("chat-images").getPublicUrl(filePath);
-
-    await supabase.from("messages").insert({
-      conversation_id: selectedConversationId,
-      sender_id: userId,
-      image_url: data.publicUrl,
-      is_read: false,
-    });
   };
 
   const handleDeleteConversation = async (id: string) => {
@@ -183,20 +152,20 @@ const HomeownerMessagesPage = () => {
                     <Avatar className="h-6 w-6">
                       <AvatarImage
                         src={
-                          conv.profile_centra_tradie?.[0]?.avatar_url ||
+                          conv.profile_centra_tradie?.avatar_url ||
                           `https://robohash.org/${conv.id}`
                         }
                       />
                       <AvatarFallback>
-                        {conv.profile_centra_tradie?.[0]?.first_name?.[0] || "T"}
+                        {conv.profile_centra_tradie?.first_name?.[0] || "T"}
                       </AvatarFallback>
                     </Avatar>
                     <div>
                       <p className="text-sm font-medium">
-                        {conv.profile_centra_tradie?.[0]?.first_name || "Tradie"}
+                        {conv.profile_centra_tradie?.first_name || "Tradie"}
                       </p>
                       <p className="text-xs text-muted-foreground">
-                        Job: {conv.jobs?.[0]?.title || "Untitled"}
+                        Job: {conv.jobs?.title || "Untitled"}
                       </p>
                     </div>
                   </div>
@@ -224,12 +193,12 @@ const HomeownerMessagesPage = () => {
                   msg.sender_id === userId ? "bg-red-100 ml-auto" : "bg-gray-100"
                 }`}
               >
-                {msg.message && <p>{msg.message}</p>}
+                {msg.message}
                 {msg.image_url && (
                   <img
                     src={msg.image_url}
-                    alt="chat image"
-                    className="mt-2 max-w-xs rounded"
+                    alt="attachment"
+                    className="mt-2 rounded max-w-xs"
                   />
                 )}
               </div>
@@ -243,13 +212,6 @@ const HomeownerMessagesPage = () => {
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder="Type a message..."
             />
-            <input
-              type="file"
-              ref={fileInputRef}
-              onChange={handleImageUpload}
-              hidden
-            />
-            <Button onClick={() => fileInputRef.current?.click()}>📷</Button>
             <Button onClick={handleSend} disabled={!newMessage.trim()}>
               Send
             </Button>
@@ -261,4 +223,3 @@ const HomeownerMessagesPage = () => {
 };
 
 export default HomeownerMessagesPage;
-
