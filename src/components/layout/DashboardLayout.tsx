@@ -18,11 +18,11 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import {
-  Drawer,
-  DrawerContent,
-  DrawerTrigger,
-  DrawerClose,
-} from "@/components/ui/drawer";
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetClose,
+} from "@/components/ui/sheet";
 
 interface DashboardLayoutProps {
   userType: "centraResident" | "tradie";
@@ -40,7 +40,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -50,7 +50,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   const fetchUnreadCounts = async () => {
     if (!user?.id) return;
-    const msgField = userType === "centraResident" ? "homeowner_id" : "tradie_id";
+    const msgField =
+      userType === "centraResident" ? "homeowner_id" : "tradie_id";
 
     const { count: msgCount } = await supabase
       .from("messages")
@@ -62,7 +63,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       .from("notifications")
       .select("*", { count: "exact", head: true })
       .eq("recipient_id", user.id)
-      .eq("recipient_type", userType === "centraResident" ? "homeowner" : "tradie")
+      .eq(
+        "recipient_type",
+        userType === "centraResident" ? "homeowner" : "tradie",
+      )
       .eq("read", false);
 
     setUnreadMessages(msgCount || 0);
@@ -75,14 +79,20 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   useEffect(() => {
     if (!user?.id) return;
-    const msgField = userType === "centraResident" ? "homeowner_id" : "tradie_id";
+    const msgField =
+      userType === "centraResident" ? "homeowner_id" : "tradie_id";
 
     const msgChannel = supabase
       .channel("realtime:messages")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages", filter: `${msgField}=eq.${user.id}` },
-        fetchUnreadCounts
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `${msgField}=eq.${user.id}`,
+        },
+        fetchUnreadCounts,
       )
       .subscribe();
 
@@ -90,8 +100,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       .channel("realtime:notifications")
       .on(
         "postgres_changes",
-        { event: "INSERT", schema: "public", table: "notifications", filter: `recipient_id=eq.${user.id}` },
-        fetchUnreadCounts
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `recipient_id=eq.${user.id}`,
+        },
+        fetchUnreadCounts,
       )
       .subscribe();
 
@@ -103,8 +118,10 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   useEffect(() => {
     const isMessagesPage =
-      (userType === "centraResident" && location.pathname === "/dashboard/messages") ||
-      (userType === "tradie" && location.pathname === "/dashboard/tradie/messages");
+      (userType === "centraResident" &&
+        location.pathname === "/dashboard/messages") ||
+      (userType === "tradie" &&
+        location.pathname === "/dashboard/tradie/messages");
 
     if (isMessagesPage) {
       setUnreadMessages(0);
@@ -117,7 +134,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
           { name: "Jobs", path: "/dashboard/jobs", icon: Briefcase },
           { name: "Post a Job", path: "/dashboard/post-job", icon: Briefcase },
-          { name: "Job History", path: "/dashboard/job-history", icon: Briefcase },
+          {
+            name: "Job History",
+            path: "/dashboard/job-history",
+            icon: Briefcase,
+          },
           {
             name: "Messages",
             path: "/dashboard/messages",
@@ -136,9 +157,21 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           { name: "Help", path: "/dashboard/help", icon: HelpCircle },
         ]
       : [
-          { name: "Dashboard", path: "/dashboard/tradie", icon: LayoutDashboard },
-          { name: "Find Jobs", path: "/dashboard/tradie/find-jobs", icon: Search },
-          { name: "My Jobs", path: "/dashboard/tradie/my-jobs", icon: Briefcase },
+          {
+            name: "Dashboard",
+            path: "/dashboard/tradie",
+            icon: LayoutDashboard,
+          },
+          {
+            name: "Find Jobs",
+            path: "/dashboard/tradie/find-jobs",
+            icon: Search,
+          },
+          {
+            name: "My Jobs",
+            path: "/dashboard/tradie/my-jobs",
+            icon: Briefcase,
+          },
           {
             name: "Messages",
             path: "/dashboard/tradie/messages",
@@ -151,14 +184,22 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             icon: Bell,
             badgeCount: unreadNotifications,
           },
-          { name: "Top Tradies", path: "/dashboard/tradie/top-tradies", icon: Award },
+          {
+            name: "Top Tradies",
+            path: "/dashboard/tradie/top-tradies",
+            icon: Award,
+          },
           { name: "Profile", path: "/dashboard/tradie/profile", icon: User },
-          { name: "Settings", path: "/dashboard/tradie/settings", icon: Settings },
+          {
+            name: "Settings",
+            path: "/dashboard/tradie/settings",
+            icon: Settings,
+          },
           { name: "Help", path: "/dashboard/tradie/help", icon: HelpCircle },
         ];
 
   return (
-    <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
+    <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
       <div className="min-h-screen flex bg-gray-50">
         <aside className="w-64 bg-white shadow-md p-6 hidden md:block">
           <div className="mb-6">
@@ -168,58 +209,58 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             <div className="text-sm text-gray-500">{user?.email}</div>
           </div>
 
-        <nav className="space-y-2">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
+          <nav className="space-y-2">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.path;
 
-            return (
-              <Link to={item.path} key={item.name}>
-                <div
-                  className={cn(
-                    "flex items-center justify-between p-2 rounded hover:bg-gray-100 transition-colors",
-                    isActive ? "bg-gray-200 font-semibold" : ""
-                  )}
-                >
-                  <div className="flex items-center">
-                    <Icon className="h-5 w-5 mr-2" />
-                    {item.name}
+              return (
+                <Link to={item.path} key={item.name}>
+                  <div
+                    className={cn(
+                      "flex items-center justify-between p-2 rounded hover:bg-gray-100 transition-colors",
+                      isActive ? "bg-gray-200 font-semibold" : "",
+                    )}
+                  >
+                    <div className="flex items-center">
+                      <Icon className="h-5 w-5 mr-2" />
+                      {item.name}
+                    </div>
+                    {item.badgeCount && item.badgeCount > 0 && (
+                      <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                        {item.badgeCount}
+                      </span>
+                    )}
                   </div>
-                  {item.badgeCount && item.badgeCount > 0 && (
-                    <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                      {item.badgeCount}
-                    </span>
-                  )}
-                </div>
-              </Link>
-            );
-          })}
+                </Link>
+              );
+            })}
 
-          <button
-            onClick={handleLogout}
-            className="flex items-center p-2 mt-4 text-red-600 hover:bg-red-50 rounded w-full transition-colors"
-          >
-            <LogOut className="h-5 w-5 mr-2" />
-            Logout
-          </button>
-        </nav>
+            <button
+              onClick={handleLogout}
+              className="flex items-center p-2 mt-4 text-red-600 hover:bg-red-50 rounded w-full transition-colors"
+            >
+              <LogOut className="h-5 w-5 mr-2" />
+              Logout
+            </button>
+          </nav>
         </aside>
 
         <div className="flex-1">
           {/* Mobile Header */}
           <header className="flex items-center justify-between p-4 bg-white shadow md:hidden">
-            <DrawerTrigger asChild>
-              <button className="p-2" onClick={() => setDrawerOpen(true)}>
+            <SheetTrigger asChild>
+              <button className="p-2" onClick={() => setSheetOpen(true)}>
                 <Menu className="h-6 w-6" />
               </button>
-            </DrawerTrigger>
+            </SheetTrigger>
             <span className="font-semibold">Dashboard</span>
           </header>
           <main className="p-4 md:p-8">{children}</main>
         </div>
       </div>
 
-      <DrawerContent>
+      <SheetContent side="left" className="w-64 p-0">
         <div className="p-4">
           <div className="mb-6 md:hidden">
             <div className="text-lg font-bold">
@@ -233,12 +274,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               const isActive = location.pathname === item.path;
 
               return (
-                <DrawerClose asChild key={item.name}>
-                  <Link to={item.path} onClick={() => setDrawerOpen(false)}>
+                <SheetClose asChild key={item.name}>
+                  <Link to={item.path} onClick={() => setSheetOpen(false)}>
                     <div
                       className={cn(
                         "flex items-center justify-between p-2 rounded hover:bg-gray-100 transition-colors",
-                        isActive ? "bg-gray-200 font-semibold" : ""
+                        isActive ? "bg-gray-200 font-semibold" : "",
                       )}
                     >
                       <div className="flex items-center">
@@ -252,14 +293,14 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                       )}
                     </div>
                   </Link>
-                </DrawerClose>
+                </SheetClose>
               );
             })}
 
-            <DrawerClose asChild>
+            <SheetClose asChild>
               <button
                 onClick={() => {
-                  setDrawerOpen(false);
+                  setSheetOpen(false);
                   handleLogout();
                 }}
                 className="flex items-center p-2 mt-4 text-red-600 hover:bg-red-50 rounded w-full transition-colors"
@@ -267,11 +308,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 <LogOut className="h-5 w-5 mr-2" />
                 Logout
               </button>
-            </DrawerClose>
+            </SheetClose>
           </nav>
         </div>
-      </DrawerContent>
-    </Drawer>
+      </SheetContent>
+    </Sheet>
   );
 };
 
