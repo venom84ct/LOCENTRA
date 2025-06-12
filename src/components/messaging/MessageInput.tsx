@@ -13,6 +13,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ conversationId }) => {
   const [message, setMessage] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [conversation, setConversation] = useState<{tradie_id:string;homeowner_id:string} | null>(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -20,6 +21,15 @@ const MessageInput: React.FC<MessageInputProps> = ({ conversationId }) => {
       if (user) setCurrentUserId(user.id);
     };
     fetchUser();
+    const fetchConversation = async () => {
+      const { data } = await supabase
+        .from("conversations")
+        .select("tradie_id, homeowner_id")
+        .eq("id", conversationId)
+        .single();
+      setConversation(data as any);
+    };
+    fetchConversation();
   }, []);
 
   const sendMessage = async () => {
@@ -54,6 +64,9 @@ const MessageInput: React.FC<MessageInputProps> = ({ conversationId }) => {
       sender_id: currentUserId,
       content: message,
       image_url: imageUrl,
+      tradie_id: conversation?.tradie_id ?? null,
+      homeowner_id: conversation?.homeowner_id ?? null,
+      is_read: false,
     });
 
     if (error) {

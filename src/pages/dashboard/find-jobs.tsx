@@ -106,6 +106,9 @@ const FindJobsPage = () => {
       conversation_id: conversation.id,
       sender_id: tradieId,
       message: autoMessage,
+      tradie_id: tradieId,
+      homeowner_id: job.homeowner_id,
+      is_read: false,
     });
 
     await fetchJobs();

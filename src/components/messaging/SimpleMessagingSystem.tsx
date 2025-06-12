@@ -31,6 +31,7 @@ const SimpleMessagingSystem: React.FC<SimpleMessagingSystemProps> = ({
   const [messages, setMessages] = useState<Message[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const [conversation, setConversation] = useState<{tradie_id:string;homeowner_id:string} | null>(null);
 
   const isTradie = userType === "tradie";
   const isOnlyAutoMessage =
@@ -40,6 +41,13 @@ const SimpleMessagingSystem: React.FC<SimpleMessagingSystemProps> = ({
   useEffect(() => {
     const fetchMessages = async () => {
       if (!conversationId) return;
+
+      const { data: convData } = await supabase
+        .from("conversations")
+        .select("tradie_id, homeowner_id")
+        .eq("id", conversationId)
+        .single();
+      setConversation(convData as any);
 
       const { data, error } = await supabase
         .from("messages")
@@ -82,10 +90,15 @@ const SimpleMessagingSystem: React.FC<SimpleMessagingSystemProps> = ({
   const handleSend = async () => {
     if (!newMessage.trim() || !userId || !conversationId) return;
 
+    const conv = conversation;
+
     const { error } = await supabase.from("messages").insert({
       conversation_id: conversationId,
       sender_id: userId,
       message: newMessage.trim(),
+      tradie_id: conv?.tradie_id ?? null,
+      homeowner_id: conv?.homeowner_id ?? null,
+      is_read: false,
     });
 
     if (!error) setNewMessage("");

@@ -44,7 +44,9 @@ const HomeownerMessagesPage = () => {
     const fetchConversations = async () => {
       const { data, error } = await supabase
         .from("conversations")
-        .select("id, jobs(title), profile_centra_tradie(first_name, avatar_url)")
+        .select(
+          "id, tradie_id, homeowner_id, jobs(title), profile_centra_tradie(first_name, avatar_url)"
+        )
         .eq("homeowner_id", userId);
 
       if (!error) setConversations(data || []);
@@ -96,10 +98,15 @@ const HomeownerMessagesPage = () => {
   const handleSend = async () => {
     if (!newMessage.trim() || !userId || !selectedConversationId) return;
 
+    const conv = conversations.find((c) => c.id === selectedConversationId);
+
     const { error } = await supabase.from("messages").insert({
       conversation_id: selectedConversationId,
       sender_id: userId,
       message: newMessage.trim(),
+      tradie_id: conv?.tradie_id || null,
+      homeowner_id: conv?.homeowner_id || null,
+      is_read: false,
     });
 
     if (!error) {
@@ -110,6 +117,8 @@ const HomeownerMessagesPage = () => {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !userId || !selectedConversationId) return;
+
+    const conv = conversations.find((c) => c.id === selectedConversationId);
 
     const ext = file.name.split(".").pop();
     const filePath = `chat-images/${selectedConversationId}/${Date.now()}.${ext}`;
@@ -131,6 +140,9 @@ const HomeownerMessagesPage = () => {
       conversation_id: selectedConversationId,
       sender_id: userId,
       image_url: data.publicUrl,
+      tradie_id: conv?.tradie_id || null,
+      homeowner_id: conv?.homeowner_id || null,
+      is_read: false,
     });
 
     e.target.value = "";

@@ -90,6 +90,9 @@ const MessagesPage = () => {
       conversation_id: selectedConversation.id,
       sender_id: userId,
       message: newMessage.trim(),
+      tradie_id: selectedConversation.tradie_id,
+      homeowner_id: selectedConversation.homeowner_id,
+      is_read: false,
     });
 
     if (!error) {
@@ -119,6 +122,9 @@ const MessagesPage = () => {
       conversation_id: selectedConversation.id,
       sender_id: userId,
       image_url: data.publicUrl,
+      tradie_id: selectedConversation.tradie_id,
+      homeowner_id: selectedConversation.homeowner_id,
+      is_read: false,
     });
 
     e.target.value = "";

@@ -113,10 +113,15 @@ const MessagingSystem = ({ userId, userName, userAvatar, userType }: Props) => {
   const handleSend = async () => {
     if (!newMessage.trim() || !userId || !activeConversationId) return;
 
+    const conv = conversations.find((c) => c.id === activeConversationId);
+
     const { error } = await supabase.from("messages").insert({
       conversation_id: activeConversationId,
       sender_id: userId,
       message: newMessage.trim(),
+      tradie_id: conv?.tradie_id ?? null,
+      homeowner_id: conv?.homeowner_id ?? null,
+      is_read: false,
     });
 
     if (!error) {
