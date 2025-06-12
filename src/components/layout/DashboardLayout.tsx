@@ -43,11 +43,23 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     if (!user?.id) return;
     const msgField = userType === "centraResident" ? "homeowner_id" : "tradie_id";
 
-    const { count: msgCount } = await supabase
-      .from("messages")
-      .select("*", { count: "exact", head: true })
-      .eq(msgField, user.id)
-      .eq("is_read", false);
+    const { data: conversations } = await supabase
+      .from("conversations")
+      .select("id")
+      .eq(msgField, user.id);
+
+    if (conversations && conversations.length > 0) {
+      const conversationIds = conversations.map((c) => c.id);
+
+      const { count: msgCount } = await supabase
+        .from("messages")
+        .select("*", { count: "exact", head: true })
+        .in("conversation_id", conversationIds)
+        .eq("is_read", false)
+        .neq("sender_id", user.id);
+
+      setUnreadMessages(msgCount || 0);
+    }
 
     const { count: notifCount } = await supabase
       .from("notifications")
@@ -56,7 +68,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       .eq("recipient_type", userType === "centraResident" ? "homeowner" : "tradie")
       .eq("read", false);
 
-    setUnreadMessages(msgCount || 0);
     setUnreadNotifications(notifCount || 0);
   };
 
@@ -68,54 +79,58 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     if (!user?.id) return;
     const msgField = userType === "centraResident" ? "homeowner_id" : "tradie_id";
 
-    const msgChannel = supabase
-      .channel("realtime:messages")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `${msgField}=eq.${user.id}`,
-        },
-        () => {
-          fetchUnreadCounts();
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "messages",
-          filter: `${msgField}=eq.${user.id}`,
-        },
-        () => {
-          fetchUnreadCounts();
-        }
-      )
-      .subscribe();
+    const setupRealtime = async () => {
+      const { data: conversations } = await supabase
+        .from("conversations")
+        .select("id")
+        .eq(msgField, user.id);
 
-    const notifChannel = supabase
-      .channel("realtime:notifications")
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "notifications",
-          filter: `recipient_id=eq.${user.id}`,
-        },
-        () => {
-          fetchUnreadCounts();
-        }
-      )
-      .subscribe();
+      if (!conversations) return;
+      const ids = conversations.map((c) => c.id);
 
-    return () => {
-      supabase.removeChannel(msgChannel);
-      supabase.removeChannel(notifChannel);
+      const msgChannel = supabase
+        .channel("dashboard:unread_messages")
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "messages",
+          },
+          (payload) => {
+            if (
+              ids.includes(payload.new.conversation_id) &&
+              payload.new.sender_id !== user.id
+            ) {
+              setUnreadMessages((prev) => prev + 1);
+            }
+          }
+        )
+        .subscribe();
+
+      const notifChannel = supabase
+        .channel("dashboard:notifications")
+        .on(
+          "postgres_changes",
+          {
+            event: "INSERT",
+            schema: "public",
+            table: "notifications",
+            filter: `recipient_id=eq.${user.id}`,
+          },
+          () => {
+            fetchUnreadCounts();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(msgChannel);
+        supabase.removeChannel(notifChannel);
+      };
     };
+
+    setupRealtime();
   }, [user?.id, userType]);
 
   const navItems =
