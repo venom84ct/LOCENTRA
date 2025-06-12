@@ -97,7 +97,7 @@ const RewardsPage = () => {
   return (
     <DashboardLayout userType="centraResident" user={user}>
       <div className="min-h-screen bg-gray-50">
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">Rewards</h1>
             <div className="bg-primary/10 px-4 py-2 rounded-full flex items-center">

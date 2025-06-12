@@ -35,8 +35,8 @@ const PostJobPage = () => {
     fetchProfile();
   }, []);
 
-  if (loading) return <div className="p-6">Loading...</div>;
-  if (!profile) return <div className="p-6 text-red-600">❌ Profile not found</div>;
+  if (loading) return <div>Loading...</div>;
+  if (!profile) return <div className="text-red-600">❌ Profile not found</div>;
 
   return (
     <DashboardLayout user={profile} userType="centraResident">

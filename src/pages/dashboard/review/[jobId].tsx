@@ -54,7 +54,7 @@ const ReviewPage = () => {
 
   return (
     <DashboardLayout userType="centraResident" user={user}>
-      <div className="max-w-xl mx-auto p-6">
+      <div className="max-w-xl mx-auto">
         <ReviewForm jobId={jobId} tradieId={tradieId} jobTitle={jobTitle} />
       </div>
     </DashboardLayout>

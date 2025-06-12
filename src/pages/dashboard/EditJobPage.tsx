@@ -80,8 +80,8 @@ const EditJobPage = () => {
     }
   };
 
-  if (loading) return <div className="p-8">Loading...</div>;
-  if (!formData) return <div className="p-8 text-red-600">{error}</div>;
+  if (loading) return <div>Loading...</div>;
+  if (!formData) return <div className="text-red-600">{error}</div>;
 
   return (
     <div className="container max-w-2xl mx-auto py-10">
