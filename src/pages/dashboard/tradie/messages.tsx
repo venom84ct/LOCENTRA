@@ -1,11 +1,10 @@
-// src/pages/dashboard/tradie/messages.tsx
 import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Trash2 } from "lucide-react";
+import { Trash2, ImageIcon } from "lucide-react";
 
 const MessagesPage = () => {
   const [userId, setUserId] = useState<string>("");
@@ -14,6 +13,7 @@ const MessagesPage = () => {
   const [selectedConversation, setSelectedConversation] = useState<any>(null);
   const [newMessage, setNewMessage] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const fetchUserAndConversations = async () => {
@@ -85,9 +85,40 @@ const MessagesPage = () => {
       conversation_id: selectedConversation.id,
       sender_id: userId,
       message: newMessage.trim(),
+      is_read: false,
+      tradie_id: selectedConversation.tradie_id,
+      homeowner_id: selectedConversation.homeowner_id,
     });
 
     if (!error) setNewMessage("");
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !userId || !selectedConversation) return;
+
+    const filePath = `${selectedConversation.id}/${Date.now()}-${file.name}`;
+    const { error: uploadError } = await supabase.storage
+      .from("chat-images")
+      .upload(filePath, file);
+
+    if (uploadError) {
+      console.error("Upload failed:", uploadError.message);
+      return;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from("chat-images")
+      .getPublicUrl(filePath);
+
+    await supabase.from("messages").insert({
+      conversation_id: selectedConversation.id,
+      sender_id: userId,
+      image_url: publicUrlData.publicUrl,
+      is_read: false,
+      tradie_id: selectedConversation.tradie_id,
+      homeowner_id: selectedConversation.homeowner_id,
+    });
   };
 
   const deleteConversation = async (id: string) => {
@@ -163,6 +194,9 @@ const MessagesPage = () => {
                 }`}
               >
                 {msg.message}
+                {msg.image_url && (
+                  <img src={msg.image_url} alt="chat upload" className="mt-2 rounded max-w-xs" />
+                )}
               </div>
             ))}
 
@@ -182,6 +216,15 @@ const MessagesPage = () => {
               onChange={(e) => setNewMessage(e.target.value)}
               disabled={!canMessage}
             />
+            <input
+              type="file"
+              hidden
+              ref={fileInputRef}
+              onChange={handleImageUpload}
+            />
+            <Button onClick={() => fileInputRef.current?.click()}>
+              <ImageIcon className="w-4 h-4" />
+            </Button>
             <Button onClick={handleSend} disabled={!newMessage.trim() || !canMessage}>
               Send
             </Button>
