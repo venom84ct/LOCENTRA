@@ -99,7 +99,12 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, user, userType })
         userType === "centraResident" ? user.id : conversation.homeowner_id ?? null,
     };
 
-    await supabase.from("messages").insert(messagePayload);
+    const { error } = await supabase
+      .from("messages")
+      .insert(messagePayload);
+    if (error) {
+      console.error("Failed to save image message:", error.message);
+    }
   };
 
   return (

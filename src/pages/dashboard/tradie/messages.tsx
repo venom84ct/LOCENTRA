@@ -115,11 +115,14 @@ const MessagesPage = () => {
 
     const { data } = supabase.storage.from("chat-images").getPublicUrl(filePath);
 
-    await supabase.from("messages").insert({
+    const { error: insertError } = await supabase.from("messages").insert({
       conversation_id: selectedConversation.id,
       sender_id: userId,
       image_url: data.publicUrl,
     });
+    if (insertError) {
+      console.error("Failed to save image message:", insertError.message);
+    }
 
     e.target.value = "";
   };
