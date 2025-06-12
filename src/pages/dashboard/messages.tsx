@@ -1,4 +1,3 @@
-// src/pages/dashboard/messages.tsx
 import React, { useEffect, useState, useRef } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -18,8 +17,8 @@ const HomeownerMessagesPage = () => {
   const [messages, setMessages] = useState<any[]>([]);
   const [conversations, setConversations] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
-  const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchUserAndProfile = async () => {
@@ -43,36 +42,31 @@ const HomeownerMessagesPage = () => {
     if (!userId) return;
 
     const fetchConversations = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("conversations")
         .select("id, jobs(title), profile_centra_tradie(first_name, avatar_url)")
         .eq("homeowner_id", userId);
 
-      setConversations(data || []);
+      if (!error) setConversations(data || []);
     };
 
     fetchConversations();
   }, [userId]);
 
   useEffect(() => {
-    if (!selectedConversationId || !userId) return;
+    if (!selectedConversationId) return;
 
     const fetchMessages = async () => {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("messages")
         .select("*")
         .eq("conversation_id", selectedConversationId)
         .order("created_at", { ascending: true });
 
-      setMessages(data || []);
-      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-
-      // Mark messages as read
-      await supabase
-        .from("messages")
-        .update({ is_read: true })
-        .eq("conversation_id", selectedConversationId)
-        .neq("sender_id", userId);
+      if (!error) {
+        setMessages(data || []);
+        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      }
     };
 
     fetchMessages();
@@ -97,38 +91,49 @@ const HomeownerMessagesPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedConversationId, userId]);
+  }, [selectedConversationId]);
 
   const handleSend = async () => {
     if (!newMessage.trim() || !userId || !selectedConversationId) return;
 
-    await supabase.from("messages").insert({
+    const { error } = await supabase.from("messages").insert({
       conversation_id: selectedConversationId,
       sender_id: userId,
       message: newMessage.trim(),
     });
 
-    setNewMessage("");
+    if (!error) {
+      setNewMessage("");
+    }
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !userId || !selectedConversationId) return;
 
-    const filePath = `${selectedConversationId}/${Date.now()}-${file.name}`;
+    const ext = file.name.split(".").pop();
+    const filePath = `chat-images/${selectedConversationId}/${Date.now()}.${ext}`;
+
     const { error: uploadError } = await supabase.storage
       .from("chat-images")
       .upload(filePath, file);
 
-    if (uploadError) return console.error(uploadError);
+    if (uploadError) {
+      console.error("Image upload failed:", uploadError.message);
+      return;
+    }
 
-    const { data } = supabase.storage.from("chat-images").getPublicUrl(filePath);
+    const { data } = supabase.storage
+      .from("chat-images")
+      .getPublicUrl(filePath);
 
     await supabase.from("messages").insert({
       conversation_id: selectedConversationId,
       sender_id: userId,
       image_url: data.publicUrl,
     });
+
+    e.target.value = "";
   };
 
   const handleDeleteConversation = async (id: string) => {
@@ -141,6 +146,7 @@ const HomeownerMessagesPage = () => {
   return (
     <DashboardLayout userType="centraResident" user={profile}>
       <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Sidebar */}
         <div className="col-span-1">
           <h2 className="text-lg font-semibold mb-2">Conversations</h2>
           <div className="space-y-2">
@@ -156,7 +162,9 @@ const HomeownerMessagesPage = () => {
                 >
                   <div className="flex items-center gap-2">
                     <Avatar className="h-6 w-6">
-                      <AvatarImage src={conv.profile_centra_tradie?.avatar_url} />
+                      <AvatarImage
+                        src={conv.profile_centra_tradie?.avatar_url}
+                      />
                       <AvatarFallback>
                         {conv.profile_centra_tradie?.first_name?.[0] || "T"}
                       </AvatarFallback>
@@ -183,6 +191,7 @@ const HomeownerMessagesPage = () => {
           </div>
         </div>
 
+        {/* Message Panel */}
         <div className="col-span-2">
           <h2 className="text-lg font-semibold mb-2">Messages</h2>
           <div className="border rounded p-4 bg-white h-[500px] overflow-y-auto">
@@ -190,15 +199,17 @@ const HomeownerMessagesPage = () => {
               <div
                 key={msg.id}
                 className={`my-2 max-w-sm px-4 py-2 rounded-lg ${
-                  msg.sender_id === userId ? "bg-red-100 ml-auto" : "bg-gray-100"
+                  msg.sender_id === userId
+                    ? "bg-red-100 ml-auto"
+                    : "bg-gray-100"
                 }`}
               >
-                {msg.message && <p>{msg.message}</p>}
+                {msg.message && <div>{msg.message}</div>}
                 {msg.image_url && (
                   <img
                     src={msg.image_url}
-                    alt="chat upload"
-                    className="max-w-xs mt-2 rounded"
+                    alt="upload"
+                    className="mt-2 rounded max-w-xs border"
                   />
                 )}
               </div>
@@ -214,9 +225,10 @@ const HomeownerMessagesPage = () => {
             />
             <input
               type="file"
+              accept="image/*"
               ref={fileInputRef}
-              onChange={handleImageUpload}
               hidden
+              onChange={handleImageUpload}
             />
             <Button onClick={() => fileInputRef.current?.click()}>📷</Button>
             <Button onClick={handleSend} disabled={!newMessage.trim()}>
