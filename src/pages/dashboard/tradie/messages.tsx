@@ -114,7 +114,7 @@ const MessagesPage = () => {
     if (!file || !userId || !selectedConversation?.id) return;
 
     const ext = file.name.split(".").pop();
-    const filePath = `chat-images/${selectedConversation.id}/${Date.now()}.${ext}`;
+    const filePath = `${selectedConversation.id}/${Date.now()}.${ext}`;
 
     const { error: uploadError } = await supabase.storage
       .from("chat-images")
