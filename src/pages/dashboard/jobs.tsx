@@ -43,7 +43,7 @@ const DashboardJobs = () => {
     const { data: reviewsData } = await supabase
       .from("reviews")
       .select("job_id")
-      .eq("homeowner_id", user.id); // ✅ use homeowner_id instead of reviewer_id
+      .eq("homeowner_id", user.id);
 
     setReviewedJobs(reviewsData?.map((r: any) => r.job_id) || []);
   };
@@ -70,6 +70,23 @@ const DashboardJobs = () => {
       .eq("id", jobId);
 
     if (!error) {
+      const { data: jobData } = await supabase
+        .from("jobs")
+        .select("title")
+        .eq("id", jobId)
+        .single();
+
+      const jobTitle = jobData?.title || "a job";
+
+      await supabase.from("notifications").insert({
+        recipient_id: tradieId,
+        recipient_type: "tradie",
+        description: `You have been assigned to a new job: "${jobTitle}".`,
+        type: "success",
+        related_id: jobId,
+        related_type: "job",
+      });
+
       fetchJobs();
     }
   };
