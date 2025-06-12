@@ -20,6 +20,16 @@ const HomeownerMessagesPage = () => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
 
+  const markMessagesAsRead = async () => {
+    if (!selectedConversationId || !userId) return;
+    await supabase
+      .from("messages")
+      .update({ is_read: true })
+      .eq("conversation_id", selectedConversationId)
+      .neq("sender_id", userId)
+      .eq("is_read", false);
+  };
+
   useEffect(() => {
     const fetchUserAndProfile = async () => {
       const { data } = await supabase.auth.getUser();
@@ -66,6 +76,7 @@ const HomeownerMessagesPage = () => {
       if (!error) {
         setMessages(data || []);
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+        markMessagesAsRead();
       }
     };
 
@@ -84,6 +95,7 @@ const HomeownerMessagesPage = () => {
         (payload) => {
           setMessages((prev) => [...prev, payload.new]);
           bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+          markMessagesAsRead();
         }
       )
       .subscribe();

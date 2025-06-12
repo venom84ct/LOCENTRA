@@ -16,6 +16,16 @@ const MessagesPage = () => {
   const bottomRef = useRef<HTMLDivElement>(null);
   const [profile, setProfile] = useState<any>(null);
 
+  const markMessagesAsRead = async () => {
+    if (!selectedConversation?.id || !userId) return;
+    await supabase
+      .from("messages")
+      .update({ is_read: true })
+      .eq("conversation_id", selectedConversation.id)
+      .neq("sender_id", userId)
+      .eq("is_read", false);
+  };
+
   useEffect(() => {
     const fetchUserAndConversations = async () => {
       const {
@@ -56,6 +66,7 @@ const MessagesPage = () => {
       if (!error) {
         setMessages(data || []);
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+        markMessagesAsRead();
       }
     };
 
@@ -74,6 +85,7 @@ const MessagesPage = () => {
         (payload) => {
           setMessages((prev) => [...prev, payload.new]);
           bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+          markMessagesAsRead();
         }
       )
       .subscribe();
