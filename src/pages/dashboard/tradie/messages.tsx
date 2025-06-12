@@ -1,10 +1,11 @@
+// ✅ UPDATED TRADIE MESSAGES PAGE WITH is_read FIX & IMAGE SUPPORT
 import React, { useEffect, useState, useRef } from "react";
 import { supabase } from "@/lib/supabaseClient";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Trash2, ImageIcon } from "lucide-react";
+import { Trash2 } from "lucide-react";
 
 const MessagesPage = () => {
   const [userId, setUserId] = useState<string>("");
@@ -12,8 +13,8 @@ const MessagesPage = () => {
   const [messages, setMessages] = useState<any[]>([]);
   const [selectedConversation, setSelectedConversation] = useState<any>(null);
   const [newMessage, setNewMessage] = useState("");
-  const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const fetchUserAndConversations = async () => {
@@ -25,11 +26,7 @@ const MessagesPage = () => {
 
       const { data, error } = await supabase
         .from("conversations")
-        .select(`
-          *,
-          jobs(id, title, assigned_tradie),
-          profile_centra_resident(first_name, avatar_url)
-        `)
+        .select(`*, jobs(id, title, assigned_tradie), profile_centra_resident(first_name, avatar_url)`)
         .eq("tradie_id", user.id);
 
       if (!error) setConversations(data || []);
@@ -39,7 +36,7 @@ const MessagesPage = () => {
   }, []);
 
   useEffect(() => {
-    if (!selectedConversation?.id) return;
+    if (!selectedConversation?.id || !userId) return;
 
     const fetchMessages = async () => {
       const { data, error } = await supabase
@@ -51,6 +48,13 @@ const MessagesPage = () => {
       if (!error) {
         setMessages(data || []);
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+
+        // Mark all messages not from current user as read
+        await supabase
+          .from("messages")
+          .update({ is_read: true })
+          .eq("conversation_id", selectedConversation.id)
+          .neq("sender_id", userId);
       }
     };
 
@@ -76,7 +80,7 @@ const MessagesPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedConversation]);
+  }, [selectedConversation, userId]);
 
   const handleSend = async () => {
     if (!newMessage.trim() || !userId || !selectedConversation) return;
@@ -86,8 +90,6 @@ const MessagesPage = () => {
       sender_id: userId,
       message: newMessage.trim(),
       is_read: false,
-      tradie_id: selectedConversation.tradie_id,
-      homeowner_id: selectedConversation.homeowner_id,
     });
 
     if (!error) setNewMessage("");
@@ -95,7 +97,7 @@ const MessagesPage = () => {
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !userId || !selectedConversation) return;
+    if (!file || !selectedConversation?.id) return;
 
     const filePath = `${selectedConversation.id}/${Date.now()}-${file.name}`;
     const { error: uploadError } = await supabase.storage
@@ -107,17 +109,12 @@ const MessagesPage = () => {
       return;
     }
 
-    const { data: publicUrlData } = supabase.storage
-      .from("chat-images")
-      .getPublicUrl(filePath);
-
+    const { data: urlData } = supabase.storage.from("chat-images").getPublicUrl(filePath);
     await supabase.from("messages").insert({
       conversation_id: selectedConversation.id,
       sender_id: userId,
-      image_url: publicUrlData.publicUrl,
+      image_url: urlData.publicUrl,
       is_read: false,
-      tradie_id: selectedConversation.tradie_id,
-      homeowner_id: selectedConversation.homeowner_id,
     });
   };
 
@@ -136,13 +133,12 @@ const MessagesPage = () => {
   const isAssignedToTradie = job?.assigned_tradie === userId;
   const isUnassigned = !job?.assigned_tradie;
   const hasReceivedReply = messages.some((msg) => msg.sender_id !== userId);
-
   const canMessage = isAssignedToTradie || (isUnassigned && hasReceivedReply);
 
   return (
     <DashboardLayout userType="tradie">
       <div className="p-6 flex space-x-6">
-        {/* Conversation List */}
+        {/* Sidebar */}
         <div className="w-1/3 border rounded p-4 bg-white h-[600px] overflow-y-auto">
           <h2 className="font-semibold text-lg mb-4">Conversations</h2>
           {conversations.map((convo) => (
@@ -182,7 +178,7 @@ const MessagesPage = () => {
           ))}
         </div>
 
-        {/* Messages Panel */}
+        {/* Message Area */}
         <div className="flex-1 border rounded p-4 bg-white h-[600px] flex flex-col">
           <h2 className="font-semibold text-lg mb-2">Messages</h2>
           <div className="flex-1 overflow-y-auto space-y-2">
@@ -193,20 +189,17 @@ const MessagesPage = () => {
                   msg.sender_id === userId ? "bg-red-100 ml-auto" : "bg-gray-100"
                 }`}
               >
-                {msg.message}
-                {msg.image_url && (
-                  <img src={msg.image_url} alt="chat upload" className="mt-2 rounded max-w-xs" />
-                )}
+                {msg.message && <p>{msg.message}</p>}
+                {msg.image_url && <img src={msg.image_url} alt="uploaded" className="mt-2 rounded max-w-xs" />}
               </div>
             ))}
+            <div ref={bottomRef} />
 
             {!canMessage && (
               <div className="text-center text-muted-foreground text-sm mt-4">
                 You cannot message anymore. The job has been assigned to another tradie.
               </div>
             )}
-
-            <div ref={bottomRef} />
           </div>
 
           <div className="mt-4 flex gap-2">
@@ -216,18 +209,9 @@ const MessagesPage = () => {
               onChange={(e) => setNewMessage(e.target.value)}
               disabled={!canMessage}
             />
-            <input
-              type="file"
-              hidden
-              ref={fileInputRef}
-              onChange={handleImageUpload}
-            />
-            <Button onClick={() => fileInputRef.current?.click()}>
-              <ImageIcon className="w-4 h-4" />
-            </Button>
-            <Button onClick={handleSend} disabled={!newMessage.trim() || !canMessage}>
-              Send
-            </Button>
+            <input type="file" ref={fileInputRef} onChange={handleImageUpload} hidden />
+            <Button onClick={() => fileInputRef.current?.click()} disabled={!canMessage}>📷</Button>
+            <Button onClick={handleSend} disabled={!newMessage.trim() || !canMessage}>Send</Button>
           </div>
         </div>
       </div>
