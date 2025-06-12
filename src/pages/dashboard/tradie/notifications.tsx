@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
@@ -19,18 +19,17 @@ import {
   Calendar,
   User,
   Briefcase,
-  Trash,
+  Star,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
 interface Notification {
   id: string;
-  title: string;
   description: string;
   created_at: string;
   type: "info" | "success" | "warning" | "error";
   read: boolean;
-  related_type?: "job" | "message" | "homeowner" | "system";
+  related_type?: "job" | "message" | "homeowner" | "system" | "review";
   related_id?: string;
   related_name?: string;
   related_avatar?: string;
@@ -53,11 +52,10 @@ const TradieNotificationsPage = () => {
         .from("notifications")
         .select("*")
         .eq("recipient_id", user.id)
+        .eq("recipient_type", "tradie")
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error fetching notifications:", error);
-      } else {
+      if (!error && data) {
         setNotifications(data);
       }
     };
@@ -97,21 +95,19 @@ const TradieNotificationsPage = () => {
     await supabase.from("notifications").update({ read: true }).eq("id", id);
   };
 
-  const deleteNotification = async (id: string) => {
-    await supabase.from("notifications").delete().eq("id", id);
-    setNotifications((prev) => prev.filter((n) => n.id !== id));
-  };
-
   const markAllAsRead = async () => {
     const updated = notifications.map((n) => ({ ...n, read: true }));
     setNotifications(updated);
-    await supabase.from("notifications").update({ read: true }).eq("recipient_id", user.id);
+    await supabase
+      .from("notifications")
+      .update({ read: true })
+      .eq("recipient_id", user.id);
   };
 
   const handleView = (type: string, id: string, name?: string) => {
-    if (type === "job") navigate(`/dashboard/tradie/my-jobs?jobId=${id}`);
-    if (type === "message") navigate(`/dashboard/tradie/messages?messageId=${id}`);
-    if (type === "homeowner") navigate(`/dashboard/tradie/messages?contactId=${id}`);
+    if (type === "job") navigate("/dashboard/tradie/my-jobs");
+    if (type === "message") navigate(`/dashboard/tradie/messages?conversationId=${id}`);
+    if (type === "review") navigate(`/dashboard/tradie/profile`);
   };
 
   const getNotificationIcon = (type: string) => {
@@ -130,7 +126,7 @@ const TradieNotificationsPage = () => {
   };
 
   return (
-    <DashboardLayout userType="tradie" user={user || { name: "", avatar: "" }}>
+    <DashboardLayout userType="tradie" user={user}>
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-6">
@@ -157,7 +153,13 @@ const TradieNotificationsPage = () => {
                         <div className="mr-3">{getNotificationIcon(n.type)}</div>
                         <div>
                           <CardTitle className="text-base flex items-center">
-                            {n.title}
+                            {n.type === "success"
+                              ? "Success"
+                              : n.type === "error"
+                              ? "Error"
+                              : n.type === "warning"
+                              ? "Warning"
+                              : "Info"}
                             {!n.read && (
                               <Badge variant="default" className="ml-2">
                                 New
@@ -171,7 +173,10 @@ const TradieNotificationsPage = () => {
                       </div>
                       {n.related_avatar && (
                         <Avatar className="h-8 w-8">
-                          <AvatarImage src={n.related_avatar} alt={n.related_name || ""} />
+                          <AvatarImage
+                            src={n.related_avatar}
+                            alt={n.related_name || ""}
+                          />
                           <AvatarFallback>
                             {(n.related_name || "").substring(0, 2)}
                           </AvatarFallback>
@@ -183,14 +188,20 @@ const TradieNotificationsPage = () => {
                     <p className="text-sm mb-4">{n.description}</p>
                     <div className="flex justify-end gap-2">
                       {!n.read && (
-                        <Button variant="outline" size="sm" onClick={() => markAsRead(n.id)}>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => markAsRead(n.id)}
+                        >
                           Mark as Read
                         </Button>
                       )}
                       {n.related_type && n.related_id && (
                         <Button
                           size="sm"
-                          onClick={() => handleView(n.related_type!, n.related_id!, n.related_name)}
+                          onClick={() =>
+                            handleView(n.related_type!, n.related_id!, n.related_name)
+                          }
                         >
                           {n.related_type === "job" && (
                             <Briefcase className="h-4 w-4 mr-2" />
@@ -198,15 +209,10 @@ const TradieNotificationsPage = () => {
                           {n.related_type === "message" && (
                             <MessageSquare className="h-4 w-4 mr-2" />
                           )}
-                          {n.related_type === "homeowner" && (
-                            <User className="h-4 w-4 mr-2" />
-                          )}
+                          {n.related_type === "review" && <Star className="h-4 w-4 mr-2" />}
                           View
                         </Button>
                       )}
-                      <Button variant="destructive" size="sm" onClick={() => deleteNotification(n.id)}>
-                        <Trash className="h-4 w-4 mr-2" /> Delete
-                      </Button>
                     </div>
                   </CardContent>
                 </Card>
