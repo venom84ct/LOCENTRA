@@ -13,7 +13,7 @@ const markMessagesAsRead = async (conversationId: string, userId: string) => {
     .update({ is_read: true })
     .eq("conversation_id", conversationId)
     .not("sender_id", "eq", userId)
-    .eq("is_read", false);
+    .or("is_read.eq.false,is_read.is.null");
   window.dispatchEvent(new Event("refreshUnread"));
 };
 
@@ -116,6 +116,7 @@ const HomeownerMessagesPage = () => {
       conversation_id: selectedConversationId,
       sender_id: userId,
       message: newMessage.trim(),
+      is_read: false,
     });
 
     if (!error) {
@@ -147,6 +148,7 @@ const HomeownerMessagesPage = () => {
       conversation_id: selectedConversationId,
       sender_id: userId,
       image_url: data.publicUrl,
+      is_read: false,
     });
 
     e.target.value = "";

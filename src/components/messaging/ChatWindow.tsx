@@ -9,7 +9,7 @@ const markMessagesAsRead = async (conversationId: string, userId: string) => {
     .update({ is_read: true })
     .eq("conversation_id", conversationId)
     .not("sender_id", "eq", userId)
-    .eq("is_read", false);
+    .or("is_read.eq.false,is_read.is.null");
   window.dispatchEvent(new Event("refreshUnread"));
 };
 
