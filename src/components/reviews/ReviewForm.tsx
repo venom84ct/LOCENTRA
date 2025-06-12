@@ -17,6 +17,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ jobId, tradieId, jobTitle }) =>
 
   const handleSubmit = async () => {
     setSubmitting(true);
+
     const {
       data: { user },
     } = await supabase.auth.getUser();
@@ -27,7 +28,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ jobId, tradieId, jobTitle }) =>
       return;
     }
 
-    // Step 1: Insert the review
+    // Step 1: Insert review
     const { error: insertError } = await supabase.from("reviews").insert({
       job_id: jobId,
       tradie_id: tradieId,
@@ -44,7 +45,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ jobId, tradieId, jobTitle }) =>
       return;
     }
 
-    // Step 2: Recalculate rating_avg and rating_count
+    // Step 2: Recalculate rating stats
     const { data: allReviews, error: fetchError } = await supabase
       .from("reviews")
       .select("rating")
@@ -61,9 +62,19 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ jobId, tradieId, jobTitle }) =>
         .eq("id", tradieId);
     }
 
-    setSubmitting(false);
+    // Step 3: Insert notification for tradie
+    await supabase.from("notifications").insert({
+      recipient_id: tradieId,
+      recipient_type: "tradie",
+      description: `You received a new ${rating}-star review on: "${jobTitle}".`,
+      type: "success",
+      related_id: jobId,
+      related_type: "job",
+    });
+
     setRating(0);
     setComment("");
+    setSubmitting(false);
     alert("Review submitted successfully!");
   };
 
@@ -74,9 +85,7 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ jobId, tradieId, jobTitle }) =>
         {[1, 2, 3, 4, 5].map((val) => (
           <Star
             key={val}
-            className={`w-5 h-5 cursor-pointer ${
-              rating >= val ? "text-yellow-500" : "text-gray-300"
-            }`}
+            className={`w-5 h-5 cursor-pointer ${rating >= val ? "text-yellow-500" : "text-gray-300"}`}
             onClick={() => setRating(val)}
           />
         ))}
