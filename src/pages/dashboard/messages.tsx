@@ -100,6 +100,7 @@ const HomeownerMessagesPage = () => {
       conversation_id: selectedConversationId,
       sender_id: userId,
       message: newMessage.trim(),
+      is_read: false,
     });
 
     if (!error) {
@@ -131,6 +132,7 @@ const HomeownerMessagesPage = () => {
       conversation_id: selectedConversationId,
       sender_id: userId,
       image_url: data.publicUrl,
+      is_read: false,
     });
 
     e.target.value = "";

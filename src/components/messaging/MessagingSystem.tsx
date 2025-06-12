@@ -117,6 +117,7 @@ const MessagingSystem = ({ userId, userName, userAvatar, userType }: Props) => {
       conversation_id: activeConversationId,
       sender_id: userId,
       message: newMessage.trim(),
+      is_read: false,
     });
 
     if (!error) {
