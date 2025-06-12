@@ -18,11 +18,11 @@ import {
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import {
-  Drawer,
-  DrawerContent,
-  DrawerTrigger,
-  DrawerClose,
-} from "@/components/ui/drawer";
+  Sheet,
+  SheetContent,
+  SheetTrigger,
+  SheetClose,
+} from "@/components/ui/sheet";
 
 interface DashboardLayoutProps {
   userType: "centraResident" | "tradie";
@@ -40,7 +40,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
-  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -158,7 +158,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         ];
 
   return (
-    <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
+    <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
       <div className="min-h-screen flex bg-gray-50">
         <aside className="w-64 bg-white shadow-md p-6 hidden md:block">
           <div className="mb-6">
@@ -208,18 +208,18 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         <div className="flex-1">
           {/* Mobile Header */}
           <header className="flex items-center justify-between p-4 bg-white shadow md:hidden">
-            <DrawerTrigger asChild>
-              <button className="p-2" onClick={() => setDrawerOpen(true)}>
+            <SheetTrigger asChild>
+              <button className="p-2" onClick={() => setSheetOpen(true)}>
                 <Menu className="h-6 w-6" />
               </button>
-            </DrawerTrigger>
+            </SheetTrigger>
             <span className="font-semibold">Dashboard</span>
           </header>
           <main className="p-4 md:p-8">{children}</main>
         </div>
       </div>
 
-      <DrawerContent>
+      <SheetContent side="left" className="w-64 p-0">
         <div className="p-4">
           <div className="mb-6 md:hidden">
             <div className="text-lg font-bold">
@@ -233,8 +233,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               const isActive = location.pathname === item.path;
 
               return (
-                <DrawerClose asChild key={item.name}>
-                  <Link to={item.path} onClick={() => setDrawerOpen(false)}>
+                <SheetClose asChild key={item.name}>
+                  <Link to={item.path} onClick={() => setSheetOpen(false)}>
                     <div
                       className={cn(
                         "flex items-center justify-between p-2 rounded hover:bg-gray-100 transition-colors",
@@ -252,14 +252,14 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                       )}
                     </div>
                   </Link>
-                </DrawerClose>
+                </SheetClose>
               );
             })}
 
-            <DrawerClose asChild>
+            <SheetClose asChild>
               <button
                 onClick={() => {
-                  setDrawerOpen(false);
+                  setSheetOpen(false);
                   handleLogout();
                 }}
                 className="flex items-center p-2 mt-4 text-red-600 hover:bg-red-50 rounded w-full transition-colors"
@@ -267,11 +267,11 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 <LogOut className="h-5 w-5 mr-2" />
                 Logout
               </button>
-            </DrawerClose>
+            </SheetClose>
           </nav>
         </div>
-      </DrawerContent>
-    </Drawer>
+      </SheetContent>
+    </Sheet>
   );
 };
 
