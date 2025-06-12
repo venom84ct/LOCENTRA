@@ -54,7 +54,7 @@ const HomeownerMessagesPage = () => {
   }, [userId]);
 
   useEffect(() => {
-    if (!selectedConversationId) return;
+    if (!selectedConversationId || !userId) return;
 
     const fetchMessages = async () => {
       const { data, error } = await supabase
@@ -69,7 +69,20 @@ const HomeownerMessagesPage = () => {
       }
     };
 
+    const markMessagesAsRead = async () => {
+      const { error } = await supabase
+        .from("messages")
+        .update({ is_read: true })
+        .eq("conversation_id", selectedConversationId)
+        .eq("homeowner_id", userId)
+        .neq("sender_id", userId);
+      if (error) {
+        console.error("Failed to mark messages as read:", error.message);
+      }
+    };
+
     fetchMessages();
+    markMessagesAsRead();
 
     const channel = supabase
       .channel(`messages-${selectedConversationId}`)
@@ -91,7 +104,7 @@ const HomeownerMessagesPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedConversationId]);
+  }, [selectedConversationId, userId]);
 
   const handleSend = async () => {
     if (!newMessage.trim() || !userId || !selectedConversationId) return;
