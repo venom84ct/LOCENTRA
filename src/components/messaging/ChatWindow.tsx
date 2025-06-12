@@ -3,24 +3,12 @@ import { supabase } from "@/lib/supabaseClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
-interface ChatWindowProps {
-  conversation: {
-    id: string;
-    tradie_id?: string;
-    homeowner_id?: string;
-  };
-  user: { id: string };
-  userType: "tradie" | "centraResident";
-}
-
-const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, user, userType }) => {
+const ChatWindow = ({ conversation, user, userType }: any) => {
   const [messages, setMessages] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    console.log("conversation object:", conversation);
-
     const fetchMessages = async () => {
       const { data } = await supabase
         .from("messages")
@@ -35,16 +23,14 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, user, userType })
 
     const channel = supabase
       .channel(`chat:${conversation.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `conversation_id=eq.${conversation.id}`,
-        },
-        (payload) => setMessages((prev) => [...prev, payload.new])
-      )
+      .on("postgres_changes", {
+        event: "INSERT",
+        schema: "public",
+        table: "messages",
+        filter: `conversation_id=eq.${conversation.id}`,
+      }, (payload) => {
+        setMessages((prev) => [...prev, payload.new]);
+      })
       .subscribe();
 
     return () => {
@@ -55,18 +41,13 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, user, userType })
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
 
-    const messagePayload = {
+    await supabase.from("messages").insert({
       conversation_id: conversation.id,
       sender_id: user.id,
-      message: newMessage,
+      message: newMessage.trim(),
       is_read: false,
-      tradie_id:
-        userType === "tradie" ? user.id : conversation.tradie_id ?? null,
-      homeowner_id:
-        userType === "centraResident" ? user.id : conversation.homeowner_id ?? null,
-    };
+    });
 
-    await supabase.from("messages").insert(messagePayload);
     setNewMessage("");
   };
 
@@ -84,22 +65,21 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, user, userType })
       return;
     }
 
-    const {
-      data: { publicUrl },
-    } = supabase.storage.from("chat-images").getPublicUrl(filePath);
+    const { data: publicData } = supabase.storage
+      .from("chat-images")
+      .getPublicUrl(filePath);
 
-    const messagePayload = {
+    if (!publicData?.publicUrl) {
+      console.error("Failed to get public URL");
+      return;
+    }
+
+    await supabase.from("messages").insert({
       conversation_id: conversation.id,
       sender_id: user.id,
-      image_url: publicUrl,
+      image_url: publicData.publicUrl,
       is_read: false,
-      tradie_id:
-        userType === "tradie" ? user.id : conversation.tradie_id ?? null,
-      homeowner_id:
-        userType === "centraResident" ? user.id : conversation.homeowner_id ?? null,
-    };
-
-    await supabase.from("messages").insert(messagePayload);
+    });
   };
 
   return (
@@ -108,16 +88,16 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, user, userType })
         {messages.map((msg) => (
           <div
             key={msg.id}
-            className={`p-2 rounded ${
-              msg.sender_id === user.id ? "bg-blue-100" : "bg-white"
+            className={`p-2 rounded max-w-[75%] ${
+              msg.sender_id === user.id ? "bg-blue-100 ml-auto" : "bg-white"
             }`}
           >
             {msg.message && <p>{msg.message}</p>}
             {msg.image_url && (
               <img
                 src={msg.image_url}
-                alt="chat upload"
-                className="max-w-xs mt-2 rounded"
+                alt="sent"
+                className="max-w-xs rounded mt-2 border"
               />
             )}
           </div>
@@ -134,15 +114,8 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, user, userType })
           ref={fileInputRef}
           onChange={handleImageUpload}
           hidden
-          accept="image/*"
         />
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className="bg-gray-100 border rounded px-3 py-2 hover:bg-gray-200"
-        >
-          📷
-        </button>
+        <Button onClick={() => fileInputRef.current?.click()}>📷</Button>
         <Button onClick={sendMessage}>Send</Button>
       </div>
     </div>
