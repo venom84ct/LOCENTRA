@@ -23,14 +23,18 @@ const ChatWindow = ({ conversation, user, userType }: any) => {
 
     const channel = supabase
       .channel(`chat:${conversation.id}`)
-      .on("postgres_changes", {
-        event: "INSERT",
-        schema: "public",
-        table: "messages",
-        filter: `conversation_id=eq.${conversation.id}`,
-      }, (payload) => {
-        setMessages((prev) => [...prev, payload.new]);
-      })
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `conversation_id=eq.${conversation.id}`,
+        },
+        (payload) => {
+          setMessages((prev) => [...prev, payload.new]);
+        }
+      )
       .subscribe();
 
     return () => {
@@ -40,11 +44,17 @@ const ChatWindow = ({ conversation, user, userType }: any) => {
 
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
-    await supabase.from("messages").insert({
+
+    const messagePayload = {
       conversation_id: conversation.id,
       sender_id: user.id,
       text: newMessage,
-    });
+      is_read: false,
+      tradie_id: userType === "tradie" ? user.id : conversation.tradie_id,
+      homeowner_id: userType === "centraResident" ? user.id : conversation.homeowner_id,
+    };
+
+    await supabase.from("messages").insert(messagePayload);
     setNewMessage("");
   };
 
@@ -62,22 +72,37 @@ const ChatWindow = ({ conversation, user, userType }: any) => {
       return;
     }
 
-    const { data } = supabase.storage.from("chat-images").getPublicUrl(filePath);
-    await supabase.from("messages").insert({
+    const { data } = supabase.storage
+      .from("chat-images")
+      .getPublicUrl(filePath);
+
+    const messagePayload = {
       conversation_id: conversation.id,
       sender_id: user.id,
       image_url: data.publicUrl,
-    });
+      is_read: false,
+      tradie_id: userType === "tradie" ? user.id : conversation.tradie_id,
+      homeowner_id: userType === "centraResident" ? user.id : conversation.homeowner_id,
+    };
+
+    await supabase.from("messages").insert(messagePayload);
   };
 
   return (
     <div className="flex-1 flex flex-col">
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
         {messages.map((msg) => (
-          <div key={msg.id} className={`p-2 rounded ${msg.sender_id === user.id ? "bg-blue-100" : "bg-white"}`}>
+          <div
+            key={msg.id}
+            className={`p-2 rounded ${msg.sender_id === user.id ? "bg-blue-100" : "bg-white"}`}
+          >
             {msg.text && <p>{msg.text}</p>}
             {msg.image_url && (
-              <img src={msg.image_url} alt="chat upload" className="max-w-xs mt-2 rounded" />
+              <img
+                src={msg.image_url}
+                alt="chat upload"
+                className="max-w-xs mt-2 rounded"
+              />
             )}
           </div>
         ))}
