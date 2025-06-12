@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -15,18 +15,28 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/use-toast";
 import ProfilePictureUploader from "@/components/settings/ProfilePictureUploader";
+import { supabase } from "@/lib/supabaseClient";
 
 const SettingsPage = () => {
-  // Mock user data - in a real app, this would come from authentication
-  const [user, setUser] = useState({
-    name: "John Smith",
-    email: "john.smith@example.com",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-    address: "123 Main St, Sydney, NSW 2000",
-    phone: "0412 345 678",
-    memberSince: "May 2023",
-    role: "homeowner",
-  });
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      const userId = data.user?.id;
+      if (!userId) return;
+
+      const { data: profile } = await supabase
+        .from("profile_centra_resident")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      setUser(profile);
+    };
+
+    fetchUser();
+  }, []);
 
   const handleAvatarChange = (newAvatarUrl: string) => {
     setUser((prev) => ({
@@ -60,11 +70,10 @@ const SettingsPage = () => {
     });
   };
 
+  if (!user) return null;
+
   return (
-    <DashboardLayout
-      userType={user.role === "homeowner" ? "centraResident" : "tradie"}
-      user={user}
-    >
+    <DashboardLayout userType="centraResident" user={user}>
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-6">Settings</h1>
 

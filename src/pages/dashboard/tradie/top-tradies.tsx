@@ -48,6 +48,7 @@ const getRankClass = (rank: number) => {
 
 const TopTradiesPage = () => {
   const [tradies, setTradies] = useState<any[]>([]);
+  const [user, setUser] = useState<any>(null);
 
   useEffect(() => {
     const fetchTopTradies = async () => {
@@ -61,11 +62,28 @@ const TopTradiesPage = () => {
         setTradies(data);
       }
     };
+    const fetchUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      const userId = data.user?.id;
+      if (!userId) return;
+
+      const { data: profile } = await supabase
+        .from("profile_centra_tradie")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      setUser(profile);
+    };
+
     fetchTopTradies();
+    fetchUser();
   }, []);
 
+  if (!user) return null;
+
   return (
-    <DashboardLayout userType="tradie">
+    <DashboardLayout userType="tradie" user={user}>
       <div className="p-6 max-w-5xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Top Tradies</h1>

@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { supabase } from "@/lib/supabaseClient";
 import {
   Card,
   CardContent,
@@ -71,15 +72,27 @@ const mockRewards: RewardItem[] = [
 ];
 
 const RewardsPage = () => {
-  // Mock user data - in a real app, this would come from authentication
-  const user = {
-    name: "John Smith",
-    email: "john.smith@example.com",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-    unreadMessages: 2,
-    unreadNotifications: 3,
-    rewardPoints: 350,
-  };
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      const userId = data.user?.id;
+      if (!userId) return;
+
+      const { data: profile } = await supabase
+        .from("profile_centra_resident")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      setUser(profile);
+    };
+
+    fetchUser();
+  }, []);
+
+  if (!user) return null;
 
   return (
     <DashboardLayout userType="centraResident" user={user}>
@@ -90,7 +103,7 @@ const RewardsPage = () => {
             <div className="bg-primary/10 px-4 py-2 rounded-full flex items-center">
               <Gift className="h-5 w-5 mr-2 text-primary" />
               <span className="font-medium">
-                {user.rewardPoints} points available
+                {user.reward_points} points available
               </span>
             </div>
           </div>
@@ -149,19 +162,17 @@ const RewardsPage = () => {
                     </div>
                     <Button
                       variant={
-                        user.rewardPoints >= reward.pointCost
-                          ? "default"
-                          : "outline"
+                        user.reward_points >= reward.pointCost ? "default" : "outline"
                       }
-                      disabled={user.rewardPoints < reward.pointCost}
+                      disabled={user.reward_points < reward.pointCost}
                       onClick={() => {
-                        if (user.rewardPoints >= reward.pointCost) {
+                        if (user.reward_points >= reward.pointCost) {
                           // In a real app, this would call an API to redeem the reward
                           alert(`Reward ${reward.name} redeemed successfully!`);
                         }
                       }}
                     >
-                      {user.rewardPoints >= reward.pointCost
+                      {user.reward_points >= reward.pointCost
                         ? "Redeem"
                         : "Not Enough Points"}
                     </Button>

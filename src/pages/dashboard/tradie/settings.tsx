@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -15,21 +15,28 @@ import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/components/ui/use-toast";
 import ProfilePictureUploader from "@/components/settings/ProfilePictureUploader";
+import { supabase } from "@/lib/supabaseClient";
 
 const TradieSettingsPage = () => {
-  // Mock user data - in a real app, this would come from authentication
-  const [user, setUser] = useState({
-    name: "Mike Johnson",
-    email: "mike.johnson@example.com",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mike",
-    trade: "Plumber",
-    license: "PL-12345",
-    abn: "12 345 678 901",
-    address: "456 Tradie St, Sydney, NSW 2000",
-    phone: "0412 345 678",
-    memberSince: "January 2023",
-    role: "tradie",
-  });
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      const userId = data.user?.id;
+      if (!userId) return;
+
+      const { data: profile } = await supabase
+        .from("profile_centra_tradie")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      setUser(profile);
+    };
+
+    fetchUser();
+  }, []);
 
   const handleAvatarChange = (newAvatarUrl: string) => {
     setUser((prev) => ({
@@ -70,6 +77,8 @@ const TradieSettingsPage = () => {
       description: "Your business information has been updated successfully",
     });
   };
+
+  if (!user) return null;
 
   return (
     <DashboardLayout userType="tradie" user={user}>
