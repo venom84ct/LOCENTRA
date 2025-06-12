@@ -1,110 +1,286 @@
-import React from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import { cn } from "@/lib/utils";
+import React, { useState } from "react";
+import Logo from "@/components/ui/logo";
+import { Link, useNavigate } from "react-router-dom";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
-  LayoutDashboard,
-  Briefcase,
-  MessagesSquare,
+  Home,
+  MessageSquare,
   Bell,
   Settings,
-  HelpCircle,
-  Gift,
-  User,
-  Award,
-  Search,
   LogOut,
+  Menu,
+  X,
+  User,
+  Briefcase,
+  CreditCard,
+  HelpCircle,
+  Award,
 } from "lucide-react";
-import { supabase } from "@/lib/supabaseClient";
+import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 
 interface DashboardLayoutProps {
-  userType: "centraResident" | "tradie";
-  user: any;
   children: React.ReactNode;
+  userType: "centraResident" | "tradie";
+  user: {
+    name: string;
+    email?: string;
+    avatar: string;
+    unreadMessages?: number;
+    unreadNotifications?: number;
+  };
 }
 
 const DashboardLayout: React.FC<DashboardLayoutProps> = ({
+  children,
   userType,
   user,
-  children,
 }) => {
-  const location = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
+  const isHomeUser = userType === "centraResident" || userType === "homeowner";
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    localStorage.clear();
+  const handleLogout = () => {
+    console.log("Logging out");
     navigate("/");
   };
 
-  const navItems =
-    userType === "centraResident"
-      ? [
-          { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
-          { name: "Jobs", path: "/dashboard/jobs", icon: Briefcase },
-          { name: "Post a Job", path: "/dashboard/post-job", icon: Briefcase },
-          { name: "Job History", path: "/dashboard/job-history", icon: Briefcase },
-          { name: "Messages", path: "/dashboard/messages", icon: MessagesSquare },
-          { name: "Notifications", path: "/dashboard/notifications", icon: Bell },
-          { name: "Rewards", path: "/dashboard/rewards", icon: Gift },
-          { name: "Profile", path: "/dashboard/profile", icon: User },
-          { name: "Settings", path: "/dashboard/settings", icon: Settings },
-          { name: "Help", path: "/dashboard/help", icon: HelpCircle },
-        ]
-      : [
-          { name: "Dashboard", path: "/dashboard/tradie", icon: LayoutDashboard },
-          { name: "Find Jobs", path: "/dashboard/tradie/find-jobs", icon: Search },
-          { name: "My Jobs", path: "/dashboard/tradie/my-jobs", icon: Briefcase },
-          { name: "Messages", path: "/dashboard/tradie/messages", icon: MessagesSquare },
-          { name: "Notifications", path: "/dashboard/tradie/notifications", icon: Bell },
-          { name: "Top Tradies", path: "/dashboard/tradie/top-tradies", icon: Award },
-          { name: "Profile", path: "/dashboard/tradie/profile", icon: User },
-          { name: "Settings", path: "/dashboard/tradie/settings", icon: Settings },
-          { name: "Help", path: "/dashboard/tradie/help", icon: HelpCircle },
-        ];
+  const homeUserNavItems = [
+    {
+      name: "Dashboard",
+      path: "/dashboard",
+      icon: <Home className="h-5 w-5" />,
+    },
+    {
+      name: "My Jobs",
+      path: "/dashboard/jobs",
+      icon: <Briefcase className="h-5 w-5" />,
+    },
+    {
+      name: "Messages",
+      path: "/dashboard/messages",
+      icon: <MessageSquare className="h-5 w-5" />,
+      badge: user.unreadMessages,
+    },
+    {
+      name: "Notifications",
+      path: "/dashboard/notifications",
+      icon: (
+        <div className="relative">
+          <Bell className="h-5 w-5" />
+          {user.unreadNotifications && user.unreadNotifications > 0 && (
+            <span className="absolute -top-1 -right-2 bg-red-600 text-white text-xs rounded-full h-4 min-w-4 px-1 flex items-center justify-center">
+              {user.unreadNotifications > 9 ? "9+" : user.unreadNotifications}
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      name: "Rewards",
+      path: "/dashboard/rewards",
+      icon: <CreditCard className="h-5 w-5" />,
+    },
+    {
+      name: "Profile",
+      path: "/dashboard/profile",
+      icon: <User className="h-5 w-5" />,
+    },
+    {
+      name: "Settings",
+      path: "/dashboard/settings",
+      icon: <Settings className="h-5 w-5" />,
+    },
+    {
+      name: "Help",
+      path: "/dashboard/help",
+      icon: <HelpCircle className="h-5 w-5" />,
+    },
+  ];
+
+  const tradieNavItems = [
+    {
+      name: "Dashboard",
+      path: "/dashboard/tradie",
+      icon: <Home className="h-5 w-5" />,
+    },
+    {
+      name: "Find Jobs",
+      path: "/dashboard/tradie/find-jobs",
+      icon: <Briefcase className="h-5 w-5" />,
+    },
+    {
+      name: "My Jobs",
+      path: "/dashboard/tradie/my-jobs",
+      icon: <Briefcase className="h-5 w-5" />,
+    },
+    {
+      name: "Messages",
+      path: "/dashboard/tradie/messages",
+      icon: <MessageSquare className="h-5 w-5" />,
+      badge: user.unreadMessages,
+    },
+    {
+      name: "Notifications",
+      path: "/dashboard/tradie/notifications",
+      icon: (
+        <div className="relative">
+          <Bell className="h-5 w-5" />
+          {user.unreadNotifications && user.unreadNotifications > 0 && (
+            <span className="absolute -top-1 -right-2 bg-red-600 text-white text-xs rounded-full h-4 min-w-4 px-1 flex items-center justify-center">
+              {user.unreadNotifications > 9 ? "9+" : user.unreadNotifications}
+            </span>
+          )}
+        </div>
+      ),
+    },
+    {
+      name: "Wallet",
+      path: "/dashboard/wallet",
+      icon: <CreditCard className="h-5 w-5" />,
+    },
+    {
+      name: "Profile",
+      path: "/dashboard/tradie/profile",
+      icon: <User className="h-5 w-5" />,
+    },
+    {
+      name: "Top Tradies",
+      path: "/dashboard/tradie/top-tradies",
+      icon: <Award className="h-5 w-5" />,
+    },
+    {
+      name: "Settings",
+      path: "/dashboard/tradie/settings",
+      icon: <Settings className="h-5 w-5" />,
+    },
+    {
+      name: "Help",
+      path: "/dashboard/tradie/help",
+      icon: <HelpCircle className="h-5 w-5" />,
+    },
+  ];
+
+  const navItems = isHomeUser ? homeUserNavItems : tradieNavItems;
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white shadow-md p-6 hidden md:block">
-        <div className="mb-6">
-          <div className="text-lg font-bold">
-            {user?.first_name} {user?.last_name}
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+          <div className="flex items-center">
+            <Link to="/" className="flex items-center mr-6">
+              <Logo size="md" variant="full" />
+            </Link>
+            <h1 className="text-xl font-bold text-red-600 hidden md:block">
+              {isHomeUser ? "Centra Resident" : "Tradie"} Dashboard
+            </h1>
           </div>
-          <div className="text-sm text-gray-500">{user?.email}</div>
+
+          <div className="flex items-center space-x-4">
+            <div className="hidden md:flex items-center space-x-2">
+              <div className="text-right mr-2">
+                <p className="font-medium">{user.name}</p>
+                {user.email && (
+                  <p className="text-sm text-muted-foreground">{user.email}</p>
+                )}
+              </div>
+              <Avatar>
+                <AvatarImage src={user.avatar} alt={user.name} />
+                <AvatarFallback>{user.name.substring(0, 2)}</AvatarFallback>
+              </Avatar>
+            </div>
+
+            <div className="md:hidden">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              >
+                {mobileMenuOpen ? (
+                  <X className="h-6 w-6" />
+                ) : (
+                  <Menu className="h-6 w-6" />
+                )}
+              </Button>
+            </div>
+          </div>
         </div>
 
-        <nav className="space-y-2">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-
-            return (
-              <Link to={item.path} key={item.name}>
-                <div
-                  className={cn(
-                    "flex items-center p-2 rounded hover:bg-gray-100 transition-colors",
-                    isActive ? "bg-gray-200 font-semibold" : ""
-                  )}
+        {mobileMenuOpen && (
+          <div className="md:hidden pt-2 pb-3 border-t">
+            <div className="px-4 py-2 flex items-center">
+              <Avatar className="h-10 w-10 mr-3">
+                <AvatarImage src={user.avatar} alt={user.name} />
+                <AvatarFallback>{user.name.substring(0, 2)}</AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-medium">{user.name}</p>
+                {user.email && (
+                  <p className="text-sm text-muted-foreground">{user.email}</p>
+                )}
+              </div>
+            </div>
+            <nav className="mt-2">
+              {navItems.map((item) => (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  className={`flex items-center px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 ${window.location.pathname === item.path ? "bg-gray-100" : ""}`}
+                  onClick={() => setMobileMenuOpen(false)}
                 >
-                  <Icon className="h-5 w-5 mr-2" />
-                  {item.name}
-                </div>
+                  <div className="mr-3 text-gray-500">{item.icon}</div>
+                  <span>{item.name}</span>
+                  {item.badge && item.badge > 0 && (
+                    <Badge className="ml-auto" variant="destructive">
+                      {item.badge}
+                    </Badge>
+                  )}
+                </Link>
+              ))}
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+              >
+                <LogOut className="h-5 w-5 mr-3 text-gray-500" />
+                <span>Log Out</span>
+              </button>
+            </nav>
+          </div>
+        )}
+      </header>
+
+      <div className="flex-grow flex">
+        <aside className="hidden md:block w-64 bg-white border-r border-gray-200 pt-6">
+          <nav className="px-3 space-y-1">
+            {navItems.map((item) => (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={`flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-100 ${window.location.pathname === item.path ? "bg-gray-100 text-primary" : ""}`}
+              >
+                <div className="mr-3 text-gray-500">{item.icon}</div>
+                <span>{item.name}</span>
+                {item.badge && item.badge > 0 && (
+                  <Badge className="ml-auto" variant="destructive">
+                    {item.badge}
+                  </Badge>
+                )}
               </Link>
-            );
-          })}
+            ))}
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-gray-100 text-left"
+            >
+              <LogOut className="h-5 w-5 mr-3 text-gray-500" />
+              <span>Log Out</span>
+            </button>
+          </nav>
+        </aside>
 
-          <button
-            onClick={handleLogout}
-            className="flex items-center p-2 mt-4 text-red-600 hover:bg-red-50 rounded w-full transition-colors"
-          >
-            <LogOut className="h-5 w-5 mr-2" />
-            Logout
-          </button>
-        </nav>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 p-4 md:p-8">{children}</main>
+        <main className="flex-grow">{children}</main>
+      </div>
     </div>
   );
 };
