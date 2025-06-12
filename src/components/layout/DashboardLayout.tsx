@@ -65,6 +65,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   }, [user?.id, userType]);
 
   useEffect(() => {
+    window.addEventListener("refreshUnread", fetchUnreadCounts);
+    return () => {
+      window.removeEventListener("refreshUnread", fetchUnreadCounts);
+    };
+  }, [user?.id, userType]);
+
+  useEffect(() => {
     if (!user?.id) return;
     const msgField = userType === "centraResident" ? "homeowner_id" : "tradie_id";
 

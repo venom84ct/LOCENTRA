@@ -7,6 +7,16 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Trash2 } from "lucide-react";
 
+const markMessagesAsRead = async (conversationId: string, userId: string) => {
+  await supabase
+    .from("messages")
+    .update({ is_read: true })
+    .eq("conversation_id", conversationId)
+    .not("sender_id", "eq", userId)
+    .eq("is_read", false);
+  window.dispatchEvent(new Event("refreshUnread"));
+};
+
 const HomeownerMessagesPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -66,6 +76,9 @@ const HomeownerMessagesPage = () => {
       if (!error) {
         setMessages(data || []);
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+        if (userId) {
+          await markMessagesAsRead(selectedConversationId, userId);
+        }
       }
     };
 
@@ -81,9 +94,12 @@ const HomeownerMessagesPage = () => {
           table: "messages",
           filter: `conversation_id=eq.${selectedConversationId}`,
         },
-        (payload) => {
+        async (payload) => {
           setMessages((prev) => [...prev, payload.new]);
           bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+          if (userId && payload.new.sender_id !== userId) {
+            await markMessagesAsRead(selectedConversationId, userId);
+          }
         }
       )
       .subscribe();
@@ -91,7 +107,7 @@ const HomeownerMessagesPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedConversationId]);
+  }, [selectedConversationId, userId]);
 
   const handleSend = async () => {
     if (!newMessage.trim() || !userId || !selectedConversationId) return;

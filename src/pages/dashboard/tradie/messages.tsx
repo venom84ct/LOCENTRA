@@ -6,6 +6,16 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Trash2 } from "lucide-react";
 
+const markMessagesAsRead = async (conversationId: string, userId: string) => {
+  await supabase
+    .from("messages")
+    .update({ is_read: true })
+    .eq("conversation_id", conversationId)
+    .not("sender_id", "eq", userId)
+    .eq("is_read", false);
+  window.dispatchEvent(new Event("refreshUnread"));
+};
+
 const MessagesPage = () => {
   const [userId, setUserId] = useState<string>("");
   const [conversations, setConversations] = useState<any[]>([]);
@@ -56,6 +66,9 @@ const MessagesPage = () => {
       if (!error) {
         setMessages(data || []);
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+        if (userId) {
+          await markMessagesAsRead(selectedConversation.id, userId);
+        }
       }
     };
 
@@ -71,9 +84,12 @@ const MessagesPage = () => {
           table: "messages",
           filter: `conversation_id=eq.${selectedConversation.id}`,
         },
-        (payload) => {
+        async (payload) => {
           setMessages((prev) => [...prev, payload.new]);
           bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+          if (userId && payload.new.sender_id !== userId) {
+            await markMessagesAsRead(selectedConversation.id, userId);
+          }
         }
       )
       .subscribe();
@@ -81,7 +97,7 @@ const MessagesPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedConversation]);
+  }, [selectedConversation, userId]);
 
   const handleSend = async () => {
     if (!newMessage.trim() || !userId || !selectedConversation) return;

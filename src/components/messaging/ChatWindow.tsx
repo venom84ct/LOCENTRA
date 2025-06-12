@@ -3,6 +3,16 @@ import { supabase } from "@/lib/supabaseClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 
+const markMessagesAsRead = async (conversationId: string, userId: string) => {
+  await supabase
+    .from("messages")
+    .update({ is_read: true })
+    .eq("conversation_id", conversationId)
+    .not("sender_id", "eq", userId)
+    .eq("is_read", false);
+  window.dispatchEvent(new Event("refreshUnread"));
+};
+
 interface ChatWindowProps {
   conversation: {
     id: string;
@@ -29,6 +39,9 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, user, userType })
         .order("created_at", { ascending: true });
 
       setMessages(data || []);
+      if (user.id) {
+        await markMessagesAsRead(conversation.id, user.id);
+      }
     };
 
     fetchMessages();
@@ -43,14 +56,19 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, user, userType })
           table: "messages",
           filter: `conversation_id=eq.${conversation.id}`,
         },
-        (payload) => setMessages((prev) => [...prev, payload.new])
+        async (payload) => {
+          setMessages((prev) => [...prev, payload.new]);
+          if (payload.new.sender_id !== user.id) {
+            await markMessagesAsRead(conversation.id, user.id);
+          }
+        }
       )
       .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [conversation.id]);
+  }, [conversation.id, user.id]);
 
   const sendMessage = async () => {
     if (!newMessage.trim()) return;
