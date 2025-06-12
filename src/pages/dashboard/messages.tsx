@@ -5,29 +5,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Trash2, Camera } from "lucide-react";
-
-interface Message {
-  id: string;
-  conversation_id: string;
-  sender_id: string;
-  message?: string;
-  image_url?: string;
-  created_at: string;
-}
-
-interface Conversation {
-  id: string;
-  jobs: {
-    title: string;
-  };
-  profile_centra_tradie: {
-    first_name: string;
-    avatar_url: string;
-  };
-  homeowner_id: string;
-  tradie_id: string;
-}
+import { Trash2, ImageIcon } from "lucide-react";
 
 const HomeownerMessagesPage = () => {
   const [searchParams] = useSearchParams();
@@ -36,8 +14,8 @@ const HomeownerMessagesPage = () => {
 
   const [userId, setUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<any>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [conversations, setConversations] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -104,7 +82,7 @@ const HomeownerMessagesPage = () => {
           filter: `conversation_id=eq.${selectedConversationId}`,
         },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new as Message]);
+          setMessages((prev) => [...prev, payload.new]);
           bottomRef.current?.scrollIntoView({ behavior: "smooth" });
         }
       )
@@ -118,29 +96,34 @@ const HomeownerMessagesPage = () => {
   const handleSend = async () => {
     if (!newMessage.trim() || !userId || !selectedConversationId) return;
 
-    const convo = conversations.find((c) => c.id === selectedConversationId);
-    if (!convo) return;
+    const selectedConvo = conversations.find((c) => c.id === selectedConversationId);
+    if (!selectedConvo) return;
 
     const { error } = await supabase.from("messages").insert({
       conversation_id: selectedConversationId,
       sender_id: userId,
       message: newMessage.trim(),
       is_read: false,
-      homeowner_id: convo.homeowner_id,
-      tradie_id: convo.tradie_id,
+      homeowner_id: selectedConvo.homeowner_id,
+      tradie_id: selectedConvo.tradie_id,
     });
 
-    if (!error) {
-      setNewMessage("");
-    }
+    if (!error) setNewMessage("");
+  };
+
+  const handleDeleteConversation = async (id: string) => {
+    await supabase.from("messages").delete().eq("conversation_id", id);
+    await supabase.from("conversations").delete().eq("id", id);
+    setConversations((prev) => prev.filter((c) => c.id !== id));
+    if (selectedConversationId === id) navigate("/dashboard/messages");
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !userId || !selectedConversationId) return;
 
-    const convo = conversations.find((c) => c.id === selectedConversationId);
-    if (!convo) return;
+    const selectedConvo = conversations.find((c) => c.id === selectedConversationId);
+    if (!selectedConvo) return;
 
     const filePath = `${selectedConversationId}/${Date.now()}-${file.name}`;
     const { error: uploadError } = await supabase.storage
@@ -152,23 +135,18 @@ const HomeownerMessagesPage = () => {
       return;
     }
 
-    const { data } = supabase.storage.from("chat-images").getPublicUrl(filePath);
+    const { data: publicUrlData } = supabase.storage
+      .from("chat-images")
+      .getPublicUrl(filePath);
 
     await supabase.from("messages").insert({
       conversation_id: selectedConversationId,
       sender_id: userId,
-      image_url: data.publicUrl,
+      image_url: publicUrlData.publicUrl,
       is_read: false,
-      homeowner_id: convo.homeowner_id,
-      tradie_id: convo.tradie_id,
+      homeowner_id: selectedConvo.homeowner_id,
+      tradie_id: selectedConvo.tradie_id,
     });
-  };
-
-  const handleDeleteConversation = async (id: string) => {
-    await supabase.from("messages").delete().eq("conversation_id", id);
-    await supabase.from("conversations").delete().eq("id", id);
-    setConversations((prev) => prev.filter((c) => c.id !== id));
-    if (selectedConversationId === id) navigate("/dashboard/messages");
   };
 
   return (
@@ -228,13 +206,9 @@ const HomeownerMessagesPage = () => {
                   msg.sender_id === userId ? "bg-red-100 ml-auto" : "bg-gray-100"
                 }`}
               >
-                {msg.message && <p>{msg.message}</p>}
+                {msg.message}
                 {msg.image_url && (
-                  <img
-                    src={msg.image_url}
-                    alt="Sent"
-                    className="mt-2 max-w-xs rounded border"
-                  />
+                  <img src={msg.image_url} alt="chat upload" className="mt-2 rounded max-w-xs" />
                 )}
               </div>
             ))}
@@ -249,12 +223,12 @@ const HomeownerMessagesPage = () => {
             />
             <input
               type="file"
-              ref={fileInputRef}
               hidden
+              ref={fileInputRef}
               onChange={handleImageUpload}
             />
-            <Button variant="outline" onClick={() => fileInputRef.current?.click()}>
-              <Camera className="w-4 h-4" />
+            <Button onClick={() => fileInputRef.current?.click()}>
+              <ImageIcon className="w-4 h-4" />
             </Button>
             <Button onClick={handleSend} disabled={!newMessage.trim()}>
               Send
