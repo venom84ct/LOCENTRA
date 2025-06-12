@@ -65,11 +65,11 @@ const JobsHistoryPage = () => {
     }
   };
 
-  if (!profile) return <div className="p-8">Loading...</div>;
+  if (!profile) return <div>Loading...</div>;
 
   return (
     <DashboardLayout user={profile} userType="centraResident">
-      <div className="px-4 py-6 max-w-4xl mx-auto space-y-4">
+      <div className="max-w-4xl mx-auto space-y-4">
         <h1 className="text-2xl font-bold mb-4">Completed Jobs</h1>
         {jobs.length === 0 ? (
           <p>No completed jobs found.</p>

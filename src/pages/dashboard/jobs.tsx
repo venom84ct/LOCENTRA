@@ -110,7 +110,7 @@ const DashboardJobs = () => {
 
   return (
     <DashboardLayout userType="centraResident" user={user}>
-      <div className="p-6 space-y-4">
+      <div className="space-y-4">
         <h1 className="text-2xl font-bold mb-4">Your Posted Jobs</h1>
         {jobs
           .filter((job) => {

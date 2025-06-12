@@ -38,7 +38,7 @@ const MyJobsPage = () => {
 
   return (
     <DashboardLayout userType="tradie" user={user}>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto">
         <h1 className="text-2xl font-bold mb-6">My Jobs</h1>
         <div className="space-y-4">
           {leads.length === 0 ? (

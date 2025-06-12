@@ -84,7 +84,7 @@ const TopTradiesPage = () => {
 
   return (
     <DashboardLayout userType="tradie" user={user}>
-      <div className="p-6 max-w-5xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">Top Tradies</h1>
           <div className="bg-primary/10 px-4 py-2 rounded-full flex items-center">

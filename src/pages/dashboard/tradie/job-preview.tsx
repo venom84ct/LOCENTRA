@@ -132,12 +132,12 @@ const JobPreviewPage = () => {
     }
   };
 
-  if (loading) return <div className="p-8">Loading job...</div>;
-  if (!job) return <div className="p-8 text-red-600">Job not found.</div>;
+  if (loading) return <div>Loading job...</div>;
+  if (!job) return <div className="text-red-600">Job not found.</div>;
 
   return (
     <DashboardLayout user={profile} userType="tradie">
-      <div className="px-4 py-6 max-w-4xl mx-auto space-y-4">
+      <div className="max-w-4xl mx-auto space-y-4">
         <h1 className="text-2xl font-bold mb-4">{job.title}</h1>
 
         <div

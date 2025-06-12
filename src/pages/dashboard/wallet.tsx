@@ -49,7 +49,7 @@ const WalletPage = () => {
   return (
     <DashboardLayout userType="tradie" user={user}>
       <div className="min-h-screen bg-gray-50">
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">Credit Wallet</h1>
             <Button onClick={() => setIsModalOpen(true)}>

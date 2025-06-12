@@ -32,11 +32,11 @@ const TradieMessagesPage = () => {
     fetchProfile();
   }, []);
 
-  if (loading) return <div className="p-8">Loading messaging system...</div>;
+  if (loading) return <div>Loading messaging system...</div>;
 
   return (
     <DashboardLayout user={profile} userType="tradie">
-      <div className="p-4">
+      <div>
         <MessagingSystem
           userId={profile.id}
           userName={profile.first_name}

@@ -82,7 +82,7 @@ const TradieSettingsPage = () => {
 
   return (
     <DashboardLayout userType="tradie" user={user}>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto">
         <h1 className="text-2xl font-bold mb-6">Settings</h1>
 
         <Tabs defaultValue="profile" className="space-y-6">

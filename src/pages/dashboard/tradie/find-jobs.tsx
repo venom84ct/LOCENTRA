@@ -126,7 +126,7 @@ const FindJobsPage = () => {
 
   return (
     <DashboardLayout userType="tradie" user={user}>
-      <div className="p-6">
+      <div>
         <h1 className="text-2xl font-bold mb-4">Find Jobs</h1>
         <div className="mb-4">
           <Input

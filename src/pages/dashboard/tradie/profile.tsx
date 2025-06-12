@@ -167,11 +167,11 @@ const TradieProfilePage = () => {
     }
   };
 
-  if (loading) return <div className="p-6">Loading...</div>;
+  if (loading) return <div>Loading...</div>;
 
   return (
     <DashboardLayout userType="tradie" user={profile}>
-      <div className="p-6 max-w-6xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-6">
         <div className="flex justify-between items-center">
           <h1 className="text-2xl font-bold">My Profile</h1>
           {!editing && <Button onClick={() => setEditing(true)}>Edit Profile</Button>}

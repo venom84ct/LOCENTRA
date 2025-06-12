@@ -82,7 +82,7 @@ const ProfilePage = () => {
     }
   };
 
-  if (!profile) return <div className="p-8">Loading profile...</div>;
+  if (!profile) return <div>Loading profile...</div>;
 
   const fullName = `${profile.first_name || ""} ${profile.last_name || ""}`.trim();
   const joinDate = new Date(profile.created_at).toLocaleDateString("en-AU", {
@@ -93,7 +93,7 @@ const ProfilePage = () => {
   return (
     <DashboardLayout userType="centraResident" user={{ ...profile, full_name: fullName }}>
       <div className="min-h-screen bg-gray-50">
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">My Profile</h1>
             <Button
