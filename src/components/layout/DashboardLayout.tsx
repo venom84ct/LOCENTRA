@@ -14,8 +14,15 @@ import {
   Award,
   Search,
   LogOut,
+  Menu,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerTrigger,
+  DrawerClose,
+} from "@/components/ui/drawer";
 
 interface DashboardLayoutProps {
   userType: "centraResident" | "tradie";
@@ -33,6 +40,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -150,14 +158,15 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         ];
 
   return (
-    <div className="min-h-screen flex bg-gray-50">
-      <aside className="w-64 bg-white shadow-md p-6 hidden md:block">
-        <div className="mb-6">
-          <div className="text-lg font-bold">
-            {user?.first_name} {user?.last_name}
+    <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
+      <div className="min-h-screen flex bg-gray-50">
+        <aside className="w-64 bg-white shadow-md p-6 hidden md:block">
+          <div className="mb-6">
+            <div className="text-lg font-bold">
+              {user?.first_name} {user?.last_name}
+            </div>
+            <div className="text-sm text-gray-500">{user?.email}</div>
           </div>
-          <div className="text-sm text-gray-500">{user?.email}</div>
-        </div>
 
         <nav className="space-y-2">
           {navItems.map((item) => {
@@ -194,10 +203,75 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             Logout
           </button>
         </nav>
-      </aside>
+        </aside>
 
-      <main className="flex-1 p-4 md:p-8">{children}</main>
-    </div>
+        <div className="flex-1">
+          {/* Mobile Header */}
+          <header className="flex items-center justify-between p-4 bg-white shadow md:hidden">
+            <DrawerTrigger asChild>
+              <button className="p-2" onClick={() => setDrawerOpen(true)}>
+                <Menu className="h-6 w-6" />
+              </button>
+            </DrawerTrigger>
+            <span className="font-semibold">Dashboard</span>
+          </header>
+          <main className="p-4 md:p-8">{children}</main>
+        </div>
+      </div>
+
+      <DrawerContent>
+        <div className="p-4">
+          <div className="mb-6 md:hidden">
+            <div className="text-lg font-bold">
+              {user?.first_name} {user?.last_name}
+            </div>
+            <div className="text-sm text-gray-500">{user?.email}</div>
+          </div>
+          <nav className="space-y-2">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.path;
+
+              return (
+                <DrawerClose asChild key={item.name}>
+                  <Link to={item.path} onClick={() => setDrawerOpen(false)}>
+                    <div
+                      className={cn(
+                        "flex items-center justify-between p-2 rounded hover:bg-gray-100 transition-colors",
+                        isActive ? "bg-gray-200 font-semibold" : ""
+                      )}
+                    >
+                      <div className="flex items-center">
+                        <Icon className="h-5 w-5 mr-2" />
+                        {item.name}
+                      </div>
+                      {item.badgeCount && item.badgeCount > 0 && (
+                        <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                          {item.badgeCount}
+                        </span>
+                      )}
+                    </div>
+                  </Link>
+                </DrawerClose>
+              );
+            })}
+
+            <DrawerClose asChild>
+              <button
+                onClick={() => {
+                  setDrawerOpen(false);
+                  handleLogout();
+                }}
+                className="flex items-center p-2 mt-4 text-red-600 hover:bg-red-50 rounded w-full transition-colors"
+              >
+                <LogOut className="h-5 w-5 mr-2" />
+                Logout
+              </button>
+            </DrawerClose>
+          </nav>
+        </div>
+      </DrawerContent>
+    </Drawer>
   );
 };
 
