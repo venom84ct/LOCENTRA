@@ -50,6 +50,7 @@ const HomeownerNotificationsPage = () => {
         .from("notifications")
         .select("*")
         .eq("recipient_id", user.id)
+        .eq("recipient_type", "homeowner")
         .order("created_at", { ascending: false });
 
       if (!error && data) {
@@ -74,8 +75,9 @@ const HomeownerNotificationsPage = () => {
           filter: `recipient_id=eq.${user.id}`,
         },
         (payload) => {
-          const newNotif = payload.new;
-          setNotifications((prev) => [newNotif, ...prev]);
+          if (payload.new.recipient_type === "homeowner") {
+            setNotifications((prev) => [payload.new, ...prev]);
+          }
         }
       )
       .subscribe();
@@ -95,7 +97,11 @@ const HomeownerNotificationsPage = () => {
   const markAllAsRead = async () => {
     const updated = notifications.map((n) => ({ ...n, read: true }));
     setNotifications(updated);
-    await supabase.from("notifications").update({ read: true }).eq("recipient_id", user.id);
+    await supabase
+      .from("notifications")
+      .update({ read: true })
+      .eq("recipient_id", user.id)
+      .eq("recipient_type", "homeowner");
   };
 
   const handleView = (type: string, id: string, name?: string) => {
