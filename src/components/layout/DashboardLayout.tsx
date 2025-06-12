@@ -47,6 +47,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       .from("messages")
       .select("*", { count: "exact", head: true })
       .eq(msgField, user.id)
+      .neq("sender_id", user.id)
       .eq("is_read", false);
 
     const { count: notifCount } = await supabase
