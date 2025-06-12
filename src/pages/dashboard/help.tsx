@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
   Card,
@@ -17,16 +17,28 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { MessageSquare, Phone, Mail, HelpCircle, Search } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 
 const HelpPage = () => {
-  // Mock user data - in a real app, this would come from authentication
-  const user = {
-    name: "John Smith",
-    email: "john.smith@example.com",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-    unreadMessages: 2,
-    unreadNotifications: 3,
-  };
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      const userId = data.user?.id;
+      if (!userId) return;
+
+      const { data: profile } = await supabase
+        .from("profile_centra_resident")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      setUser(profile);
+    };
+
+    fetchUser();
+  }, []);
 
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -74,15 +86,10 @@ const HelpPage = () => {
       faq.answer.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
+  if (!user) return null;
+
   return (
-    <DashboardLayout
-      userType={
-        window.location.pathname.includes("tradie")
-          ? "tradie"
-          : "centraResident"
-      }
-      user={user}
-    >
+    <DashboardLayout userType="centraResident" user={user}>
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto px-4 py-8">
           <div className="flex justify-between items-center mb-6">

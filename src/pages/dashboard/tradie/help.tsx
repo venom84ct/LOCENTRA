@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
   Card,
@@ -17,17 +17,28 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { MessageSquare, Phone, Mail, HelpCircle, Search } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 
 const TradieHelpPage = () => {
-  // Mock user data - in a real app, this would come from authentication
-  const user = {
-    name: "Mike Johnson",
-    email: "mike.johnson@example.com",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mike",
-    trade: "Plumber",
-    unreadMessages: 1,
-    unreadNotifications: 2,
-  };
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      const { data } = await supabase.auth.getUser();
+      const userId = data.user?.id;
+      if (!userId) return;
+
+      const { data: profile } = await supabase
+        .from("profile_centra_tradie")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      setUser(profile);
+    };
+
+    fetchUser();
+  }, []);
 
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -74,6 +85,8 @@ const TradieHelpPage = () => {
       faq.question.toLowerCase().includes(searchQuery.toLowerCase()) ||
       faq.answer.toLowerCase().includes(searchQuery.toLowerCase()),
   );
+
+  if (!user) return null;
 
   return (
     <DashboardLayout userType="tradie" user={user}>

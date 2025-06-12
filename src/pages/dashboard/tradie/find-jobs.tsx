@@ -26,6 +26,7 @@ const FindJobsPage = () => {
   const [showEmergencyOnly, setShowEmergencyOnly] = useState(false);
   const [purchasedLeads, setPurchasedLeads] = useState<string[]>([]);
   const [userId, setUserId] = useState<string>("");
+  const [user, setUser] = useState<any>(null);
   const navigate = useNavigate();
 
   const fetchJobs = async () => {
@@ -34,6 +35,14 @@ const FindJobsPage = () => {
     } = await supabase.auth.getUser();
     if (!user) return;
     setUserId(user.id);
+
+    const { data: profile } = await supabase
+      .from("profile_centra_tradie")
+      .select("*")
+      .eq("id", user.id)
+      .single();
+
+    setUser(profile);
 
     const { data: leadsData } = await supabase
       .from("job_leads")
@@ -113,8 +122,10 @@ const FindJobsPage = () => {
     );
   });
 
+  if (!user) return null;
+
   return (
-    <DashboardLayout userType="tradie" user={{ name: "Tradie" }}>
+    <DashboardLayout userType="tradie" user={user}>
       <div className="p-6">
         <h1 className="text-2xl font-bold mb-4">Find Jobs</h1>
         <div className="mb-4">
