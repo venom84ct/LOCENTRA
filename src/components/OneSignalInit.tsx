@@ -1,37 +1,58 @@
-// src/components/OneSignalInit.tsx
 import { useEffect } from "react";
 import { supabase } from "@/lib/supabaseClient";
 
 const OneSignalInit = () => {
   useEffect(() => {
-    const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+    const initOneSignal = async () => {
+      if (window.OneSignal) return;
 
-      // Load SDK
       const script = document.createElement("script");
       script.src = "https://cdn.onesignal.com/sdks/OneSignalSDK.js";
       script.async = true;
-      script.onload = () => {
+      script.onload = async () => {
         window.OneSignal = window.OneSignal || [];
         window.OneSignal.push(() => {
           window.OneSignal.init({
-            appId: "b6d82074-2797-435a-9586-63bc0b55a696",
-            notifyButton: { enable: true },
+            appId: "b6d82074-2797-435a-9586-63bc0b55a696", // Replace with your OneSignal App ID
+            notifyButton: {
+              enable: true,
+            },
             allowLocalhostAsSecureOrigin: true,
+            promptOptions: {
+              actionMessage: "Enable push to receive job and message updates.",
+              acceptButtonText: "Yes",
+              cancelButtonText: "No",
+            },
           });
 
-          // This is REQUIRED to identify the user for push delivery
-          window.OneSignal.setExternalUserId(user.id);
+          window.OneSignal.showSlidedownPrompt();
+
+          window.OneSignal.getUserId().then(async (playerId) => {
+            if (!playerId) return;
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            // Try to update both resident and tradie tables
+            await supabase
+              .from("profile_centra_resident")
+              .update({ onesignal_id: playerId })
+              .eq("id", user.id);
+
+            await supabase
+              .from("profile_centra_tradie")
+              .update({ onesignal_id: playerId })
+              .eq("id", user.id);
+          });
         });
       };
       document.head.appendChild(script);
     };
 
-    init();
+    initOneSignal();
   }, []);
 
   return null;
 };
 
 export default OneSignalInit;
+
