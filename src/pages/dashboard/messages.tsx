@@ -1,85 +1,73 @@
 import React, { useEffect, useState, useRef } from "react";
-import { useSearchParams, useNavigate } from "react-router-dom";
-import DashboardLayout from "@/components/layout/DashboardLayout";
 import { supabase } from "@/lib/supabaseClient";
+import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Trash2, ImageIcon } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Trash2, Image as ImageIcon } from "lucide-react";
 
-const HomeownerMessagesPage = () => {
-  const [searchParams] = useSearchParams();
-  const navigate = useNavigate();
-  const selectedConversationId = searchParams.get("conversationId");
-
-  const [userId, setUserId] = useState<string | null>(null);
-  const [profile, setProfile] = useState<any>(null);
-  const [messages, setMessages] = useState<any[]>([]);
+const MessagesPage = () => {
+  const [userId, setUserId] = useState<string>("");
   const [conversations, setConversations] = useState<any[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [selectedConversation, setSelectedConversation] = useState<any>(null);
   const [newMessage, setNewMessage] = useState("");
+  const [file, setFile] = useState<File | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const fetchUserAndProfile = async () => {
-      const { data } = await supabase.auth.getUser();
-      const uid = data.user?.id || null;
-      setUserId(uid);
+    const fetchUserAndConversations = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) return;
+      setUserId(user.id);
 
-      if (uid) {
-        const { data: profileData } = await supabase
-          .from("profile_centra_resident")
-          .select("*")
-          .eq("id", uid)
-          .single();
-        setProfile(profileData);
-      }
-    };
-    fetchUserAndProfile();
-  }, []);
-
-  useEffect(() => {
-    if (!userId) return;
-
-    const fetchConversations = async () => {
       const { data, error } = await supabase
         .from("conversations")
-        .select("id, homeowner_id, tradie_id, jobs(title), profile_centra_tradie(first_name, avatar_url)")
-        .eq("homeowner_id", userId);
+        .select(`*, jobs(id, title, assigned_tradie), profile_centra_resident(first_name, avatar_url)`)
+        .eq("tradie_id", user.id);
 
       if (!error) setConversations(data || []);
     };
 
-    fetchConversations();
-  }, [userId]);
+    fetchUserAndConversations();
+  }, []);
 
   useEffect(() => {
-    if (!selectedConversationId) return;
+    if (!selectedConversation?.id || !userId) return;
 
     const fetchMessages = async () => {
       const { data, error } = await supabase
         .from("messages")
         .select("*")
-        .eq("conversation_id", selectedConversationId)
+        .eq("conversation_id", selectedConversation.id)
         .order("created_at", { ascending: true });
 
       if (!error) {
         setMessages(data || []);
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+
+        // Mark all messages from other user as read
+        await supabase
+          .from("messages")
+          .update({ is_read: true })
+          .eq("conversation_id", selectedConversation.id)
+          .neq("sender_id", userId);
       }
     };
 
     fetchMessages();
 
     const channel = supabase
-      .channel(`messages-${selectedConversationId}`)
+      .channel(`messages-${selectedConversation.id}`)
       .on(
         "postgres_changes",
         {
           event: "INSERT",
           schema: "public",
           table: "messages",
-          filter: `conversation_id=eq.${selectedConversationId}`,
+          filter: `conversation_id=eq.${selectedConversation.id}`,
         },
         (payload) => {
           setMessages((prev) => [...prev, payload.new]);
@@ -91,146 +79,148 @@ const HomeownerMessagesPage = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [selectedConversationId]);
+  }, [selectedConversation, userId]);
 
   const handleSend = async () => {
-    if (!newMessage.trim() || !userId || !selectedConversationId) return;
+    if (!newMessage.trim() && !file) return;
 
-    const selectedConvo = conversations.find((c) => c.id === selectedConversationId);
-    if (!selectedConvo) return;
+    let image_url = null;
 
-    const { error } = await supabase.from("messages").insert({
-      conversation_id: selectedConversationId,
-      sender_id: userId,
-      message: newMessage.trim(),
-      is_read: false,
-      homeowner_id: selectedConvo.homeowner_id,
-      tradie_id: selectedConvo.tradie_id,
-    });
+    if (file) {
+      const filePath = `${selectedConversation.id}/${Date.now()}-${file.name}`;
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from("chat-images")
+        .upload(filePath, file);
 
-    if (!error) setNewMessage("");
-  };
-
-  const handleDeleteConversation = async (id: string) => {
-    await supabase.from("messages").delete().eq("conversation_id", id);
-    await supabase.from("conversations").delete().eq("id", id);
-    setConversations((prev) => prev.filter((c) => c.id !== id));
-    if (selectedConversationId === id) navigate("/dashboard/messages");
-  };
-
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file || !userId || !selectedConversationId) return;
-
-    const selectedConvo = conversations.find((c) => c.id === selectedConversationId);
-    if (!selectedConvo) return;
-
-    const filePath = `${selectedConversationId}/${Date.now()}-${file.name}`;
-    const { error: uploadError } = await supabase.storage
-      .from("chat-images")
-      .upload(filePath, file);
-
-    if (uploadError) {
-      console.error("Upload failed:", uploadError.message);
-      return;
+      if (uploadError) {
+        console.error("Upload error:", uploadError);
+      } else {
+        const { data: urlData } = supabase.storage.from("chat-images").getPublicUrl(filePath);
+        image_url = urlData.publicUrl;
+      }
     }
 
-    const { data: publicUrlData } = supabase.storage
-      .from("chat-images")
-      .getPublicUrl(filePath);
-
-    await supabase.from("messages").insert({
-      conversation_id: selectedConversationId,
+    const { error } = await supabase.from("messages").insert({
+      conversation_id: selectedConversation.id,
       sender_id: userId,
-      image_url: publicUrlData.publicUrl,
-      is_read: false,
-      homeowner_id: selectedConvo.homeowner_id,
-      tradie_id: selectedConvo.tradie_id,
+      message: newMessage.trim() || null,
+      image_url,
     });
+
+    if (!error) {
+      setNewMessage("");
+      setFile(null);
+    }
   };
 
+  const deleteConversation = async (id: string) => {
+    const { error } = await supabase.from("conversations").delete().eq("id", id);
+    if (!error) {
+      setConversations((prev) => prev.filter((c) => c.id !== id));
+      if (selectedConversation?.id === id) {
+        setSelectedConversation(null);
+        setMessages([]);
+      }
+    }
+  };
+
+  const job = selectedConversation?.jobs;
+  const isAssignedToTradie = job?.assigned_tradie === userId;
+  const isUnassigned = !job?.assigned_tradie;
+  const hasReceivedReply = messages.some((msg) => msg.sender_id !== userId);
+
+  const canMessage = isAssignedToTradie || (isUnassigned && hasReceivedReply);
+
   return (
-    <DashboardLayout userType="centraResident" user={profile}>
-      <div className="p-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Sidebar */}
-        <div className="col-span-1">
-          <h2 className="text-lg font-semibold mb-2">Conversations</h2>
-          <div className="space-y-2">
-            {conversations.map((conv) => (
-              <div key={conv.id} className="relative group">
-                <a
-                  href={`/dashboard/messages?conversationId=${conv.id}`}
-                  className={`block p-2 rounded border ${
-                    selectedConversationId === conv.id
-                      ? "bg-[#ffe6e6] text-black"
-                      : "hover:bg-gray-100"
-                  }`}
-                >
-                  <div className="flex items-center gap-2">
-                    <Avatar className="h-6 w-6">
-                      <AvatarImage src={conv.profile_centra_tradie?.avatar_url} />
-                      <AvatarFallback>
-                        {conv.profile_centra_tradie?.first_name?.[0] || "T"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div>
-                      <p className="text-sm font-medium">
-                        {conv.profile_centra_tradie?.first_name || "Tradie"}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        Job: {conv.jobs?.title || "Untitled"}
-                      </p>
-                    </div>
+    <DashboardLayout userType="tradie">
+      <div className="p-6 flex space-x-6">
+        <div className="w-1/3 border rounded p-4 bg-white h-[600px] overflow-y-auto">
+          <h2 className="font-semibold text-lg mb-4">Conversations</h2>
+          {conversations.map((convo) => (
+            <div
+              key={convo.id}
+              onClick={() => setSelectedConversation(convo)}
+              className={`p-2 rounded cursor-pointer mb-2 flex items-center justify-between ${
+                selectedConversation?.id === convo.id
+                  ? "bg-red-100 text-black"
+                  : "hover:bg-muted"
+              }`}
+            >
+              <div className="flex items-center gap-2">
+                <Avatar className="h-6 w-6">
+                  <AvatarImage src={convo.profile_centra_resident?.avatar_url} />
+                  <AvatarFallback>
+                    {convo.profile_centra_resident?.first_name?.charAt(0) || "U"}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="text-sm">
+                  <div className="font-medium">
+                    {convo.profile_centra_resident?.first_name || "Unknown"}
                   </div>
-                </a>
-                <button
-                  className="absolute top-2 right-2 text-gray-400 hover:text-red-500 hidden group-hover:inline"
-                  onClick={() => handleDeleteConversation(conv.id)}
-                  title="Delete conversation"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+                  <div className="text-xs text-muted-foreground">
+                    Job: {convo.jobs?.title || "No title"}
+                  </div>
+                </div>
               </div>
-            ))}
-          </div>
+              <Trash2
+                className="h-4 w-4 text-gray-500 hover:text-red-600"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteConversation(convo.id);
+                }}
+              />
+            </div>
+          ))}
         </div>
 
-        {/* Message Panel */}
-        <div className="col-span-2">
-          <h2 className="text-lg font-semibold mb-2">Messages</h2>
-          <div className="border rounded p-4 bg-white h-[500px] overflow-y-auto">
+        <div className="flex-1 border rounded p-4 bg-white h-[600px] flex flex-col">
+          <h2 className="font-semibold text-lg mb-2">Messages</h2>
+          <div className="flex-1 overflow-y-auto space-y-2">
             {messages.map((msg) => (
               <div
                 key={msg.id}
-                className={`my-2 max-w-sm px-4 py-2 rounded-lg ${
+                className={`max-w-xs px-4 py-2 rounded-lg ${
                   msg.sender_id === userId ? "bg-red-100 ml-auto" : "bg-gray-100"
                 }`}
               >
                 {msg.message}
                 {msg.image_url && (
-                  <img src={msg.image_url} alt="chat upload" className="mt-2 rounded max-w-xs" />
+                  <img
+                    src={msg.image_url}
+                    alt="attachment"
+                    className="mt-2 rounded max-w-xs"
+                  />
                 )}
               </div>
             ))}
+
+            {!canMessage && (
+              <div className="text-center text-muted-foreground text-sm mt-4">
+                You cannot message anymore. The job has been assigned to another tradie.
+              </div>
+            )}
+
             <div ref={bottomRef} />
           </div>
 
-          <div className="flex gap-2 mt-4">
+          <div className="mt-4 flex gap-2 items-center">
             <Input
+              placeholder="Type a message..."
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder="Type a message..."
+              disabled={!canMessage}
             />
             <input
               type="file"
-              hidden
-              ref={fileInputRef}
-              onChange={handleImageUpload}
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              className="hidden"
+              id="upload-file"
+              disabled={!canMessage}
             />
-            <Button onClick={() => fileInputRef.current?.click()}>
-              <ImageIcon className="w-4 h-4" />
-            </Button>
-            <Button onClick={handleSend} disabled={!newMessage.trim()}>
+            <label htmlFor="upload-file">
+              <ImageIcon className="w-5 h-5 cursor-pointer" />
+            </label>
+            <Button onClick={handleSend} disabled={!newMessage.trim() && !file || !canMessage}>
               Send
             </Button>
           </div>
@@ -240,4 +230,4 @@ const HomeownerMessagesPage = () => {
   );
 };
 
-export default HomeownerMessagesPage;
+export default MessagesPage;
