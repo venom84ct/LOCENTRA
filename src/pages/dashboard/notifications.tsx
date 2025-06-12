@@ -24,7 +24,7 @@ import { supabase } from "@/lib/supabaseClient";
 
 interface Notification {
   id: string;
-  title: string;
+  title?: string;
   description: string;
   created_at: string;
   type: "info" | "success" | "warning" | "error";
@@ -75,9 +75,8 @@ const HomeownerNotificationsPage = () => {
           filter: `recipient_id=eq.${user.id}`,
         },
         (payload) => {
-          if (payload.new.recipient_type === "homeowner") {
-            setNotifications((prev) => [payload.new, ...prev]);
-          }
+          const newNotif = payload.new;
+          setNotifications((prev) => [newNotif, ...prev]);
         }
       )
       .subscribe();
@@ -94,14 +93,15 @@ const HomeownerNotificationsPage = () => {
     await supabase.from("notifications").update({ read: true }).eq("id", id);
   };
 
+  const deleteNotification = async (id: string) => {
+    await supabase.from("notifications").delete().eq("id", id);
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  };
+
   const markAllAsRead = async () => {
     const updated = notifications.map((n) => ({ ...n, read: true }));
     setNotifications(updated);
-    await supabase
-      .from("notifications")
-      .update({ read: true })
-      .eq("recipient_id", user.id)
-      .eq("recipient_type", "homeowner");
+    await supabase.from("notifications").update({ read: true }).eq("recipient_id", user.id);
   };
 
   const handleView = (type: string, id: string, name?: string) => {
@@ -150,7 +150,7 @@ const HomeownerNotificationsPage = () => {
                         <div className="mr-3">{getNotificationIcon(n.type)}</div>
                         <div>
                           <CardTitle className="text-base flex items-center">
-                            {n.title}
+                            {n.title || "Notification"}
                             {!n.read && (
                               <Badge variant="default" className="ml-2">New</Badge>
                             )}
@@ -170,20 +170,30 @@ const HomeownerNotificationsPage = () => {
                   </CardHeader>
                   <CardContent>
                     <p className="text-sm mb-4">{n.description}</p>
-                    <div className="flex justify-end gap-2">
+                    <div className="flex justify-end gap-2 flex-wrap">
                       {!n.read && (
                         <Button variant="outline" size="sm" onClick={() => markAsRead(n.id)}>
                           Mark as Read
                         </Button>
                       )}
                       {n.related_type && n.related_id && (
-                        <Button size="sm" onClick={() => handleView(n.related_type!, n.related_id!, n.related_name)}>
+                        <Button
+                          size="sm"
+                          onClick={() => handleView(n.related_type!, n.related_id!, n.related_name)}
+                        >
                           {n.related_type === "job" && <Briefcase className="h-4 w-4 mr-2" />}
                           {n.related_type === "message" && <MessageSquare className="h-4 w-4 mr-2" />}
                           {n.related_type === "homeowner" && <User className="h-4 w-4 mr-2" />}
                           View
                         </Button>
                       )}
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => deleteNotification(n.id)}
+                      >
+                        Delete
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
