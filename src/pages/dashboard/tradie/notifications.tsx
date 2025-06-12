@@ -19,6 +19,7 @@ import {
   Calendar,
   User,
   Briefcase,
+  Trash,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 
@@ -94,6 +95,11 @@ const TradieNotificationsPage = () => {
       prev.map((n) => (n.id === id ? { ...n, read: true } : n))
     );
     await supabase.from("notifications").update({ read: true }).eq("id", id);
+  };
+
+  const deleteNotification = async (id: string) => {
+    await supabase.from("notifications").delete().eq("id", id);
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
   };
 
   const markAllAsRead = async () => {
@@ -198,6 +204,9 @@ const TradieNotificationsPage = () => {
                           View
                         </Button>
                       )}
+                      <Button variant="destructive" size="sm" onClick={() => deleteNotification(n.id)}>
+                        <Trash className="h-4 w-4 mr-2" /> Delete
+                      </Button>
                     </div>
                   </CardContent>
                 </Card>
