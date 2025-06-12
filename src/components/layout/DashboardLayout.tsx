@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
@@ -30,11 +30,74 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const location = useLocation();
   const navigate = useNavigate();
 
+  const [unreadMessages, setUnreadMessages] = useState(0);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+
   const handleLogout = async () => {
     await supabase.auth.signOut();
     localStorage.clear();
     navigate("/");
   };
+
+  useEffect(() => {
+    const fetchUnreadCounts = async () => {
+      const { count: msgCount } = await supabase
+        .from("messages")
+        .select("*", { count: "exact", head: true })
+        .eq("receiver_id", user.id)
+        .eq("is_read", false);
+
+      const { count: notifCount } = await supabase
+        .from("notifications")
+        .select("*", { count: "exact", head: true })
+        .eq("user_id", user.id)
+        .eq("is_read", false);
+
+      setUnreadMessages(msgCount || 0);
+      setUnreadNotifications(notifCount || 0);
+    };
+
+    fetchUnreadCounts();
+  }, [user.id]);
+
+  useEffect(() => {
+    const msgChannel = supabase
+      .channel("realtime:messages")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "messages",
+          filter: `receiver_id=eq.${user.id}`,
+        },
+        () => {
+          setUnreadMessages((prev) => prev + 1);
+        }
+      )
+      .subscribe();
+
+    const notifChannel = supabase
+      .channel("realtime:notifications")
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "notifications",
+          filter: `user_id=eq.${user.id}`,
+        },
+        () => {
+          setUnreadNotifications((prev) => prev + 1);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(msgChannel);
+      supabase.removeChannel(notifChannel);
+    };
+  }, [user.id]);
 
   const navItems =
     userType === "centraResident"
@@ -43,8 +106,18 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           { name: "Jobs", path: "/dashboard/jobs", icon: Briefcase },
           { name: "Post a Job", path: "/dashboard/post-job", icon: Briefcase },
           { name: "Job History", path: "/dashboard/job-history", icon: Briefcase },
-          { name: "Messages", path: "/dashboard/messages", icon: MessagesSquare },
-          { name: "Notifications", path: "/dashboard/notifications", icon: Bell },
+          {
+            name: "Messages",
+            path: "/dashboard/messages",
+            icon: MessagesSquare,
+            badgeCount: unreadMessages,
+          },
+          {
+            name: "Notifications",
+            path: "/dashboard/notifications",
+            icon: Bell,
+            badgeCount: unreadNotifications,
+          },
           { name: "Rewards", path: "/dashboard/rewards", icon: Gift },
           { name: "Profile", path: "/dashboard/profile", icon: User },
           { name: "Settings", path: "/dashboard/settings", icon: Settings },
@@ -54,8 +127,18 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           { name: "Dashboard", path: "/dashboard/tradie", icon: LayoutDashboard },
           { name: "Find Jobs", path: "/dashboard/tradie/find-jobs", icon: Search },
           { name: "My Jobs", path: "/dashboard/tradie/my-jobs", icon: Briefcase },
-          { name: "Messages", path: "/dashboard/tradie/messages", icon: MessagesSquare },
-          { name: "Notifications", path: "/dashboard/tradie/notifications", icon: Bell },
+          {
+            name: "Messages",
+            path: "/dashboard/tradie/messages",
+            icon: MessagesSquare,
+            badgeCount: unreadMessages,
+          },
+          {
+            name: "Notifications",
+            path: "/dashboard/tradie/notifications",
+            icon: Bell,
+            badgeCount: unreadNotifications,
+          },
           { name: "Top Tradies", path: "/dashboard/tradie/top-tradies", icon: Award },
           { name: "Profile", path: "/dashboard/tradie/profile", icon: User },
           { name: "Settings", path: "/dashboard/tradie/settings", icon: Settings },
@@ -82,12 +165,19 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               <Link to={item.path} key={item.name}>
                 <div
                   className={cn(
-                    "flex items-center p-2 rounded hover:bg-gray-100 transition-colors",
+                    "flex items-center justify-between p-2 rounded hover:bg-gray-100 transition-colors",
                     isActive ? "bg-gray-200 font-semibold" : ""
                   )}
                 >
-                  <Icon className="h-5 w-5 mr-2" />
-                  {item.name}
+                  <div className="flex items-center">
+                    <Icon className="h-5 w-5 mr-2" />
+                    {item.name}
+                  </div>
+                  {item.badgeCount > 0 && (
+                    <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                      {item.badgeCount}
+                    </span>
+                  )}
                 </div>
               </Link>
             );
