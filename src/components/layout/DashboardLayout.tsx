@@ -40,16 +40,17 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   };
 
   useEffect(() => {
-    if (!user?.id) return;
-
     const fetchUnreadCounts = async () => {
+      if (!user?.id) return;
+
       const msgField = userType === "centraResident" ? "homeowner_id" : "tradie_id";
 
       const { count: msgCount } = await supabase
         .from("messages")
         .select("*", { count: "exact", head: true })
         .eq(msgField, user.id)
-        .eq("is_read", false);
+        .eq("is_read", false)
+        .neq("sender_id", user.id);
 
       const { count: notifCount } = await supabase
         .from("notifications")
@@ -63,7 +64,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     };
 
     fetchUnreadCounts();
-  }, [user?.id, userType]);
+  }, [user?.id, userType, location.pathname]);
 
   useEffect(() => {
     if (!user?.id) return;
