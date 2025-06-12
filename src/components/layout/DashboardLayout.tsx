@@ -1,4 +1,3 @@
-// === DashboardLayout.tsx ===
 import React, { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -42,16 +41,17 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [sheetOpen, setSheetOpen] = useState(false);
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    localStorage.clear();
-    navigate("/");
-  };
+  const isMessagePage =
+    (userType === "centraResident" && location.pathname === "/dashboard/messages") ||
+    (userType === "tradie" && location.pathname === "/dashboard/tradie/messages");
+
+  const isNotificationPage =
+    (userType === "centraResident" && location.pathname === "/dashboard/notifications") ||
+    (userType === "tradie" && location.pathname === "/dashboard/tradie/notifications");
 
   const fetchUnreadCounts = async () => {
     if (!user?.id) return;
-    const msgField =
-      userType === "centraResident" ? "homeowner_id" : "tradie_id";
+    const msgField = userType === "centraResident" ? "homeowner_id" : "tradie_id";
 
     const { count: msgCount } = await supabase
       .from("messages")
@@ -63,24 +63,20 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       .from("notifications")
       .select("*", { count: "exact", head: true })
       .eq("recipient_id", user.id)
-      .eq(
-        "recipient_type",
-        userType === "centraResident" ? "homeowner" : "tradie",
-      )
+      .eq("recipient_type", userType === "centraResident" ? "homeowner" : "tradie")
       .eq("read", false);
 
-    setUnreadMessages(msgCount || 0);
-    setUnreadNotifications(notifCount || 0);
+    setUnreadMessages(isMessagePage ? 0 : msgCount || 0);
+    setUnreadNotifications(isNotificationPage ? 0 : notifCount || 0);
   };
 
   useEffect(() => {
     fetchUnreadCounts();
-  }, [user?.id, userType]);
+  }, [user?.id, userType, location.pathname]);
 
   useEffect(() => {
     if (!user?.id) return;
-    const msgField =
-      userType === "centraResident" ? "homeowner_id" : "tradie_id";
+    const msgField = userType === "centraResident" ? "homeowner_id" : "tradie_id";
 
     const msgChannel = supabase
       .channel("realtime:messages")
@@ -92,7 +88,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           table: "messages",
           filter: `${msgField}=eq.${user.id}`,
         },
-        fetchUnreadCounts,
+        fetchUnreadCounts
       )
       .subscribe();
 
@@ -106,7 +102,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           table: "notifications",
           filter: `recipient_id=eq.${user.id}`,
         },
-        fetchUnreadCounts,
+        fetchUnreadCounts
       )
       .subscribe();
 
@@ -116,29 +112,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     };
   }, [user?.id, userType]);
 
-  useEffect(() => {
-    const isMessagesPage =
-      (userType === "centraResident" &&
-        location.pathname === "/dashboard/messages") ||
-      (userType === "tradie" &&
-        location.pathname === "/dashboard/tradie/messages");
-
-    if (isMessagesPage) {
-      setUnreadMessages(0);
-    }
-  }, [location.pathname, userType]);
-
   const navItems =
     userType === "centraResident"
       ? [
           { name: "Dashboard", path: "/dashboard", icon: LayoutDashboard },
           { name: "Jobs", path: "/dashboard/jobs", icon: Briefcase },
           { name: "Post a Job", path: "/dashboard/post-job", icon: Briefcase },
-          {
-            name: "Job History",
-            path: "/dashboard/job-history",
-            icon: Briefcase,
-          },
+          { name: "Job History", path: "/dashboard/job-history", icon: Briefcase },
           {
             name: "Messages",
             path: "/dashboard/messages",
@@ -157,21 +137,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           { name: "Help", path: "/dashboard/help", icon: HelpCircle },
         ]
       : [
-          {
-            name: "Dashboard",
-            path: "/dashboard/tradie",
-            icon: LayoutDashboard,
-          },
-          {
-            name: "Find Jobs",
-            path: "/dashboard/tradie/find-jobs",
-            icon: Search,
-          },
-          {
-            name: "My Jobs",
-            path: "/dashboard/tradie/my-jobs",
-            icon: Briefcase,
-          },
+          { name: "Dashboard", path: "/dashboard/tradie", icon: LayoutDashboard },
+          { name: "Find Jobs", path: "/dashboard/tradie/find-jobs", icon: Search },
+          { name: "My Jobs", path: "/dashboard/tradie/my-jobs", icon: Briefcase },
           {
             name: "Messages",
             path: "/dashboard/tradie/messages",
@@ -184,19 +152,17 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             icon: Bell,
             badgeCount: unreadNotifications,
           },
-          {
-            name: "Top Tradies",
-            path: "/dashboard/tradie/top-tradies",
-            icon: Award,
-          },
+          { name: "Top Tradies", path: "/dashboard/tradie/top-tradies", icon: Award },
           { name: "Profile", path: "/dashboard/tradie/profile", icon: User },
-          {
-            name: "Settings",
-            path: "/dashboard/tradie/settings",
-            icon: Settings,
-          },
+          { name: "Settings", path: "/dashboard/tradie/settings", icon: Settings },
           { name: "Help", path: "/dashboard/tradie/help", icon: HelpCircle },
         ];
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    localStorage.clear();
+    navigate("/");
+  };
 
   return (
     <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
@@ -208,18 +174,16 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             </div>
             <div className="text-sm text-gray-500">{user?.email}</div>
           </div>
-
           <nav className="space-y-2">
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
-
               return (
                 <Link to={item.path} key={item.name}>
                   <div
                     className={cn(
                       "flex items-center justify-between p-2 rounded hover:bg-gray-100 transition-colors",
-                      isActive ? "bg-gray-200 font-semibold" : "",
+                      isActive ? "bg-gray-200 font-semibold" : ""
                     )}
                   >
                     <div className="flex items-center">
@@ -235,7 +199,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 </Link>
               );
             })}
-
             <button
               onClick={handleLogout}
               className="flex items-center p-2 mt-4 text-red-600 hover:bg-red-50 rounded w-full transition-colors"
@@ -261,7 +224,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       </div>
 
       <SheetContent side="left" className="w-64 bg-white shadow-md p-6">
-        <div className="mb-6 md:hidden">
+          <div className="mb-6 md:hidden">
             <div className="text-lg font-bold">
               {user?.first_name} {user?.last_name}
             </div>
@@ -278,7 +241,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                     <div
                       className={cn(
                         "flex items-center justify-between p-2 rounded hover:bg-gray-100 transition-colors",
-                        isActive ? "bg-gray-200 font-semibold" : "",
+                        isActive ? "bg-gray-200 font-semibold" : ""
                       )}
                     >
                       <div className="flex items-center">
@@ -295,7 +258,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 </SheetClose>
               );
             })}
-
             <SheetClose asChild>
               <button
                 onClick={() => {
@@ -309,7 +271,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               </button>
             </SheetClose>
           </nav>
-      </SheetContent>
+        </SheetContent>
     </Sheet>
   );
 };
