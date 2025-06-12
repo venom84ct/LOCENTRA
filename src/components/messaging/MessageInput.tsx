@@ -54,6 +54,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ conversationId }) => {
       sender_id: currentUserId,
       content: message,
       image_url: imageUrl,
+      is_read: false,
     });
 
     if (error) {

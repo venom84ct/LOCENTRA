@@ -86,6 +86,7 @@ const SimpleMessagingSystem: React.FC<SimpleMessagingSystemProps> = ({
       conversation_id: conversationId,
       sender_id: userId,
       message: newMessage.trim(),
+      is_read: false,
     });
 
     if (!error) setNewMessage("");
