@@ -1,5 +1,6 @@
 // src/components/OneSignalInit.tsx
 import { useEffect } from "react";
+import { savePlayerId } from "@/lib/notification";
 
 declare global {
   interface Window {
@@ -35,6 +36,19 @@ const OneSignalInit = () => {
               acceptButtonText: "Yes",
               cancelButtonText: "No",
             },
+          });
+
+          window.OneSignal.on('subscriptionChange', async (isSubscribed: boolean) => {
+            if (isSubscribed) {
+              try {
+                const id = await window.OneSignal.getUserId();
+                if (id) {
+                  await savePlayerId(id);
+                }
+              } catch (err) {
+                console.error('Failed to save OneSignal player ID', err);
+              }
+            }
           });
 
           // Optionally prompt the user manually (or remove this block if you only want auto-prompt)
