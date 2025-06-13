@@ -26,6 +26,7 @@ const HomeownerMessagesPage = () => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [conversations, setConversations] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
+  const [hasReceivedMessage, setHasReceivedMessage] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -55,7 +56,7 @@ const HomeownerMessagesPage = () => {
         .select(`
           id,
           jobs(title),
-          profile_centra_tradie(first_name, avatar_url)
+          profile_centra_tradie(id, first_name, avatar_url)
         `)
         .eq("homeowner_id", userId);
 
@@ -79,7 +80,9 @@ const HomeownerMessagesPage = () => {
         setMessages(data || []);
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
 
-        // Mark messages as read
+        const received = (data || []).some((msg) => msg.sender_id !== userId);
+        setHasReceivedMessage(received);
+
         await supabase
           .from("messages")
           .update({ is_read: true })
@@ -153,7 +156,7 @@ const HomeownerMessagesPage = () => {
                       <AvatarImage
                         src={
                           conv.profile_centra_tradie?.avatar_url ||
-                          `https://robohash.org/${conv.id}`
+                          `https://robohash.org/${conv.profile_centra_tradie?.id}`
                         }
                       />
                       <AvatarFallback>
@@ -167,6 +170,21 @@ const HomeownerMessagesPage = () => {
                       <p className="text-xs text-muted-foreground">
                         Job: {conv.jobs?.title || "Untitled"}
                       </p>
+                      {selectedConversationId === conv.id && hasReceivedMessage && (
+                        <Button
+                          variant="link"
+                          className="p-0 text-sm text-blue-600"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            window.open(
+                              `/public/profile/${conv.profile_centra_tradie?.id}`,
+                              "_blank"
+                            );
+                          }}
+                        >
+                          View Profile
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </a>
