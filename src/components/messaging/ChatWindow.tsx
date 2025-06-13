@@ -73,7 +73,7 @@ const ChatWindow: React.FC<ChatWindowProps> = ({ conversation, userId }) => {
           filter: `conversation_id=eq.${conversation.id}`,
         },
         async (payload) => {
-          setMessages((prev) => [...prev, payload.new]);
+          setMessages((prev) => [...prev, payload.new as Message]);
           if (payload.new.sender_id !== userId) {
             play();
             await supabase
