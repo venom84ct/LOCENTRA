@@ -119,10 +119,6 @@ const RewardsPage = () => {
               <ul className="space-y-2">
                 <li className="flex items-center">
                   <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
-                  <span>Post a job: 10 points</span>
-                </li>
-                <li className="flex items-center">
-                  <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
                   <span>Complete a job: 50 points</span>
                 </li>
                 <li className="flex items-center">
@@ -131,7 +127,7 @@ const RewardsPage = () => {
                 </li>
                 <li className="flex items-center">
                   <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
-                  <span>Refer a friend: 100 points</span>
+                  <span>Refer a friend: 60 points (after they register)</span>
                 </li>
               </ul>
             </CardContent>
@@ -167,8 +163,8 @@ const RewardsPage = () => {
                       disabled={user.reward_points < reward.pointCost}
                       onClick={() => {
                         if (user.reward_points >= reward.pointCost) {
-                          // In a real app, this would call an API to redeem the reward
                           alert(`Reward ${reward.name} redeemed successfully!`);
+                          // Implement redeem logic here
                         }
                       }}
                     >
