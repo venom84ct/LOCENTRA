@@ -66,8 +66,28 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       .eq("recipient_type", userType === "centraResident" ? "homeowner" : "tradie")
       .eq("read", false);
 
-    setUnreadMessages(isMessagePage ? 0 : msgCount || 0);
-    setUnreadNotifications(isNotificationPage ? 0 : notifCount || 0);
+    if (isMessagePage) {
+      await supabase
+        .from("messages")
+        .update({ is_read: true })
+        .eq(msgField, user.id)
+        .eq("is_read", false);
+      setUnreadMessages(0);
+    } else {
+      setUnreadMessages(msgCount || 0);
+    }
+
+    if (isNotificationPage) {
+      await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("recipient_id", user.id)
+        .eq("recipient_type", userType === "centraResident" ? "homeowner" : "tradie")
+        .eq("read", false);
+      setUnreadNotifications(0);
+    } else {
+      setUnreadNotifications(notifCount || 0);
+    }
   };
 
   useEffect(() => {
@@ -210,7 +230,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         </aside>
 
         <div className="flex-1">
-          {/* Mobile Header */}
           <header className="flex items-center justify-between p-4 bg-white shadow md:hidden">
             <DrawerTrigger asChild>
               <button className="p-2" onClick={() => setDrawerOpen(true)}>
@@ -235,7 +254,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
-
               return (
                 <DrawerClose asChild key={item.name}>
                   <Link to={item.path} onClick={() => setDrawerOpen(false)}>
