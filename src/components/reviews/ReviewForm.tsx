@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
+import { sendPushNotification } from "@/lib/notification";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Star } from "lucide-react";
@@ -71,6 +72,24 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ jobId, tradieId, jobTitle }) =>
       related_id: jobId,
       related_type: "job",
     });
+
+    const { data: tradieProfile } = await supabase
+      .from("profile_centra_tradie")
+      .select("onesignal_player_id")
+      .eq("id", tradieId)
+      .single();
+
+    const playerId = tradieProfile?.onesignal_player_id as string | null;
+    if (playerId) {
+      try {
+        await sendPushNotification({
+          message: `You received a new ${rating}-star review on: "${jobTitle}".`,
+          playerId,
+        });
+      } catch (e) {
+        console.error("Failed to send push notification", e);
+      }
+    }
 
     setRating(0);
     setComment("");

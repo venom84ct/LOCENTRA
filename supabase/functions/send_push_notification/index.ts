@@ -23,8 +23,13 @@ serve(async (req) => {
       throw new Error("Missing OneSignal REST API key");
     }
 
+    const appId = Deno.env.get("ONESIGNAL_APP_ID");
+    if (!appId) {
+      throw new Error("Missing OneSignal app ID");
+    }
+
     const payload: Record<string, unknown> = {
-      app_id: "b6d82074-2797-435a-9586-63bc0b55a696",
+      app_id: appId,
       contents: { en: message },
     };
 
@@ -48,6 +53,7 @@ serve(async (req) => {
     const data = await response.json();
 
     if (!response.ok) {
+      console.error("OneSignal error response:", data);
       throw new Error(data.errors?.[0] || "Failed to send notification");
     }
 

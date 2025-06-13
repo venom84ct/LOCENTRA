@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Pencil, Trash2, CheckCircle, Star } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import { sendPushNotification } from "@/lib/notification";
 
 const DashboardJobs = () => {
   const [jobs, setJobs] = useState<any[]>([]);
@@ -83,6 +84,24 @@ const DashboardJobs = () => {
         related_id: jobId,
         related_type: "job",
       });
+
+      const { data: tradieProfile } = await supabase
+        .from("profile_centra_tradie")
+        .select("onesignal_player_id")
+        .eq("id", tradieId)
+        .single();
+
+      const playerId = tradieProfile?.onesignal_player_id as string | null;
+      if (playerId) {
+        try {
+          await sendPushNotification({
+            message: `You have been assigned to a new job: "${jobTitle}".`,
+            playerId,
+          });
+        } catch (e) {
+          console.error("Failed to send push notification", e);
+        }
+      }
 
       fetchJobs();
     }
