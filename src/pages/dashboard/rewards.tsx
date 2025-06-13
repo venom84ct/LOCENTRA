@@ -19,30 +19,62 @@ interface RewardItem {
   image: string;
 }
 
-const mockRewards: RewardItem[] = [
+const rewardItems: RewardItem[] = [
   {
-    id: "reward1",
-    name: "$50 Prezzee Smart eGift Card",
-    description: "Redeemable across 100+ Aussie retailers",
-    pointCost: 500,
+    id: "coles",
+    name: "$10 Coles Gift Card",
+    description: "Spend at any Coles supermarket",
+    pointCost: 1,
     image:
-      "https://images.unsplash.com/photo-1556742393-d75f468bfcb0?w=300&q=80",
+      "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Coles_Supermarkets_Logo.svg/320px-Coles_Supermarkets_Logo.svg.png",
   },
   {
-    id: "reward2",
+    id: "bunnings",
+    name: "$10 Bunnings Gift Card",
+    description: "Use at any Bunnings Warehouse store",
+    pointCost: 1,
+    image:
+      "https://upload.wikimedia.org/wikipedia/en/thumb/b/b7/Bunnings_Warehouse_logo.svg/2560px-Bunnings_Warehouse_logo.svg.png",
+  },
+  {
+    id: "jbhifi",
+    name: "$10 JB Hi-Fi Gift Card",
+    description: "Use online or in any JB Hi-Fi store",
+    pointCost: 1,
+    image:
+      "https://upload.wikimedia.org/wikipedia/en/thumb/d/dc/JB_Hi-Fi_logo.svg/2560px-JB_Hi-Fi_logo.svg.png",
+  },
+  {
+    id: "myer",
+    name: "$10 Myer Gift Card",
+    description: "Shop across all Myer departments",
+    pointCost: 1,
+    image:
+      "https://upload.wikimedia.org/wikipedia/en/thumb/e/e1/Myer_logo.svg/2560px-Myer_logo.svg.png",
+  },
+  {
+    id: "bcf",
+    name: "$10 BCF Gift Card",
+    description: "Great for boating, camping or fishing gear",
+    pointCost: 1,
+    image:
+      "https://upload.wikimedia.org/wikipedia/en/thumb/f/f2/Boating_Camping_Fishing_logo.svg/2560px-Boating_Camping_Fishing_logo.svg.png",
+  },
+  {
+    id: "prezzee",
+    name: "$10 Prezzee Smart eGift Card",
+    description: "Redeemable across 100+ Australian retailers",
+    pointCost: 1,
+    image:
+      "https://cdn.prz.io/images/prezzee-logo.svg", // You can replace this with a cleaner Prezzee image if needed
+  },
+  {
+    id: "free-emergency",
     name: "Free Emergency Job Posting",
-    description: "Post one emergency job for free (normally $25)",
-    pointCost: 250,
+    description: "Post one emergency job for free (normally $10)",
+    pointCost: 1,
     image:
       "https://images.unsplash.com/photo-1544027993-37dbfe43562a?w=300&q=80",
-  },
-  {
-    id: "reward3",
-    name: "Premium Job Listing",
-    description: "Get your job featured at the top of search results for 7 days",
-    pointCost: 300,
-    image:
-      "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=300&q=80",
   },
 ];
 
@@ -67,33 +99,6 @@ const RewardsPage = () => {
     fetchUser();
   }, []);
 
-  const handleRedeem = async (reward: RewardItem) => {
-    if (!user || user.reward_points < reward.pointCost) return;
-
-    const { error } = await supabase
-      .from("profile_centra_resident")
-      .update({
-        reward_points: user.reward_points - reward.pointCost,
-      })
-      .eq("id", user.id);
-
-    if (!error) {
-      await supabase.from("reward_redemptions").insert({
-        user_id: user.id,
-        reward_name: reward.name,
-        email: user.email,
-        status: "pending",
-        method: "manual",
-      });
-
-      alert(`Reward "${reward.name}" redeemed successfully! We'll email your Prezzee gift card soon.`);
-      setUser((prev: any) => ({
-        ...prev,
-        reward_points: prev.reward_points - reward.pointCost,
-      }));
-    }
-  };
-
   if (!user) return null;
 
   return (
@@ -104,14 +109,18 @@ const RewardsPage = () => {
             <h1 className="text-2xl font-bold">Rewards</h1>
             <div className="bg-primary/10 px-4 py-2 rounded-full flex items-center">
               <Gift className="h-5 w-5 mr-2 text-primary" />
-              <span className="font-medium">{user.reward_points} points available</span>
+              <span className="font-medium">
+                {user.reward_points} points available
+              </span>
             </div>
           </div>
 
           <Card className="bg-white mb-6">
             <CardHeader>
               <CardTitle>How to Earn Points</CardTitle>
-              <CardDescription>Earn rewards by using the Locentra platform</CardDescription>
+              <CardDescription>
+                Earn rewards by using the Locentra platform
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2">
@@ -133,13 +142,13 @@ const RewardsPage = () => {
 
           <h2 className="text-xl font-semibold mb-4">Available Rewards</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {mockRewards.map((reward) => (
+            {rewardItems.map((reward) => (
               <Card key={reward.id} className="bg-white">
-                <div className="aspect-video w-full overflow-hidden">
+                <div className="aspect-video w-full overflow-hidden bg-white flex items-center justify-center p-4">
                   <img
                     src={reward.image}
                     alt={reward.name}
-                    className="w-full h-full object-cover"
+                    className="h-full object-contain"
                   />
                 </div>
                 <CardHeader className="pb-2">
@@ -150,14 +159,20 @@ const RewardsPage = () => {
                   <div className="flex justify-between items-center">
                     <div className="flex items-center">
                       <Gift className="h-4 w-4 mr-2 text-primary" />
-                      <span className="font-medium">{reward.pointCost} points</span>
+                      <span className="font-medium">
+                        {reward.pointCost} point
+                      </span>
                     </div>
                     <Button
                       variant={
-                        user.reward_points >= reward.pointCost ? "default" : "outline"
+                        user.reward_points >= reward.pointCost
+                          ? "default"
+                          : "outline"
                       }
                       disabled={user.reward_points < reward.pointCost}
-                      onClick={() => handleRedeem(reward)}
+                      onClick={() => {
+                        alert(`Manually confirm: ${reward.name} redeemed!`);
+                      }}
                     >
                       {user.reward_points >= reward.pointCost
                         ? "Redeem"
