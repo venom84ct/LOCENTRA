@@ -5,7 +5,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { MessageSquare, MapPin, Calendar, DollarSign, Trash2, CheckCircle } from "lucide-react";
+import {
+  MessageSquare,
+  MapPin,
+  Calendar,
+  DollarSign,
+  Trash2,
+  CheckCircle,
+} from "lucide-react";
 
 const MyJobsPage = () => {
   const [leads, setLeads] = useState<any[]>([]);
@@ -34,6 +41,35 @@ const MyJobsPage = () => {
     if (!user) return;
     await supabase.from("job_leads").delete().match({ job_id: jobId, tradie_id: user.id });
     setLeads((prev) => prev.filter((l) => l.job_id !== jobId));
+  };
+
+  const handleTradieConfirmComplete = async (jobId: string) => {
+    const { error: updateError } = await supabase
+      .from("jobs")
+      .update({ tradie_confirmed: true })
+      .eq("id", jobId);
+
+    if (!updateError) {
+      const { data: job } = await supabase
+        .from("jobs")
+        .select("homeowner_confirmed")
+        .eq("id", jobId)
+        .single();
+
+      if (job?.homeowner_confirmed) {
+        await supabase
+          .from("jobs")
+          .update({ status: "completed" })
+          .eq("id", jobId);
+      }
+
+      const { data: refreshedLeads } = await supabase
+        .from("job_leads")
+        .select("*, jobs(*, profile_centra_resident(first_name, last_name, avatar_url))")
+        .eq("tradie_id", user.id);
+
+      setLeads(refreshedLeads || []);
+    }
   };
 
   return (
@@ -75,6 +111,7 @@ const MyJobsPage = () => {
                   </CardHeader>
                   <CardContent>
                     <p className="mb-2 text-muted-foreground text-sm">{job.description}</p>
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm mb-3 text-muted-foreground">
                       <div className="flex items-center">
                         <MapPin className="w-4 h-4 mr-2" /> {job.location}
@@ -102,6 +139,24 @@ const MyJobsPage = () => {
                       </div>
                     )}
 
+                    {/* Confirm Completion Section */}
+                    {isAssigned && !isCompleted && !job.tradie_confirmed && (
+                      <Button
+                        variant="success"
+                        onClick={() => handleTradieConfirmComplete(job.id)}
+                        className="mb-3"
+                      >
+                        <CheckCircle className="w-4 h-4 mr-2" />
+                        Confirm Job Completion
+                      </Button>
+                    )}
+
+                    {isAssigned && !isCompleted && job.tradie_confirmed && (
+                      <Badge className="mb-3 bg-blue-100 text-blue-800">
+                        You confirmed completion
+                      </Badge>
+                    )}
+
                     <div className="flex items-center gap-3">
                       {profile && (
                         <div className="flex items-center gap-2">
@@ -123,7 +178,6 @@ const MyJobsPage = () => {
                         <MessageSquare className="w-4 h-4 mr-2" /> Message
                       </Button>
 
-                      {/* Allow delete after completion */}
                       {isAssigned && isCompleted && (
                         <Button
                           variant="ghost"
