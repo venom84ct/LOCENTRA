@@ -7,23 +7,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Trash2 } from "lucide-react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 
-interface Message {
-  id: string;
-  conversation_id: string;
-  sender_id: string;
-  message: string;
-  image_url?: string;
-  created_at: string;
-}
-
 const TradieMessagesPage = () => {
-  const [userId, setUserId] = useState<string>("");
-  const [user, setUser] = useState<any>(null);
-  const [conversations, setConversations] = useState<any[]>([]);
-  const [messages, setMessages] = useState<any[]>([]);
-  const [selectedConversation, setSelectedConversation] = useState<any>(null);
+  const [userId, setUserId] = useState("");
+  const [user, setUser] = useState(null);
+  const [conversations, setConversations] = useState([]);
+  const [messages, setMessages] = useState([]);
+  const [selectedConversation, setSelectedConversation] = useState(null);
   const [newMessage, setNewMessage] = useState("");
-  const bottomRef = useRef<HTMLDivElement>(null);
+  const bottomRef = useRef(null);
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -42,19 +33,19 @@ const TradieMessagesPage = () => {
     if (!userId) return;
 
     const fetchConversations = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("conversations")
         .select(`
           id,
           jobs(title),
-          profile_centra_resident(first_name, avatar_url)
+          profile_centra_resident(id, first_name, avatar_url)
         `)
         .eq("tradie_id", userId);
 
-      if (!error) {
-        setConversations(data || []);
+      if (data) {
+        setConversations(data);
         const defaultConvoId = searchParams.get("conversationId");
-        const defaultConvo = data?.find((c) => c.id === defaultConvoId);
+        const defaultConvo = data.find((c) => c.id === defaultConvoId);
         if (defaultConvo) setSelectedConversation(defaultConvo);
       }
     };
@@ -66,17 +57,16 @@ const TradieMessagesPage = () => {
     if (!selectedConversation?.id) return;
 
     const fetchMessages = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("messages")
         .select("*")
         .eq("conversation_id", selectedConversation.id)
         .order("created_at", { ascending: true });
 
-      if (!error) {
-        setMessages(data || []);
+      if (data) {
+        setMessages(data);
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
 
-        // Mark unread messages as read
         await supabase
           .from("messages")
           .update({ is_read: true })
@@ -121,21 +111,19 @@ const TradieMessagesPage = () => {
     setNewMessage("");
   };
 
-  const deleteConversation = async (id: string) => {
-    const { error } = await supabase.from("conversations").delete().eq("id", id);
-    if (!error) {
-      setConversations((prev) => prev.filter((c) => c.id !== id));
-      if (selectedConversation?.id === id) {
-        setSelectedConversation(null);
-        setMessages([]);
-      }
+  const deleteConversation = async (id) => {
+    await supabase.from("conversations").delete().eq("id", id);
+    setConversations((prev) => prev.filter((c) => c.id !== id));
+    if (selectedConversation?.id === id) {
+      setSelectedConversation(null);
+      setMessages([]);
     }
   };
 
   return (
     <DashboardLayout userType="tradie" user={user}>
       <div className="p-6 flex space-x-6">
-        {/* Conversation List */}
+        {/* Sidebar */}
         <div className="w-1/3 border rounded p-4 bg-white h-[600px] overflow-y-auto">
           <h2 className="font-semibold text-lg mb-4">Conversations</h2>
           {conversations.map((convo) => (
@@ -153,7 +141,7 @@ const TradieMessagesPage = () => {
                   <AvatarImage
                     src={
                       convo.profile_centra_resident?.avatar_url ||
-                      `https://robohash.org/${convo.id}`
+                      `https://robohash.org/${convo.profile_centra_resident?.id}`
                     }
                   />
                   <AvatarFallback>
@@ -180,7 +168,7 @@ const TradieMessagesPage = () => {
           ))}
         </div>
 
-        {/* Messages Panel */}
+        {/* Message Panel */}
         <div className="flex-1 border rounded p-4 bg-white h-[600px] flex flex-col">
           <h2 className="font-semibold text-lg mb-2">Messages</h2>
           <div className="flex-1 overflow-y-auto space-y-2">
