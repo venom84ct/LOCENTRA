@@ -57,10 +57,7 @@ const DashboardJobs = () => {
       .from("jobs")
       .update({ status: "cancelled" })
       .eq("id", jobId);
-
-    if (!error) {
-      fetchJobs();
-    }
+    if (!error) fetchJobs();
   };
 
   const handleAssignTradie = async (jobId: string, tradieId: string) => {
@@ -91,13 +88,26 @@ const DashboardJobs = () => {
     }
   };
 
-  const handleMarkComplete = async (jobId: string) => {
-    const { error } = await supabase
+  const handleHomeownerConfirmComplete = async (jobId: string) => {
+    const { error: updateError } = await supabase
       .from("jobs")
-      .update({ status: "completed" })
+      .update({ homeowner_confirmed: true })
       .eq("id", jobId);
 
-    if (!error) {
+    if (!updateError) {
+      const { data: job } = await supabase
+        .from("jobs")
+        .select("tradie_confirmed")
+        .eq("id", jobId)
+        .single();
+
+      if (job?.tradie_confirmed) {
+        await supabase
+          .from("jobs")
+          .update({ status: "completed" })
+          .eq("id", jobId);
+      }
+
       fetchJobs();
     }
   };
@@ -219,13 +229,19 @@ const DashboardJobs = () => {
                     </div>
                   )}
 
-                  {isAssigned && !isCompleted && (
+                  {isAssigned && !isCompleted && !job.homeowner_confirmed && (
                     <div className="mt-3">
-                      <Button variant="success" onClick={() => handleMarkComplete(job.id)}>
+                      <Button variant="success" onClick={() => handleHomeownerConfirmComplete(job.id)}>
                         <CheckCircle className="w-4 h-4 mr-2" />
-                        Mark as Complete
+                        Confirm Completion
                       </Button>
                     </div>
+                  )}
+
+                  {isAssigned && !isCompleted && job.homeowner_confirmed && (
+                    <Badge className="bg-blue-100 text-blue-900 mt-2">
+                      You confirmed completion
+                    </Badge>
                   )}
 
                   {awaitingReview && (
