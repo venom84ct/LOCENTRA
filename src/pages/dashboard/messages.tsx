@@ -7,15 +7,6 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Trash2 } from "lucide-react";
 
-interface Message {
-  id: string;
-  conversation_id: string;
-  sender_id: string;
-  message: string;
-  image_url?: string;
-  created_at: string;
-}
-
 const HomeownerMessagesPage = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -23,7 +14,7 @@ const HomeownerMessagesPage = () => {
 
   const [userId, setUserId] = useState<string | null>(null);
   const [profile, setProfile] = useState<any>(null);
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [messages, setMessages] = useState<any[]>([]);
   const [conversations, setConversations] = useState<any[]>([]);
   const [newMessage, setNewMessage] = useState("");
   const [hasReceivedMessage, setHasReceivedMessage] = useState(false);
@@ -51,44 +42,38 @@ const HomeownerMessagesPage = () => {
     if (!userId) return;
 
     const fetchConversations = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("conversations")
-        .select(`
-          id,
-          jobs(title),
-          profile_centra_tradie(id, first_name, avatar_url)
-        `)
+        .select(`id, jobs(title), profile_centra_tradie(id, first_name, avatar_url)`)
         .eq("homeowner_id", userId);
 
-      if (!error) setConversations(data || []);
+      setConversations(data || []);
     };
 
     fetchConversations();
   }, [userId]);
 
   useEffect(() => {
-    if (!selectedConversationId) return;
+    if (!selectedConversationId || !userId) return;
 
     const fetchMessages = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("messages")
         .select("*")
         .eq("conversation_id", selectedConversationId)
         .order("created_at", { ascending: true });
 
-      if (!error) {
-        setMessages(data || []);
-        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+      setMessages(data || []);
+      bottomRef.current?.scrollIntoView({ behavior: "smooth" });
 
-        const received = (data || []).some((msg) => msg.sender_id !== userId);
-        setHasReceivedMessage(received);
+      const received = (data || []).some((msg) => msg.sender_id !== userId);
+      setHasReceivedMessage(received);
 
-        await supabase
-          .from("messages")
-          .update({ is_read: true })
-          .eq("conversation_id", selectedConversationId)
-          .neq("sender_id", userId);
-      }
+      await supabase
+        .from("messages")
+        .update({ is_read: true })
+        .eq("conversation_id", selectedConversationId)
+        .neq("sender_id", userId);
     };
 
     fetchMessages();
@@ -104,7 +89,7 @@ const HomeownerMessagesPage = () => {
           filter: `conversation_id=eq.${selectedConversationId}`,
         },
         (payload) => {
-          setMessages((prev) => [...prev, payload.new as Message]);
+          setMessages((prev) => [...prev, payload.new]);
           bottomRef.current?.scrollIntoView({ behavior: "smooth" });
         }
       )
@@ -137,7 +122,6 @@ const HomeownerMessagesPage = () => {
   return (
     <DashboardLayout userType="centraResident" user={profile}>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Sidebar */}
         <div className="col-span-1">
           <h2 className="text-lg font-semibold mb-2">Conversations</h2>
           <div className="space-y-2">
@@ -200,7 +184,6 @@ const HomeownerMessagesPage = () => {
           </div>
         </div>
 
-        {/* Message Panel */}
         <div className="col-span-2">
           <h2 className="text-lg font-semibold mb-2">Messages</h2>
           <div className="border rounded p-4 bg-white h-[500px] overflow-y-auto">
