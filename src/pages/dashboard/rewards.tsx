@@ -22,8 +22,8 @@ interface RewardItem {
 const mockRewards: RewardItem[] = [
   {
     id: "reward1",
-    name: "$50 Home Depot Gift Card",
-    description: "$50 gift card to spend at any Home Depot store",
+    name: "$50 Prezzee Smart eGift Card",
+    description: "Redeemable across 100+ Aussie retailers",
     pointCost: 500,
     image:
       "https://images.unsplash.com/photo-1556742393-d75f468bfcb0?w=300&q=80",
@@ -39,35 +39,10 @@ const mockRewards: RewardItem[] = [
   {
     id: "reward3",
     name: "Premium Job Listing",
-    description:
-      "Get your job featured at the top of search results for 7 days",
+    description: "Get your job featured at the top of search results for 7 days",
     pointCost: 300,
     image:
       "https://images.unsplash.com/photo-1589939705384-5185137a7f0f?w=300&q=80",
-  },
-  {
-    id: "reward4",
-    name: "$100 Bunnings Gift Card",
-    description: "$100 gift card to spend at any Bunnings store",
-    pointCost: 1000,
-    image:
-      "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=300&q=80",
-  },
-  {
-    id: "reward5",
-    name: "Priority Support",
-    description: "Get priority customer support for 3 months",
-    pointCost: 200,
-    image:
-      "https://images.unsplash.com/photo-1560264280-88b68371db39?w=300&q=80",
-  },
-  {
-    id: "reward6",
-    name: "Exclusive Tradie Discounts",
-    description: "Access to exclusive discounts from our partner tradies",
-    pointCost: 150,
-    image:
-      "https://images.unsplash.com/photo-1621905251189-08b45249ff78?w=300&q=80",
   },
 ];
 
@@ -92,6 +67,33 @@ const RewardsPage = () => {
     fetchUser();
   }, []);
 
+  const handleRedeem = async (reward: RewardItem) => {
+    if (!user || user.reward_points < reward.pointCost) return;
+
+    const { error } = await supabase
+      .from("profile_centra_resident")
+      .update({
+        reward_points: user.reward_points - reward.pointCost,
+      })
+      .eq("id", user.id);
+
+    if (!error) {
+      await supabase.from("reward_redemptions").insert({
+        user_id: user.id,
+        reward_name: reward.name,
+        email: user.email,
+        status: "pending",
+        method: "manual",
+      });
+
+      alert(`Reward "${reward.name}" redeemed successfully! We'll email your Prezzee gift card soon.`);
+      setUser((prev: any) => ({
+        ...prev,
+        reward_points: prev.reward_points - reward.pointCost,
+      }));
+    }
+  };
+
   if (!user) return null;
 
   return (
@@ -102,18 +104,14 @@ const RewardsPage = () => {
             <h1 className="text-2xl font-bold">Rewards</h1>
             <div className="bg-primary/10 px-4 py-2 rounded-full flex items-center">
               <Gift className="h-5 w-5 mr-2 text-primary" />
-              <span className="font-medium">
-                {user.reward_points} points available
-              </span>
+              <span className="font-medium">{user.reward_points} points available</span>
             </div>
           </div>
 
           <Card className="bg-white mb-6">
             <CardHeader>
               <CardTitle>How to Earn Points</CardTitle>
-              <CardDescription>
-                Earn rewards by using the Locentra platform
-              </CardDescription>
+              <CardDescription>Earn rewards by using the Locentra platform</CardDescription>
             </CardHeader>
             <CardContent>
               <ul className="space-y-2">
@@ -152,21 +150,14 @@ const RewardsPage = () => {
                   <div className="flex justify-between items-center">
                     <div className="flex items-center">
                       <Gift className="h-4 w-4 mr-2 text-primary" />
-                      <span className="font-medium">
-                        {reward.pointCost} points
-                      </span>
+                      <span className="font-medium">{reward.pointCost} points</span>
                     </div>
                     <Button
                       variant={
                         user.reward_points >= reward.pointCost ? "default" : "outline"
                       }
                       disabled={user.reward_points < reward.pointCost}
-                      onClick={() => {
-                        if (user.reward_points >= reward.pointCost) {
-                          alert(`Reward ${reward.name} redeemed successfully!`);
-                          // Implement redeem logic here
-                        }
-                      }}
+                      onClick={() => handleRedeem(reward)}
                     >
                       {user.reward_points >= reward.pointCost
                         ? "Redeem"
