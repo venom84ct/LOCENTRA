@@ -51,29 +51,13 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   const fetchUnreadCounts = async () => {
     if (!user?.id) return;
+    const msgField = userType === "centraResident" ? "homeowner_id" : "tradie_id";
 
-    const convField = userType === "centraResident" ? "homeowner_id" : "tradie_id";
-    const { data: convs } = await supabase
-      .from("conversations")
-      .select("id")
-      .eq(convField, user.id);
-
-    const convIds = convs?.map((c) => c.id) || [];
-
-    if (convIds.length === 0) {
-      setUnreadMessages(0);
-      setUnreadNotifications(0);
-      return;
-    }
-
-    const { data: unreadMsgs } = await supabase
+    const { count: msgCount } = await supabase
       .from("messages")
-      .select("id")
-      .in("conversation_id", convIds)
-      .eq("is_read", false)
-      .neq("sender_id", user.id);
-
-    setUnreadMessages(isMessagePage ? 0 : unreadMsgs?.length || 0);
+      .select("*", { count: "exact", head: true })
+      .eq(msgField, user.id)
+      .eq("is_read", false);
 
     const { count: notifCount } = await supabase
       .from("notifications")
@@ -82,6 +66,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       .eq("recipient_type", userType === "centraResident" ? "homeowner" : "tradie")
       .eq("read", false);
 
+    setUnreadMessages(isMessagePage ? 0 : msgCount || 0);
     setUnreadNotifications(isNotificationPage ? 0 : notifCount || 0);
   };
 
@@ -91,6 +76,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   useEffect(() => {
     if (!user?.id) return;
+    const msgField = userType === "centraResident" ? "homeowner_id" : "tradie_id";
 
     const msgChannel = supabase
       .channel("realtime:messages")
@@ -100,6 +86,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           event: "INSERT",
           schema: "public",
           table: "messages",
+          filter: `${msgField}=eq.${user.id}`,
         },
         fetchUnreadCounts
       )
@@ -113,6 +100,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           event: "INSERT",
           schema: "public",
           table: "notifications",
+          filter: `recipient_id=eq.${user.id}`,
         },
         fetchUnreadCounts
       )
@@ -122,7 +110,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       supabase.removeChannel(msgChannel);
       supabase.removeChannel(notifChannel);
     };
-  }, [user?.id]);
+  }, [user?.id, userType]);
 
   const navItems =
     userType === "centraResident"
@@ -247,10 +235,20 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
-
               return (
                 <DrawerClose asChild key={item.name}>
-                  <Link to={item.path} onClick={() => setDrawerOpen(false)}>
+                  <Link
+                    to={item.path}
+                    onClick={() => {
+                      setDrawerOpen(false);
+                      if (
+                        (userType === "centraResident" && item.path === "/dashboard/messages") ||
+                        (userType === "tradie" && item.path === "/dashboard/tradie/messages")
+                      ) {
+                        setUnreadMessages(0);
+                      }
+                    }}
+                  >
                     <div
                       className={cn(
                         "flex items-center justify-between p-2 rounded hover:bg-gray-100 transition-colors",
