@@ -16,65 +16,53 @@ interface RewardItem {
   name: string;
   description: string;
   pointCost: number;
-  image: string;
 }
 
-const rewardItems: RewardItem[] = [
+const rewardImage =
+  "https://nlgiukcwbexfxkzdvzzq.supabase.co/storage/v1/object/public/public-assets//rewards.png";
+
+const mockRewards: RewardItem[] = [
   {
     id: "coles",
-    name: "$10 Coles Gift Card",
-    description: "Spend at any Coles supermarket",
-    pointCost: 1,
-    image:
-      "https://upload.wikimedia.org/wikipedia/commons/thumb/b/bd/Coles_Supermarkets_Logo.svg/320px-Coles_Supermarkets_Logo.svg.png",
+    name: "$50 Coles Gift Card",
+    description: "Redeem a $50 gift card for Coles Supermarkets",
+    pointCost: 500,
   },
   {
     id: "bunnings",
-    name: "$10 Bunnings Gift Card",
-    description: "Use at any Bunnings Warehouse store",
-    pointCost: 1,
-    image:
-      "https://upload.wikimedia.org/wikipedia/en/thumb/b/b7/Bunnings_Warehouse_logo.svg/2560px-Bunnings_Warehouse_logo.svg.png",
+    name: "$50 Bunnings Gift Card",
+    description: "Get tools, gardening & more at Bunnings",
+    pointCost: 500,
   },
   {
-    id: "jbhifi",
-    name: "$10 JB Hi-Fi Gift Card",
-    description: "Use online or in any JB Hi-Fi store",
-    pointCost: 1,
-    image:
-      "https://upload.wikimedia.org/wikipedia/en/thumb/d/dc/JB_Hi-Fi_logo.svg/2560px-JB_Hi-Fi_logo.svg.png",
+    id: "jb",
+    name: "$50 JB Hi-Fi Gift Card",
+    description: "Redeem electronics, games and more at JB Hi-Fi",
+    pointCost: 500,
   },
   {
     id: "myer",
-    name: "$10 Myer Gift Card",
-    description: "Shop across all Myer departments",
-    pointCost: 1,
-    image:
-      "https://upload.wikimedia.org/wikipedia/en/thumb/e/e1/Myer_logo.svg/2560px-Myer_logo.svg.png",
+    name: "$50 Myer Gift Card",
+    description: "Spend on fashion, beauty & more at Myer",
+    pointCost: 500,
   },
   {
     id: "bcf",
-    name: "$10 BCF Gift Card",
-    description: "Great for boating, camping or fishing gear",
-    pointCost: 1,
-    image:
-      "https://upload.wikimedia.org/wikipedia/en/thumb/f/f2/Boating_Camping_Fishing_logo.svg/2560px-Boating_Camping_Fishing_logo.svg.png",
+    name: "$50 BCF Gift Card",
+    description: "Great for boating, camping and fishing gear",
+    pointCost: 500,
+  },
+  {
+    id: "emergency",
+    name: "Free Emergency Job Posting",
+    description: "Normally $10 — post an emergency job for free",
+    pointCost: 250,
   },
   {
     id: "prezzee",
-    name: "$10 Prezzee Smart eGift Card",
-    description: "Redeemable across 100+ Australian retailers",
-    pointCost: 1,
-    image:
-      "https://cdn.prz.io/images/prezzee-logo.svg", // You can replace this with a cleaner Prezzee image if needed
-  },
-  {
-    id: "free-emergency",
-    name: "Free Emergency Job Posting",
-    description: "Post one emergency job for free (normally $10)",
-    pointCost: 1,
-    image:
-      "https://images.unsplash.com/photo-1544027993-37dbfe43562a?w=300&q=80",
+    name: "Prezzee Smart eGift Card",
+    description: "Flexible eGift card usable at 100+ stores",
+    pointCost: 500,
   },
 ];
 
@@ -98,6 +86,41 @@ const RewardsPage = () => {
 
     fetchUser();
   }, []);
+
+  const handleRedeem = async (reward: RewardItem) => {
+    if (!user || user.reward_points < reward.pointCost) return;
+
+    const confirm = window.confirm(
+      `Redeem "${reward.name}" for ${reward.pointCost} points?`
+    );
+    if (!confirm) return;
+
+    const { error: updateError } = await supabase
+      .from("profile_centra_resident")
+      .update({ reward_points: user.reward_points - reward.pointCost })
+      .eq("id", user.id);
+
+    if (updateError) {
+      alert("Failed to deduct points.");
+      return;
+    }
+
+    const { error: insertError } = await supabase.from("reward_redemptions").insert({
+      user_id: user.id,
+      reward_name: reward.name,
+      email: user.email,
+      method: "manual",
+      status: "pending",
+    });
+
+    if (insertError) {
+      alert("Failed to log redemption.");
+      return;
+    }
+
+    alert(`✅ "${reward.name}" redeemed. We'll process it shortly.`);
+    location.reload();
+  };
 
   if (!user) return null;
 
@@ -126,15 +149,15 @@ const RewardsPage = () => {
               <ul className="space-y-2">
                 <li className="flex items-center">
                   <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
-                  <span>Complete a job: 50 points</span>
+                  Complete a job: <strong className="ml-1">15 points</strong>
                 </li>
                 <li className="flex items-center">
                   <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
-                  <span>Leave a review: 25 points</span>
+                  Leave a review: <strong className="ml-1">10 points</strong>
                 </li>
                 <li className="flex items-center">
                   <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
-                  <span>Refer a friend: 60 points (after they register)</span>
+                  Post an emergency job: <strong className="ml-1">25 points</strong>
                 </li>
               </ul>
             </CardContent>
@@ -142,13 +165,13 @@ const RewardsPage = () => {
 
           <h2 className="text-xl font-semibold mb-4">Available Rewards</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {rewardItems.map((reward) => (
+            {mockRewards.map((reward) => (
               <Card key={reward.id} className="bg-white">
-                <div className="aspect-video w-full overflow-hidden bg-white flex items-center justify-center p-4">
+                <div className="aspect-video w-full overflow-hidden bg-gray-100 flex items-center justify-center">
                   <img
-                    src={reward.image}
+                    src={rewardImage}
                     alt={reward.name}
-                    className="h-full object-contain"
+                    className="max-h-28 object-contain p-4"
                   />
                 </div>
                 <CardHeader className="pb-2">
@@ -160,19 +183,15 @@ const RewardsPage = () => {
                     <div className="flex items-center">
                       <Gift className="h-4 w-4 mr-2 text-primary" />
                       <span className="font-medium">
-                        {reward.pointCost} point
+                        {reward.pointCost} points
                       </span>
                     </div>
                     <Button
                       variant={
-                        user.reward_points >= reward.pointCost
-                          ? "default"
-                          : "outline"
+                        user.reward_points >= reward.pointCost ? "default" : "outline"
                       }
                       disabled={user.reward_points < reward.pointCost}
-                      onClick={() => {
-                        alert(`Manually confirm: ${reward.name} redeemed!`);
-                      }}
+                      onClick={() => handleRedeem(reward)}
                     >
                       {user.reward_points >= reward.pointCost
                         ? "Redeem"
