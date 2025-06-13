@@ -18,51 +18,48 @@ interface RewardItem {
   pointCost: number;
 }
 
-const rewardImage =
-  "https://nlgiukcwbexfxkzdvzzq.supabase.co/storage/v1/object/public/public-assets//rewards.png";
-
 const mockRewards: RewardItem[] = [
   {
-    id: "coles",
+    id: "reward1",
     name: "$50 Coles Gift Card",
-    description: "Redeem a $50 gift card for Coles Supermarkets",
+    description: "$50 Coles digital gift card",
     pointCost: 500,
   },
   {
-    id: "bunnings",
-    name: "$50 Bunnings Gift Card",
-    description: "Get tools, gardening & more at Bunnings",
-    pointCost: 500,
-  },
-  {
-    id: "jb",
+    id: "reward2",
     name: "$50 JB Hi-Fi Gift Card",
-    description: "Redeem electronics, games and more at JB Hi-Fi",
+    description: "$50 JB Hi-Fi voucher for electronics and more",
     pointCost: 500,
   },
   {
-    id: "myer",
+    id: "reward3",
+    name: "$50 Bunnings Gift Card",
+    description: "$50 Bunnings gift card for home & tools",
+    pointCost: 500,
+  },
+  {
+    id: "reward4",
     name: "$50 Myer Gift Card",
-    description: "Spend on fashion, beauty & more at Myer",
+    description: "$50 gift card for Myer department store",
     pointCost: 500,
   },
   {
-    id: "bcf",
+    id: "reward5",
     name: "$50 BCF Gift Card",
-    description: "Great for boating, camping and fishing gear",
+    description: "$50 BCF gift card for outdoor gear",
     pointCost: 500,
   },
   {
-    id: "emergency",
-    name: "Free Emergency Job Posting",
-    description: "Normally $10 — post an emergency job for free",
-    pointCost: 250,
-  },
-  {
-    id: "prezzee",
+    id: "reward6",
     name: "Prezzee Smart eGift Card",
-    description: "Flexible eGift card usable at 100+ stores",
+    description: "Flexi voucher usable at 100+ Aussie retailers",
     pointCost: 500,
+  },
+  {
+    id: "reward7",
+    name: "Free Emergency Job Posting",
+    description: "Normally $10 — post 1 emergency job free",
+    pointCost: 250,
   },
 ];
 
@@ -87,47 +84,12 @@ const RewardsPage = () => {
     fetchUser();
   }, []);
 
-  const handleRedeem = async (reward: RewardItem) => {
-    if (!user || user.reward_points < reward.pointCost) return;
-
-    const confirm = window.confirm(
-      `Redeem "${reward.name}" for ${reward.pointCost} points?`
-    );
-    if (!confirm) return;
-
-    const { error: updateError } = await supabase
-      .from("profile_centra_resident")
-      .update({ reward_points: user.reward_points - reward.pointCost })
-      .eq("id", user.id);
-
-    if (updateError) {
-      alert("Failed to deduct points.");
-      return;
-    }
-
-    const { error: insertError } = await supabase.from("reward_redemptions").insert({
-      user_id: user.id,
-      reward_name: reward.name,
-      email: user.email,
-      method: "manual",
-      status: "pending",
-    });
-
-    if (insertError) {
-      alert("Failed to log redemption.");
-      return;
-    }
-
-    alert(`✅ "${reward.name}" redeemed. We'll process it shortly.`);
-    location.reload();
-  };
-
   if (!user) return null;
 
   return (
     <DashboardLayout userType="centraResident" user={user}>
-      <div className="min-h-screen bg-gray-50">
-        <div className="container mx-auto">
+      <div className="min-h-screen bg-gray-50 pb-10">
+        <div className="container mx-auto px-4">
           <div className="flex justify-between items-center mb-6">
             <h1 className="text-2xl font-bold">Rewards</h1>
             <div className="bg-primary/10 px-4 py-2 rounded-full flex items-center">
@@ -149,15 +111,15 @@ const RewardsPage = () => {
               <ul className="space-y-2">
                 <li className="flex items-center">
                   <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
-                  Complete a job: <strong className="ml-1">15 points</strong>
+                  <span>Complete a job: 15 points</span>
                 </li>
                 <li className="flex items-center">
                   <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
-                  Leave a review: <strong className="ml-1">10 points</strong>
+                  <span>Leave a review: 10 points</span>
                 </li>
                 <li className="flex items-center">
                   <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
-                  Post an emergency job: <strong className="ml-1">25 points</strong>
+                  <span>Post an emergency job: 25 points</span>
                 </li>
               </ul>
             </CardContent>
@@ -167,11 +129,11 @@ const RewardsPage = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {mockRewards.map((reward) => (
               <Card key={reward.id} className="bg-white">
-                <div className="aspect-video w-full overflow-hidden bg-gray-100 flex items-center justify-center">
+                <div className="w-full h-52 overflow-hidden bg-gray-100 flex items-center justify-center">
                   <img
-                    src={rewardImage}
+                    src="https://nlgiukcwbexfxkzdvzzq.supabase.co/storage/v1/object/public/public-assets//rewards.png"
                     alt={reward.name}
-                    className="max-h-28 object-contain p-4"
+                    className="max-h-full max-w-full object-contain p-4"
                   />
                 </div>
                 <CardHeader className="pb-2">
@@ -188,10 +150,17 @@ const RewardsPage = () => {
                     </div>
                     <Button
                       variant={
-                        user.reward_points >= reward.pointCost ? "default" : "outline"
+                        user.reward_points >= reward.pointCost
+                          ? "default"
+                          : "outline"
                       }
                       disabled={user.reward_points < reward.pointCost}
-                      onClick={() => handleRedeem(reward)}
+                      onClick={() => {
+                        if (user.reward_points >= reward.pointCost) {
+                          alert(`Reward "${reward.name}" redeemed successfully!`);
+                          // redemption logic will go here
+                        }
+                      }}
                     >
                       {user.reward_points >= reward.pointCost
                         ? "Redeem"
