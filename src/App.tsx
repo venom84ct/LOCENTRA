@@ -1,4 +1,5 @@
 import { Suspense, lazy } from "react";
+import { Analytics } from "@vercel/analytics/react";
 import { Routes, Route, useRoutes } from "react-router-dom";
 import Home from "./components/home";
 import routes from "tempo-routes";
@@ -95,6 +96,7 @@ function App() {
         {/* Tempo route injection if enabled */}
         {import.meta.env.VITE_TEMPO === "true" && useRoutes(routes)}
       </Suspense>
+      <Analytics />
     </>
   );
 }
