@@ -90,16 +90,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         },
         fetchUnreadCounts
       )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "messages",
-          filter: `${msgField}=eq.${user.id}`,
-        },
-        fetchUnreadCounts
-      )
       .subscribe();
 
     const notifChannel = supabase
@@ -108,16 +98,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         "postgres_changes",
         {
           event: "INSERT",
-          schema: "public",
-          table: "notifications",
-          filter: `recipient_id=eq.${user.id}`,
-        },
-        fetchUnreadCounts
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
           schema: "public",
           table: "notifications",
           filter: `recipient_id=eq.${user.id}`,
@@ -139,18 +119,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           { name: "Jobs", path: "/dashboard/jobs", icon: Briefcase },
           { name: "Post a Job", path: "/dashboard/post-job", icon: Briefcase },
           { name: "Job History", path: "/dashboard/job-history", icon: Briefcase },
-          {
-            name: "Messages",
-            path: "/dashboard/messages",
-            icon: MessagesSquare,
-            badgeCount: unreadMessages,
-          },
-          {
-            name: "Notifications",
-            path: "/dashboard/notifications",
-            icon: Bell,
-            badgeCount: unreadNotifications,
-          },
+          { name: "Messages", path: "/dashboard/messages", icon: MessagesSquare, badgeCount: unreadMessages },
+          { name: "Notifications", path: "/dashboard/notifications", icon: Bell, badgeCount: unreadNotifications },
           { name: "Rewards", path: "/dashboard/rewards", icon: Gift },
           { name: "Profile", path: "/dashboard/profile", icon: User },
           { name: "Settings", path: "/dashboard/settings", icon: Settings },
@@ -160,18 +130,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           { name: "Dashboard", path: "/dashboard/tradie", icon: LayoutDashboard },
           { name: "Find Jobs", path: "/dashboard/tradie/find-jobs", icon: Search },
           { name: "My Jobs", path: "/dashboard/tradie/my-jobs", icon: Briefcase },
-          {
-            name: "Messages",
-            path: "/dashboard/tradie/messages",
-            icon: MessagesSquare,
-            badgeCount: unreadMessages,
-          },
-          {
-            name: "Notifications",
-            path: "/dashboard/tradie/notifications",
-            icon: Bell,
-            badgeCount: unreadNotifications,
-          },
+          { name: "Messages", path: "/dashboard/tradie/messages", icon: MessagesSquare, badgeCount: unreadMessages },
+          { name: "Notifications", path: "/dashboard/tradie/notifications", icon: Bell, badgeCount: unreadNotifications },
           { name: "Top Tradies", path: "/dashboard/tradie/top-tradies", icon: Award },
           { name: "Profile", path: "/dashboard/tradie/profile", icon: User },
           { name: "Settings", path: "/dashboard/tradie/settings", icon: Settings },
@@ -206,9 +166,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                       isActive ? "bg-gray-200 font-semibold" : ""
                     )}
                   >
-                    <div className="flex items-center">
-                      <Icon className="h-5 w-5 mr-2" />
-                      {item.name}
+                    <div className="flex items-center gap-2">
+                      <Icon className="h-5 w-5" />
+                      <span>{item.name}</span>
                     </div>
                     {item.badgeCount && item.badgeCount > 0 && (
                       <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
@@ -230,7 +190,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         </aside>
 
         <div className="flex-1">
-          {/* Mobile Header */}
           <header className="flex items-center justify-between p-4 bg-white shadow md:hidden">
             <DrawerTrigger asChild>
               <button className="p-2" onClick={() => setDrawerOpen(true)}>
@@ -257,27 +216,16 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               const isActive = location.pathname === item.path;
               return (
                 <DrawerClose asChild key={item.name}>
-                  <Link
-                    to={item.path}
-                    onClick={() => {
-                      setDrawerOpen(false);
-                      if (
-                        (userType === "centraResident" && item.path === "/dashboard/messages") ||
-                        (userType === "tradie" && item.path === "/dashboard/tradie/messages")
-                      ) {
-                        setUnreadMessages(0);
-                      }
-                    }}
-                  >
+                  <Link to={item.path} onClick={() => setDrawerOpen(false)}>
                     <div
                       className={cn(
                         "flex items-center justify-between p-2 rounded hover:bg-gray-100 transition-colors",
                         isActive ? "bg-gray-200 font-semibold" : ""
                       )}
                     >
-                      <div className="flex items-center">
-                        <Icon className="h-5 w-5 mr-2" />
-                        {item.name}
+                      <div className="flex items-center gap-2">
+                        <Icon className="h-5 w-5" />
+                        <span>{item.name}</span>
                       </div>
                       {item.badgeCount && item.badgeCount > 0 && (
                         <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
