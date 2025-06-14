@@ -57,7 +57,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       .from("messages")
       .select("*", { count: "exact", head: true })
       .eq(msgField, user.id)
-      .eq("is_read", false);
+      .eq("is_read", false)
+      .neq("sender_id", user.id); // only messages received
 
     const { count: notifCount } = await supabase
       .from("notifications")
@@ -112,6 +113,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
     };
   }, [user?.id, userType]);
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    localStorage.clear();
+    navigate("/");
+  };
+
   const navItems =
     userType === "centraResident"
       ? [
@@ -119,8 +126,18 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           { name: "Jobs", path: "/dashboard/jobs", icon: Briefcase },
           { name: "Post a Job", path: "/dashboard/post-job", icon: Briefcase },
           { name: "Job History", path: "/dashboard/job-history", icon: Briefcase },
-          { name: "Messages", path: "/dashboard/messages", icon: MessagesSquare, badgeCount: unreadMessages },
-          { name: "Notifications", path: "/dashboard/notifications", icon: Bell, badgeCount: unreadNotifications },
+          {
+            name: "Messages",
+            path: "/dashboard/messages",
+            icon: MessagesSquare,
+            badgeCount: unreadMessages,
+          },
+          {
+            name: "Notifications",
+            path: "/dashboard/notifications",
+            icon: Bell,
+            badgeCount: unreadNotifications,
+          },
           { name: "Rewards", path: "/dashboard/rewards", icon: Gift },
           { name: "Profile", path: "/dashboard/profile", icon: User },
           { name: "Settings", path: "/dashboard/settings", icon: Settings },
@@ -130,23 +147,28 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           { name: "Dashboard", path: "/dashboard/tradie", icon: LayoutDashboard },
           { name: "Find Jobs", path: "/dashboard/tradie/find-jobs", icon: Search },
           { name: "My Jobs", path: "/dashboard/tradie/my-jobs", icon: Briefcase },
-          { name: "Messages", path: "/dashboard/tradie/messages", icon: MessagesSquare, badgeCount: unreadMessages },
-          { name: "Notifications", path: "/dashboard/tradie/notifications", icon: Bell, badgeCount: unreadNotifications },
+          {
+            name: "Messages",
+            path: "/dashboard/tradie/messages",
+            icon: MessagesSquare,
+            badgeCount: unreadMessages,
+          },
+          {
+            name: "Notifications",
+            path: "/dashboard/tradie/notifications",
+            icon: Bell,
+            badgeCount: unreadNotifications,
+          },
           { name: "Top Tradies", path: "/dashboard/tradie/top-tradies", icon: Award },
           { name: "Profile", path: "/dashboard/tradie/profile", icon: User },
           { name: "Settings", path: "/dashboard/tradie/settings", icon: Settings },
           { name: "Help", path: "/dashboard/tradie/help", icon: HelpCircle },
         ];
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    localStorage.clear();
-    navigate("/");
-  };
-
   return (
     <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
       <div className="min-h-screen flex bg-gray-50">
+        {/* Sidebar for desktop */}
         <aside className="w-64 bg-white shadow-md p-6 hidden md:block">
           <div className="mb-6">
             <div className="text-lg font-bold">{user?.first_name} {user?.last_name}</div>
@@ -158,7 +180,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               const isActive = location.pathname === item.path;
               return (
                 <Link to={item.path} key={item.name}>
-                  <div className={cn("flex items-center justify-between p-2 rounded hover:bg-gray-100 transition-colors", isActive ? "bg-gray-200 font-semibold" : "")}>
+                  <div
+                    className={cn(
+                      "flex items-center justify-between p-2 rounded hover:bg-gray-100 transition-colors",
+                      isActive ? "bg-gray-200 font-semibold" : ""
+                    )}
+                  >
                     <div className="flex items-center">
                       <Icon className="h-5 w-5 mr-2" />
                       {item.name}
@@ -182,7 +209,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           </nav>
         </aside>
 
+        {/* Main content */}
         <div className="flex-1">
+          {/* Mobile Header */}
           <header className="flex items-center justify-between p-4 bg-white shadow md:hidden">
             <DrawerTrigger asChild>
               <button className="p-2" onClick={() => setDrawerOpen(true)}>
@@ -195,37 +224,37 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         </div>
       </div>
 
+      {/* Mobile Drawer Content */}
       <DrawerContent>
-        <div className="h-full flex flex-col justify-between p-4">
-          <div>
-            <div className="mb-4">
-              <div className="text-lg font-bold">{user?.first_name} {user?.last_name}</div>
-              <div className="text-sm text-gray-500">{user?.email}</div>
-            </div>
-            <nav className="space-y-1">
-              {navItems.map((item) => {
-                const Icon = item.icon;
-                const isActive = location.pathname === item.path;
-                return (
-                  <DrawerClose asChild key={item.name}>
-                    <Link to={item.path} onClick={() => setDrawerOpen(false)}>
-                      <div className={cn("flex items-center justify-between p-2 rounded hover:bg-gray-100 transition-colors", isActive ? "bg-gray-200 font-semibold" : "")}>
-                        <div className="flex items-center">
-                          <Icon className="h-5 w-5 mr-2" />
-                          {item.name}
-                        </div>
-                        {item.badgeCount && item.badgeCount > 0 && (
-                          <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                            {item.badgeCount}
-                          </span>
-                        )}
-                      </div>
-                    </Link>
-                  </DrawerClose>
-                );
-              })}
-            </nav>
-          </div>
+        <div className="p-4 pt-6 space-y-2">
+          <div className="text-lg font-bold">{user?.first_name} {user?.last_name}</div>
+          <div className="text-sm text-gray-500 mb-4">{user?.email}</div>
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location.pathname === item.path;
+            return (
+              <DrawerClose asChild key={item.name}>
+                <Link to={item.path} onClick={() => setDrawerOpen(false)}>
+                  <div
+                    className={cn(
+                      "flex items-center justify-between p-2 rounded hover:bg-gray-100 transition-colors",
+                      isActive ? "bg-gray-200 font-semibold" : ""
+                    )}
+                  >
+                    <div className="flex items-center">
+                      <Icon className="h-5 w-5 mr-2" />
+                      {item.name}
+                    </div>
+                    {item.badgeCount && item.badgeCount > 0 && (
+                      <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                        {item.badgeCount}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+              </DrawerClose>
+            );
+          })}
           <DrawerClose asChild>
             <button
               onClick={() => {
