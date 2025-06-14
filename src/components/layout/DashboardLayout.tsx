@@ -51,21 +51,16 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   const fetchUnreadCounts = async () => {
     if (!user?.id) return;
+    const msgField = userType === "centraResident" ? "homeowner_id" : "tradie_id";
 
-    const { data: conversations } = await supabase
-      .from("conversations")
-      .select("id")
-      .eq(userType === "centraResident" ? "homeowner_id" : "tradie_id", user.id);
-
-    const conversationIds = conversations?.map((c) => c.id) || [];
-
+    // Fetch unread messages
     const { count: msgCount } = await supabase
       .from("messages")
       .select("*", { count: "exact", head: true })
-      .in("conversation_id", conversationIds)
-      .eq("is_read", false)
-      .neq("sender_id", user.id);
+      .eq(msgField, user.id)
+      .eq("is_read", false);
 
+    // Fetch unread notifications
     const { count: notifCount } = await supabase
       .from("notifications")
       .select("*", { count: "exact", head: true })
@@ -73,6 +68,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       .eq("recipient_type", userType === "centraResident" ? "homeowner" : "tradie")
       .eq("read", false);
 
+    // Reset only if we're viewing messages/notifications
     setUnreadMessages(isMessagePage ? 0 : msgCount || 0);
     setUnreadNotifications(isNotificationPage ? 0 : notifCount || 0);
   };
@@ -83,6 +79,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   useEffect(() => {
     if (!user?.id) return;
+    const msgField = userType === "centraResident" ? "homeowner_id" : "tradie_id";
 
     const msgChannel = supabase
       .channel("realtime:messages")
@@ -92,6 +89,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           event: "INSERT",
           schema: "public",
           table: "messages",
+          filter: `${msgField}=eq.${user.id}`,
         },
         fetchUnreadCounts
       )
@@ -105,22 +103,20 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           event: "INSERT",
           schema: "public",
           table: "notifications",
+          filter: `recipient_id=eq.${user.id}`,
         },
         fetchUnreadCounts
       )
       .subscribe();
 
+    const interval = setInterval(fetchUnreadCounts, 30000); // Optional polling
+
     return () => {
+      clearInterval(interval);
       supabase.removeChannel(msgChannel);
       supabase.removeChannel(notifChannel);
     };
   }, [user?.id, userType]);
-
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
-    localStorage.clear();
-    navigate("/");
-  };
 
   const navItems =
     userType === "centraResident"
@@ -141,8 +137,8 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             icon: Bell,
             badgeCount: unreadNotifications,
           },
-          { name: "Rewards", path: "/dashboard/rewards", icon: Gift },
           { name: "Profile", path: "/dashboard/profile", icon: User },
+          { name: "Rewards", path: "/dashboard/rewards", icon: Gift },
           { name: "Settings", path: "/dashboard/settings", icon: Settings },
           { name: "Help", path: "/dashboard/help", icon: HelpCircle },
         ]
@@ -162,16 +158,21 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             icon: Bell,
             badgeCount: unreadNotifications,
           },
-          { name: "Top Tradies", path: "/dashboard/tradie/top-tradies", icon: Award },
           { name: "Profile", path: "/dashboard/tradie/profile", icon: User },
+          { name: "Top Tradies", path: "/dashboard/tradie/top-tradies", icon: Award },
           { name: "Settings", path: "/dashboard/tradie/settings", icon: Settings },
           { name: "Help", path: "/dashboard/tradie/help", icon: HelpCircle },
         ];
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    localStorage.clear();
+    navigate("/");
+  };
+
   return (
     <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
       <div className="min-h-screen flex bg-gray-50">
-        {/* Desktop Sidebar */}
         <aside className="w-64 bg-white shadow-md p-6 hidden md:block">
           <div className="mb-6">
             <div className="text-lg font-bold">
@@ -214,7 +215,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           </nav>
         </aside>
 
-        {/* Main Content */}
         <div className="flex-1">
           {/* Mobile Header */}
           <header className="flex items-center justify-between p-4 bg-white shadow md:hidden">
@@ -229,56 +229,54 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         </div>
       </div>
 
-      {/* Mobile Drawer Content */}
       <DrawerContent>
-        <div className="pt-2 px-4 pb-6 flex flex-col space-y-2">
-          <div className="mb-4">
+        <div className="p-4 pt-2">
+          <div className="mb-4 md:hidden">
             <div className="text-lg font-bold">
               {user?.first_name} {user?.last_name}
             </div>
             <div className="text-sm text-gray-500">{user?.email}</div>
           </div>
-
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-
-            return (
-              <DrawerClose asChild key={item.name}>
-                <Link to={item.path} onClick={() => setDrawerOpen(false)}>
-                  <div
-                    className={cn(
-                      "flex items-center justify-between w-full p-2 rounded hover:bg-gray-100 transition-colors",
-                      isActive ? "bg-gray-200 font-semibold" : ""
-                    )}
-                  >
-                    <div className="flex items-center">
-                      <Icon className="h-5 w-5 mr-2" />
-                      {item.name}
+          <nav className="space-y-2">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = location.pathname === item.path;
+              return (
+                <DrawerClose asChild key={item.name}>
+                  <Link to={item.path} onClick={() => setDrawerOpen(false)}>
+                    <div
+                      className={cn(
+                        "flex items-center justify-between p-2 rounded hover:bg-gray-100 transition-colors",
+                        isActive ? "bg-gray-200 font-semibold" : ""
+                      )}
+                    >
+                      <div className="flex items-center">
+                        <Icon className="h-5 w-5 mr-2" />
+                        {item.name}
+                      </div>
+                      {item.badgeCount && item.badgeCount > 0 && (
+                        <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
+                          {item.badgeCount}
+                        </span>
+                      )}
                     </div>
-                    {item.badgeCount && item.badgeCount > 0 && (
-                      <span className="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full">
-                        {item.badgeCount}
-                      </span>
-                    )}
-                  </div>
-                </Link>
-              </DrawerClose>
-            );
-          })}
-
-          <DrawerClose asChild>
-            <button
-              onClick={() => {
-                setDrawerOpen(false);
-                handleLogout();
-              }}
-              className="flex items-center p-2 mt-4 text-red-600 hover:bg-red-50 rounded w-full transition-colors"
-            >
-              <LogOut className="h-5 w-5 mr-2" />
-              Logout
-            </button>
-          </DrawerClose>
+                  </Link>
+                </DrawerClose>
+              );
+            })}
+            <DrawerClose asChild>
+              <button
+                onClick={() => {
+                  setDrawerOpen(false);
+                  handleLogout();
+                }}
+                className="flex items-center p-2 mt-4 text-red-600 hover:bg-red-50 rounded w-full transition-colors"
+              >
+                <LogOut className="h-5 w-5 mr-2" />
+                Logout
+              </button>
+            </DrawerClose>
+          </nav>
         </div>
       </DrawerContent>
     </Drawer>
