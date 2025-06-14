@@ -51,14 +51,20 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   const fetchUnreadCounts = async () => {
     if (!user?.id) return;
-    const msgField = userType === "centraResident" ? "homeowner_id" : "tradie_id";
+
+    const { data: conversations } = await supabase
+      .from("conversations")
+      .select("id")
+      .eq(userType === "centraResident" ? "homeowner_id" : "tradie_id", user.id);
+
+    const conversationIds = conversations?.map((c) => c.id) || [];
 
     const { count: msgCount } = await supabase
       .from("messages")
       .select("*", { count: "exact", head: true })
-      .eq(msgField, user.id)
+      .in("conversation_id", conversationIds)
       .eq("is_read", false)
-      .neq("sender_id", user.id); // only messages received
+      .neq("sender_id", user.id);
 
     const { count: notifCount } = await supabase
       .from("notifications")
@@ -77,7 +83,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
   useEffect(() => {
     if (!user?.id) return;
-    const msgField = userType === "centraResident" ? "homeowner_id" : "tradie_id";
 
     const msgChannel = supabase
       .channel("realtime:messages")
@@ -87,7 +92,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           event: "INSERT",
           schema: "public",
           table: "messages",
-          filter: `${msgField}=eq.${user.id}`,
         },
         fetchUnreadCounts
       )
@@ -101,7 +105,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           event: "INSERT",
           schema: "public",
           table: "notifications",
-          filter: `recipient_id=eq.${user.id}`,
         },
         fetchUnreadCounts
       )
@@ -168,10 +171,12 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   return (
     <Drawer open={drawerOpen} onOpenChange={setDrawerOpen}>
       <div className="min-h-screen flex bg-gray-50">
-        {/* Sidebar for desktop */}
+        {/* Desktop Sidebar */}
         <aside className="w-64 bg-white shadow-md p-6 hidden md:block">
           <div className="mb-6">
-            <div className="text-lg font-bold">{user?.first_name} {user?.last_name}</div>
+            <div className="text-lg font-bold">
+              {user?.first_name} {user?.last_name}
+            </div>
             <div className="text-sm text-gray-500">{user?.email}</div>
           </div>
           <nav className="space-y-2">
@@ -209,7 +214,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           </nav>
         </aside>
 
-        {/* Main content */}
+        {/* Main Content */}
         <div className="flex-1">
           {/* Mobile Header */}
           <header className="flex items-center justify-between p-4 bg-white shadow md:hidden">
@@ -226,18 +231,24 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 
       {/* Mobile Drawer Content */}
       <DrawerContent>
-        <div className="p-4 pt-6 space-y-2">
-          <div className="text-lg font-bold">{user?.first_name} {user?.last_name}</div>
-          <div className="text-sm text-gray-500 mb-4">{user?.email}</div>
+        <div className="pt-2 px-4 pb-6 flex flex-col space-y-2">
+          <div className="mb-4">
+            <div className="text-lg font-bold">
+              {user?.first_name} {user?.last_name}
+            </div>
+            <div className="text-sm text-gray-500">{user?.email}</div>
+          </div>
+
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
+
             return (
               <DrawerClose asChild key={item.name}>
                 <Link to={item.path} onClick={() => setDrawerOpen(false)}>
                   <div
                     className={cn(
-                      "flex items-center justify-between p-2 rounded hover:bg-gray-100 transition-colors",
+                      "flex items-center justify-between w-full p-2 rounded hover:bg-gray-100 transition-colors",
                       isActive ? "bg-gray-200 font-semibold" : ""
                     )}
                   >
@@ -255,6 +266,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               </DrawerClose>
             );
           })}
+
           <DrawerClose asChild>
             <button
               onClick={() => {
