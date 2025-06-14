@@ -74,6 +74,12 @@ const HomeownerMessagesPage = () => {
         .update({ is_read: true })
         .eq("conversation_id", selectedConversationId)
         .neq("sender_id", userId);
+
+      // ✅ This ensures the badge resets properly
+      await supabase
+        .from("conversations")
+        .update({ homeowner_read_at: new Date().toISOString() })
+        .eq("id", selectedConversationId);
     };
 
     fetchMessages();
@@ -224,3 +230,4 @@ const HomeownerMessagesPage = () => {
 };
 
 export default HomeownerMessagesPage;
+
