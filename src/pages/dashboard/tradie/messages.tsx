@@ -35,11 +35,7 @@ const TradieMessagesPage = () => {
     const fetchConversations = async () => {
       const { data } = await supabase
         .from("conversations")
-        .select(`
-          id,
-          jobs(title),
-          profile_centra_resident(id, first_name, avatar_url)
-        `)
+        .select(`id, jobs(title), profile_centra_resident(id, first_name, avatar_url)`)
         .eq("tradie_id", userId);
 
       if (data) {
@@ -67,11 +63,18 @@ const TradieMessagesPage = () => {
         setMessages(data);
         bottomRef.current?.scrollIntoView({ behavior: "smooth" });
 
+        // Mark messages as read
         await supabase
           .from("messages")
           .update({ is_read: true })
           .eq("conversation_id", selectedConversation.id)
           .neq("sender_id", userId);
+
+        // Update tradie_read_at timestamp
+        await supabase
+          .from("conversations")
+          .update({ tradie_read_at: new Date().toISOString() })
+          .eq("id", selectedConversation.id);
       }
     };
 
