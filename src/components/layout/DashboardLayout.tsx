@@ -52,27 +52,30 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const fetchUnreadCounts = async () => {
     if (!user?.id) return;
 
-    const lastVisitedMessagesAt = localStorage.getItem("lastVisitedMessagesAt");
-
     const { data: conversations } = await supabase
       .from("conversations")
-      .select("id")
+      .select("id, homeowner_read_at, tradie_read_at")
       .eq(userType === "centraResident" ? "homeowner_id" : "tradie_id", user.id);
 
-    const conversationIds = conversations?.map((c) => c.id) || [];
+    const readTimestamps = (conversations || []).reduce((acc, c) => {
+      const lastRead = userType === "centraResident" ? c.homeowner_read_at : c.tradie_read_at;
+      acc[c.id] = lastRead;
+      return acc;
+    }, {} as Record<string, string | null>);
 
-    let msgQuery = supabase
+    const { data: allMsgs } = await supabase
       .from("messages")
-      .select("*", { count: "exact", head: true })
-      .in("conversation_id", conversationIds)
-      .eq("is_read", false)
-      .neq("sender_id", user.id);
+      .select("conversation_id, created_at, sender_id");
 
-    if (lastVisitedMessagesAt) {
-      msgQuery = msgQuery.gte("created_at", lastVisitedMessagesAt);
-    }
+    const count = (allMsgs || []).filter((msg) => {
+      const lastRead = readTimestamps[msg.conversation_id];
+      return (
+        msg.sender_id !== user.id &&
+        (!lastRead || new Date(msg.created_at) > new Date(lastRead))
+      );
+    }).length;
 
-    const { count: msgCount } = await msgQuery;
+    setUnreadMessages(isMessagePage ? 0 : count);
 
     const { count: notifCount } = await supabase
       .from("notifications")
@@ -81,7 +84,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       .eq("recipient_type", userType === "centraResident" ? "homeowner" : "tradie")
       .eq("read", false);
 
-    setUnreadMessages(isMessagePage ? 0 : msgCount || 0);
     setUnreadNotifications(isNotificationPage ? 0 : notifCount || 0);
   };
 
@@ -294,3 +296,4 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
 };
 
 export default DashboardLayout;
+
