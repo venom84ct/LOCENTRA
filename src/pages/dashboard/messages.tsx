@@ -44,7 +44,7 @@ const HomeownerMessagesPage = () => {
     const fetchConversations = async () => {
       const { data } = await supabase
         .from("conversations")
-        .select(`id, jobs(title), profile_centra_tradie(id, first_name, avatar_url)`)
+        .select("id, jobs(title), profile_centra_tradie(id, first_name, avatar_url)")
         .eq("homeowner_id", userId);
 
       setConversations(data || []);
