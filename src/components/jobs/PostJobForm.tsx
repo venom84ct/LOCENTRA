@@ -21,6 +21,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
+import { containsProfanity } from "@/lib/profanity";
 
 const PostJobForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }) => {
   const navigate = useNavigate();
@@ -70,6 +71,16 @@ const PostJobForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }) => {
 
     if (authError || !user) {
       setError("You must be logged in.");
+      setUploading(false);
+      return;
+    }
+
+    if (
+      Object.values(formData).some(
+        (v) => typeof v === "string" && containsProfanity(v)
+      )
+    ) {
+      setError("Profanity is not allowed.");
       setUploading(false);
       return;
     }

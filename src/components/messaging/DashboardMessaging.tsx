@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Trash2 } from "lucide-react";
+import { containsProfanity } from "@/lib/profanity";
 
 interface DashboardMessagingProps {
   userRole: "tradie" | "homeowner";
@@ -77,6 +78,10 @@ const DashboardMessaging: React.FC<DashboardMessagingProps> = ({ userRole, profi
 
   const handleSend = async () => {
     if (!newMessage.trim() || !userId || !selectedConversation) return;
+    if (containsProfanity(newMessage)) {
+      alert("Profanity is not allowed.");
+      return;
+    }
 
     const { error } = await supabase.from("messages").insert({
       conversation_id: selectedConversation.id,

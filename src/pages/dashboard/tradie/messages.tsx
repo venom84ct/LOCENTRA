@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Trash2 } from "lucide-react";
 import { useSearchParams, useNavigate } from "react-router-dom";
+import { containsProfanity } from "@/lib/profanity";
 
 const TradieMessagesPage = () => {
   const [userId, setUserId] = useState("");
@@ -104,6 +105,10 @@ const TradieMessagesPage = () => {
 
   const handleSend = async () => {
     if (!newMessage.trim()) return;
+    if (containsProfanity(newMessage)) {
+      alert("Profanity is not allowed.");
+      return;
+    }
 
     await supabase.from("messages").insert({
       conversation_id: selectedConversation.id,

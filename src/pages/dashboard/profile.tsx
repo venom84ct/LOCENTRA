@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { MapPin, Phone, Mail, Calendar, Upload } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { containsProfanity } from "@/lib/profanity";
 
 const ProfilePage = () => {
   const [isEditing, setIsEditing] = useState(false);
@@ -69,6 +70,15 @@ const ProfilePage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!profile) return;
+
+    if (
+      Object.values(formData).some(
+        (v) => typeof v === "string" && containsProfanity(v)
+      )
+    ) {
+      alert("Profanity is not allowed.");
+      return;
+    }
 
     const { error } = await supabase
       .from("profile_centra_resident")

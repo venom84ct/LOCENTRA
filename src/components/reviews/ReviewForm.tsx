@@ -4,6 +4,7 @@ import { sendPushNotification } from "@/lib/notification";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Star } from "lucide-react";
+import { containsProfanity } from "@/lib/profanity";
 
 interface ReviewFormProps {
   jobId: string;
@@ -18,6 +19,12 @@ const ReviewForm: React.FC<ReviewFormProps> = ({ jobId, tradieId, jobTitle }) =>
 
   const handleSubmit = async () => {
     setSubmitting(true);
+
+    if (containsProfanity(comment)) {
+      alert("Profanity is not allowed.");
+      setSubmitting(false);
+      return;
+    }
 
     const {
       data: { user },

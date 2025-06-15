@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Trash2 } from "lucide-react";
+import { containsProfanity } from "@/lib/profanity";
 
 const HomeownerMessagesPage = () => {
   const [searchParams] = useSearchParams();
@@ -108,6 +109,10 @@ const HomeownerMessagesPage = () => {
 
   const handleSend = async () => {
     if (!newMessage.trim() || !userId || !selectedConversationId) return;
+    if (containsProfanity(newMessage)) {
+      alert("Profanity is not allowed.");
+      return;
+    }
 
     await supabase.from("messages").insert({
       conversation_id: selectedConversationId,

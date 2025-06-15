@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/accordion";
 import { MessageSquare, Phone, Mail, HelpCircle, Search } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
+import { containsProfanity } from "@/lib/profanity";
 
 const TradieHelpPage = () => {
   const [user, setUser] = useState<any>(null);
@@ -49,6 +50,11 @@ const TradieHelpPage = () => {
     const email = (formData.get("email") || "") as string;
     const subject = (formData.get("subject") || "") as string;
     const message = (formData.get("message") || "") as string;
+
+    if ([name, subject, message].some((v) => containsProfanity(v))) {
+      alert("Profanity is not allowed.");
+      return;
+    }
 
     const mailto = `mailto:admin@locentra.com.au?subject=${encodeURIComponent(
       subject

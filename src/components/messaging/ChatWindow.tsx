@@ -4,6 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Paperclip, Send } from "lucide-react";
+import { containsProfanity } from "@/lib/profanity";
 
 interface ChatWindowProps {
   user: any;
@@ -43,6 +44,10 @@ const ChatWindow: React.FC<ChatWindowProps> = ({
 
   const handleSend = () => {
     if (newMessage.trim() === "" && !image) return;
+    if (newMessage && containsProfanity(newMessage)) {
+      alert("Profanity is not allowed.");
+      return;
+    }
     onSendMessage(newMessage.trim(), image || undefined);
     setNewMessage("");
     setImage(null);
