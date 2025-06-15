@@ -21,10 +21,19 @@ const DashboardJobs = () => {
 
   const fetchJobs = async () => {
     const {
-      data: { user },
+      data: { user: authUser },
     } = await supabase.auth.getUser();
-    if (!user) return;
-    setUser(user);
+    const userId = authUser?.id;
+    if (!userId) return;
+
+    const { data: profile } = await supabase
+      .from("profile_centra_resident")
+      .select("*")
+      .eq("id", userId)
+      .single();
+
+    if (!profile) return;
+    setUser(profile);
 
     const { data, error } = await supabase
       .from("jobs")
@@ -34,7 +43,7 @@ const DashboardJobs = () => {
         profile_centra_tradie!assigned_tradie(first_name, last_name),
         job_leads(id, tradie_id, profile_centra_tradie(first_name, last_name))
       `)
-      .eq("homeowner_id", user.id)
+      .eq("homeowner_id", userId)
       .order("created_at", { ascending: false });
 
     if (!error) {
@@ -44,7 +53,7 @@ const DashboardJobs = () => {
     const { data: reviewsData } = await supabase
       .from("reviews")
       .select("job_id")
-      .eq("homeowner_id", user.id);
+      .eq("homeowner_id", userId);
 
     setReviewedJobs(reviewsData?.map((r: any) => r.job_id) || []);
   };

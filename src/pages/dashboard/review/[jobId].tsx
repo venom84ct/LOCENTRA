@@ -14,17 +14,29 @@ const ReviewPage = () => {
   useEffect(() => {
     const fetchUserAndJob = async () => {
       const {
-        data: { user },
+        data: { user: authUser },
         error: authError,
       } = await supabase.auth.getUser();
 
-      if (authError || !user) {
+      const userId = authUser?.id;
+      if (authError || !userId) {
         console.error("User not found or error during auth.");
         setLoading(false);
         return;
       }
 
-      setUser(user);
+      const { data: profile } = await supabase
+        .from("profile_centra_resident")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      if (!profile) {
+        setLoading(false);
+        return;
+      }
+
+      setUser(profile);
 
       if (!jobId) {
         setLoading(false);
