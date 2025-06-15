@@ -37,12 +37,12 @@ const Home = () => {
                 <Button
                   size="lg"
                   onClick={() => {
-                    // Check if user is logged in and is a centra resident
+                    // Check if user is logged in and is a homeowner
                     const isLoggedIn =
                       localStorage.getItem("isLoggedIn") === "true";
                     const userType = localStorage.getItem("userType");
 
-                    if (isLoggedIn && userType === "centraResident") {
+                    if (isLoggedIn && userType === "homeowner") {
                       window.location.href = "/post-job";
                     } else {
                       window.location.href = "/login?redirect=/post-job";

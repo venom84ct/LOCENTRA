@@ -67,7 +67,8 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
 
   const handlePostJobClick = () => {
     const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-    if (isLoggedIn) {
+    const userType = localStorage.getItem("userType");
+    if (isLoggedIn && userType === "homeowner") {
       navigate("/post-job");
     } else {
       navigate("/login?redirect=/post-job");
