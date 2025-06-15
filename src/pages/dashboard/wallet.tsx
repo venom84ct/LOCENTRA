@@ -154,32 +154,16 @@ const WalletPage = () => {
             </TabsList>
 
             <TabsContent value="credits" className="pt-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                 {creditBundles.map((bundle) => (
-                  <Card key={bundle.id} className={bundle.popular ? "border-primary" : ""}>
-                    {bundle.popular && (
-                      <div className="bg-primary text-white text-center py-1 text-sm font-medium rounded-t-md">
-                        Most Popular
-                      </div>
-                    )}
-                    <CardHeader>
-                      <CardTitle>{bundle.name}</CardTitle>
-                      <CardDescription>{bundle.credits} credits</CardDescription>
-                    </CardHeader>
-                    <CardContent className="text-center">
-                      <p className="text-2xl font-bold">${bundle.price}</p>
-                      {bundle.savings && (
-                        <Badge className="mt-2 bg-green-100 text-green-800">
-                          {bundle.savings}
-                        </Badge>
-                      )}
-                    </CardContent>
-                    <CardFooter>
-                      <Button className="w-full" onClick={() => setIsModalOpen(true)}>
-                        Purchase
-                      </Button>
-                    </CardFooter>
-                  </Card>
+                  <div key={bundle.id} className="border rounded-lg p-3 text-center">
+                    <div className="font-medium">{bundle.name}</div>
+                    <div className="text-lg font-bold text-red-600">${bundle.price}</div>
+                    <div className="text-sm text-muted-foreground">{bundle.credits} credits</div>
+                    <Button className="w-full mt-2" onClick={() => setIsModalOpen(true)}>
+                      Purchase
+                    </Button>
+                  </div>
                 ))}
               </div>
             </TabsContent>
