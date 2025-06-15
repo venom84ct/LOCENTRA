@@ -22,7 +22,7 @@ const StarterSuccess: React.FC = () => {
         setMessage("Failed to add credits.");
       } else {
         setMessage("5 credits added to your account!");
-        setTimeout(() => navigate("/dashboard/tradie/wallet"), 3000);
+        navigate("/dashboard/tradie/wallet");
       }
     };
     addCredits();
