@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,9 @@ const PostJobForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }) => {
   const [images, setImages] = useState<File[]>([]);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const paypalRef = useRef<HTMLDivElement | null>(null);
+  const [paypalReady, setPaypalReady] = useState(false);
+  const [paypalRendered, setPaypalRendered] = useState(false);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -58,8 +61,47 @@ const PostJobForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }) => {
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  useEffect(() => {
+    if (isEmergency && formData.paymentMethod === "paypal") {
+      if (!paypalReady) {
+        const script = document.createElement("script");
+        script.src = "https://www.paypal.com/sdk/js?client-id=sb&currency=AUD";
+        script.addEventListener("load", () => setPaypalReady(true));
+        document.body.appendChild(script);
+        return () => {
+          document.body.removeChild(script);
+        };
+      } else if (paypalReady && paypalRef.current && !paypalRendered && (window as any).paypal) {
+        (window as any).paypal
+          .Buttons({
+            createOrder: (_data: any, actions: any) => {
+              return actions.order.create({
+                purchase_units: [
+                  {
+                    amount: { value: "10.00", currency_code: "AUD" },
+                    payee: { email_address: "locentra@example.com" },
+                  },
+                ],
+              });
+            },
+            onApprove: async (_data: any, actions: any) => {
+              await actions.order.capture();
+              await postJob();
+            },
+          })
+          .render(paypalRef.current);
+        setPaypalRendered(true);
+      }
+    }
+  }, [isEmergency, formData.paymentMethod, paypalReady]);
+
+  useEffect(() => {
+    if (formData.paymentMethod !== "paypal") {
+      setPaypalRendered(false);
+    }
+  }, [formData.paymentMethod]);
+
+  const postJob = async () => {
     setError("");
     setSuccess("");
     setUploading(true);
@@ -157,6 +199,16 @@ const PostJobForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }) => {
     }
   };
 
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (isEmergency && formData.paymentMethod === "paypal") {
+      return;
+    }
+
+    await postJob();
+  };
+
   return (
     <Card className="w-full bg-white">
       <CardHeader>
@@ -217,7 +269,6 @@ const PostJobForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }) => {
                 <SelectContent>
                   <SelectItem value="credit-card">Credit Card</SelectItem>
                   <SelectItem value="paypal">PayPal</SelectItem>
-                  <SelectItem value="bank-transfer">Bank Transfer</SelectItem>
                 </SelectContent>
               </Select>
             </>
@@ -255,9 +306,13 @@ const PostJobForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }) => {
           {success && <p className="text-green-600 text-sm">{success}</p>}
 
           <CardFooter>
-            <Button type="submit" disabled={uploading} className="w-full">
-              {uploading ? "Submitting..." : isEmergency ? "Pay $10 & Post Emergency Job" : "Post Job"}
-            </Button>
+            {isEmergency && formData.paymentMethod === "paypal" ? (
+              <div className="w-full" ref={paypalRef}></div>
+            ) : (
+              <Button type="submit" disabled={uploading} className="w-full">
+                {uploading ? "Submitting..." : isEmergency ? "Pay $10 & Post Emergency Job" : "Post Job"}
+              </Button>
+            )}
           </CardFooter>
         </form>
       </CardContent>
