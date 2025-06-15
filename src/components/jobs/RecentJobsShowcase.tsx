@@ -4,95 +4,62 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Briefcase, MapPin, DollarSign, Clock } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
+import { formatDistanceToNow } from "date-fns";
 
 interface Job {
   id: string;
   title: string;
-  category: string;
-  location: string;
-  budget: string;
-  date: string;
-  emergency: boolean;
+  category: string | null;
+  location: string | null;
+  budget: string | null;
+  created_at: string;
+  is_emergency: boolean | null;
 }
 
 const RecentJobsShowcase: React.FC = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [jobs, setJobs] = useState<Job[]>([]);
 
-  const allJobs: Job[] = [
-    {
-      id: "job1",
-      title: "Kitchen Sink Replacement",
-      category: "Plumbing",
-      location: "Sydney, NSW",
-      budget: "$300 - $500",
-      date: "2 hours ago",
-      emergency: false,
-    },
-    {
-      id: "job2",
-      title: "Emergency Hot Water System Repair",
-      category: "Plumbing",
-      location: "Melbourne, VIC",
-      budget: "$200 - $400",
-      date: "5 hours ago",
-      emergency: true,
-    },
-    {
-      id: "job3",
-      title: "Bathroom Renovation",
-      category: "Renovation",
-      location: "Brisbane, QLD",
-      budget: "$5,000 - $8,000",
-      date: "1 day ago",
-      emergency: false,
-    },
-    {
-      id: "job4",
-      title: "Electrical Wiring Inspection",
-      category: "Electrical",
-      location: "Perth, WA",
-      budget: "$150 - $300",
-      date: "3 hours ago",
-      emergency: false,
-    },
-    {
-      id: "job5",
-      title: "Roof Leak Repair",
-      category: "Roofing",
-      location: "Adelaide, SA",
-      budget: "$400 - $800",
-      date: "6 hours ago",
-      emergency: true,
-    },
-    {
-      id: "job6",
-      title: "Garden Landscaping",
-      category: "Landscaping",
-      location: "Hobart, TAS",
-      budget: "$2,000 - $4,000",
-      date: "1 day ago",
-      emergency: false,
-    },
-  ];
+  useEffect(() => {
+    const fetchJobs = async () => {
+      const { data, error } = await supabase
+        .from("jobs")
+        .select(
+          "id, title, category, location, budget, created_at, is_emergency, assigned_tradie"
+        )
+        .or("status.eq.open,status.eq.available")
+        .is("assigned_tradie", null)
+        .order("created_at", { ascending: false })
+        .limit(6);
+
+      if (!error) setJobs(data || []);
+    };
+
+    fetchJobs();
+  }, []);
 
   // Get 3 jobs to display based on current index
   const getVisibleJobs = () => {
-    const jobs = [];
-    for (let i = 0; i < 3; i++) {
-      const index = (currentIndex + i) % allJobs.length;
-      jobs.push(allJobs[index]);
+    if (jobs.length === 0) return [];
+    const visible: Job[] = [];
+    const count = Math.min(3, jobs.length);
+    for (let i = 0; i < count; i++) {
+      const index = (currentIndex + i) % jobs.length;
+      visible.push(jobs[index]);
     }
-    return jobs;
+    return visible;
   };
 
   // Auto-rotate jobs every 5 seconds
   useEffect(() => {
+    if (jobs.length < 2) return;
     const interval = setInterval(() => {
-      setCurrentIndex((prevIndex) => (prevIndex + 1) % allJobs.length);
+      setCurrentIndex((prevIndex) => (prevIndex + 1) % jobs.length);
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [allJobs.length]);
+  }, [jobs]);
 
   return (
     <div className="relative">
@@ -105,7 +72,7 @@ const RecentJobsShowcase: React.FC = () => {
             <CardContent className="pt-6">
               <div className="flex justify-between items-start mb-4">
                 <h3 className="text-xl font-bold">{job.title}</h3>
-                {job.emergency && (
+                {job.is_emergency && (
                   <Badge variant="destructive">Emergency</Badge>
                 )}
               </div>
@@ -124,7 +91,11 @@ const RecentJobsShowcase: React.FC = () => {
                 </div>
                 <div className="flex items-center">
                   <Clock className="h-4 w-4 text-gray-500 mr-2" />
-                  <span className="text-gray-600">{job.date}</span>
+                  <span className="text-gray-600">
+                    {formatDistanceToNow(new Date(job.created_at), {
+                      addSuffix: true,
+                    })}
+                  </span>
                 </div>
               </div>
               <Button className="w-full" asChild>
@@ -139,11 +110,13 @@ const RecentJobsShowcase: React.FC = () => {
 
       {/* Navigation dots */}
       <div className="flex justify-center mt-6 space-x-2">
-        {allJobs.slice(0, allJobs.length - 2).map((_, index) => (
+        {jobs.slice(0, Math.max(1, jobs.length - 2)).map((_, index) => (
           <button
             key={index}
             onClick={() => setCurrentIndex(index)}
-            className={`w-2 h-2 rounded-full ${currentIndex === index ? "bg-red-600" : "bg-gray-300"}`}
+            className={`w-2 h-2 rounded-full ${
+              currentIndex === index ? "bg-red-600" : "bg-gray-300"
+            }`}
             aria-label={`Show jobs starting from position ${index + 1}`}
           />
         ))}
