@@ -77,7 +77,7 @@ const LoginPage = () => {
               <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
               <div className="flex justify-end">
                 <a href="/forgot-password" className="text-sm text-primary hover:underline">
-                  Forgot password?
+                  Forget your password?
                 </a>
               </div>
               {error && <p className="text-red-600 text-sm">❌ {error}</p>}
@@ -93,7 +93,7 @@ const LoginPage = () => {
               <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
               <div className="flex justify-end">
                 <a href="/forgot-password" className="text-sm text-primary hover:underline">
-                  Forgot password?
+                  Forget your password?
                 </a>
               </div>
               {error && <p className="text-red-600 text-sm">❌ {error}</p>}
