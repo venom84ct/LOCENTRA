@@ -154,7 +154,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           },
           { name: "Rewards", path: "/dashboard/rewards", icon: Gift },
           { name: "Profile", path: "/dashboard/profile", icon: User },
-          { name: "Settings", path: "/dashboard/settings", icon: Settings },
           { name: "Help", path: "/dashboard/help", icon: HelpCircle },
         ]
       : [
@@ -176,7 +175,6 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           { name: "Top Tradies", path: "/dashboard/tradie/top-tradies", icon: Award },
           { name: "Profile", path: "/dashboard/tradie/profile", icon: User },
           { name: "Wallet", path: "/dashboard/tradie/wallet", icon: Wallet },
-          { name: "Settings", path: "/dashboard/tradie/settings", icon: Settings },
           { name: "Help", path: "/dashboard/tradie/help", icon: HelpCircle },
         ];
 

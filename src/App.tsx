@@ -25,7 +25,6 @@ const DashboardMessages = lazy(() => import("./pages/dashboard/messages"));
 const DashboardNotifications = lazy(() => import("./pages/dashboard/notifications"));
 const DashboardRewards = lazy(() => import("./pages/dashboard/rewards"));
 const DashboardProfile = lazy(() => import("./pages/dashboard/profile"));
-const DashboardSettings = lazy(() => import("./pages/dashboard/settings"));
 const DashboardHelp = lazy(() => import("./pages/dashboard/help"));
 const DashboardWallet = lazy(() => import("./pages/dashboard/wallet"));
 const DashboardFindJobs = lazy(() => import("./pages/dashboard/find-jobs"));
@@ -36,7 +35,6 @@ const DashboardReview = lazy(() => import("./pages/dashboard/review/[jobId]"));
 const TradieMessages = lazy(() => import("./pages/dashboard/tradie/messages"));
 const TradieNotifications = lazy(() => import("./pages/dashboard/tradie/notifications"));
 const TradieProfile = lazy(() => import("./pages/dashboard/tradie/profile"));
-const TradieSettings = lazy(() => import("./pages/dashboard/tradie/settings"));
 const TradieHelp = lazy(() => import("./pages/dashboard/tradie/help"));
 const TradieTopTradies = lazy(() => import("./pages/dashboard/tradie/top-tradies"));
 const TradieMyJobs = lazy(() => import("./pages/dashboard/tradie/my-jobs"));
@@ -76,7 +74,6 @@ function App() {
           <Route path="/dashboard/notifications" element={<DashboardNotifications />} />
           <Route path="/dashboard/rewards" element={<DashboardRewards />} />
           <Route path="/dashboard/profile" element={<DashboardProfile />} />
-          <Route path="/dashboard/settings" element={<DashboardSettings />} />
           <Route path="/dashboard/help" element={<DashboardHelp />} />
           <Route path="/dashboard/wallet" element={<DashboardWallet />} />
           <Route path="/dashboard/find-jobs" element={<DashboardFindJobs />} />
@@ -88,7 +85,6 @@ function App() {
           <Route path="/dashboard/tradie/messages" element={<TradieMessages />} />
           <Route path="/dashboard/tradie/notifications" element={<TradieNotifications />} />
           <Route path="/dashboard/tradie/profile" element={<TradieProfile />} />
-          <Route path="/dashboard/tradie/settings" element={<TradieSettings />} />
           <Route path="/dashboard/tradie/help" element={<TradieHelp />} />
           <Route path="/dashboard/tradie/top-tradies" element={<TradieTopTradies />} />
           <Route path="/dashboard/tradie/my-jobs" element={<TradieMyJobs />} />
