@@ -26,9 +26,6 @@ const Home = () => {
         <div className="container mx-auto px-4 py-16 md:py-24">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
             <div className="space-y-6">
-              <Badge className="bg-red-100 text-red-800 hover:bg-red-100 border-red-200">
-                Australia's Trusted Tradie Platform
-              </Badge>
               <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-gray-900">
                 Connect with Qualified Tradies for Your Home Projects
               </h1>
