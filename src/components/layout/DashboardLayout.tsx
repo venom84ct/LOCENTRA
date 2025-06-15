@@ -14,6 +14,7 @@ import {
   Search,
   LogOut,
   Menu,
+  Wallet,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import {
@@ -174,6 +175,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           },
           { name: "Top Tradies", path: "/dashboard/tradie/top-tradies", icon: Award },
           { name: "Profile", path: "/dashboard/tradie/profile", icon: User },
+          { name: "Wallet", path: "/dashboard/tradie/wallet", icon: Wallet },
           { name: "Settings", path: "/dashboard/tradie/settings", icon: Settings },
           { name: "Help", path: "/dashboard/tradie/help", icon: HelpCircle },
         ];
@@ -187,7 +189,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             <div className="text-lg font-bold">
               {user?.first_name} {user?.last_name}
             </div>
-            <div className="text-sm text-gray-500">{user?.email}</div>
+            <div className="text-sm text-gray-500">
+              {userType === "tradie" ? user?.trade_category : user?.email}
+            </div>
           </div>
           <nav className="space-y-2">
             {navItems.map((item) => {
@@ -246,7 +250,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             <div className="text-lg font-bold">
               {user?.first_name} {user?.last_name}
             </div>
-            <div className="text-sm text-gray-500">{user?.email}</div>
+            <div className="text-sm text-gray-500">
+              {userType === "tradie" ? user?.trade_category : user?.email}
+            </div>
           </div>
 
           {navItems.map((item) => {
