@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/lib/supabaseClient";
 import { Image as ImageIcon } from "lucide-react";
+import { containsProfanity } from "@/lib/profanity";
 
 interface MessageInputProps {
   conversationId: string;
@@ -24,6 +25,10 @@ const MessageInput: React.FC<MessageInputProps> = ({ conversationId }) => {
 
   const sendMessage = async () => {
     if (!message && !file || !currentUserId) return;
+    if (message && containsProfanity(message)) {
+      alert("Profanity is not allowed.");
+      return;
+    }
     setLoading(true);
 
     let imageUrl = null;

@@ -10,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { containsProfanity } from "@/lib/profanity";
 
 const Contact = () => {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -21,6 +22,15 @@ const Contact = () => {
     const phone = formData.get("phone") || "";
     const topic = formData.get("topic") || "";
     const message = formData.get("message") || "";
+
+    if (
+      [firstName, lastName, topic, message].some((v) =>
+        containsProfanity(String(v))
+      )
+    ) {
+      alert("Profanity is not allowed.");
+      return;
+    }
 
     const mailto = `mailto:admin@locentra.com.au?subject=${encodeURIComponent(
       `Contact Us - ${topic}`

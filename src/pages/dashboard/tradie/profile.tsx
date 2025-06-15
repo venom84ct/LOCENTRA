@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Star, MapPin, Phone, Trash, Trophy, Medal } from "lucide-react";
+import { containsProfanity } from "@/lib/profanity";
 
 const TradieProfilePage = () => {
   const [profile, setProfile] = useState<any>(null);
@@ -107,6 +108,15 @@ const TradieProfilePage = () => {
 
   const handleSave = async () => {
     if (!profile) return;
+
+    if (
+      [profile.bio, profile.abn, profile.license, profile.trade_category].some(
+        (v) => typeof v === "string" && containsProfanity(v)
+      )
+    ) {
+      alert("Profanity is not allowed.");
+      return;
+    }
 
     const updates: any = {
       bio: profile.bio || null,

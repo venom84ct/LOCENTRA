@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
+import { containsProfanity } from "@/lib/profanity";
 import {
   Select,
   SelectTrigger,
@@ -60,6 +61,16 @@ const EditJobPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setUpdating(true);
+
+    if (
+      Object.values(formData || {}).some(
+        (v) => typeof v === "string" && containsProfanity(v)
+      )
+    ) {
+      setError("Profanity is not allowed.");
+      setUpdating(false);
+      return;
+    }
     const { error } = await supabase
       .from("jobs")
       .update({

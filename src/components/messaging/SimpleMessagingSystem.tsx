@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/lib/supabaseClient";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { containsProfanity } from "@/lib/profanity";
 
 interface Message {
   id: string;
@@ -83,6 +84,10 @@ const SimpleMessagingSystem: React.FC<SimpleMessagingSystemProps> = ({
 
   const handleSend = async () => {
     if (!newMessage.trim() || !userId || !conversationId) return;
+    if (containsProfanity(newMessage)) {
+      alert("Profanity is not allowed.");
+      return;
+    }
 
     const { error } = await supabase.from("messages").insert({
       conversation_id: conversationId,
