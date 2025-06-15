@@ -347,7 +347,7 @@ const JobBoard: React.FC<JobBoardProps> = ({
             className="w-full"
             variant={job.type === "emergency" ? "destructive" : "default"}
           >
-            Purchase Lead ({job.type === "emergency" ? "10" : "5"} Credits)
+            Purchase Lead ({job.type === "emergency" ? "2" : "1"} Credits)
           </Button>
         ) : (
           <Button
@@ -441,24 +441,21 @@ const JobBoard: React.FC<JobBoardProps> = ({
                   <CardTitle className="text-lg">Starter</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-2xl font-bold">$50</p>
-                  <p className="text-sm text-gray-500">25 Credits</p>
+                  <p className="text-2xl font-bold text-red-600">$25</p>
+                  <p className="text-sm text-gray-500">5 Credits</p>
                 </CardContent>
                 <CardFooter>
-                  <Button variant="outline" className="w-full">
-                    Purchase
-                  </Button>
+                  <Button variant="outline" className="w-full">Purchase</Button>
                 </CardFooter>
               </Card>
 
-              <Card className="border-primary">
+              <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Popular</CardTitle>
-                  <Badge>Best Value</Badge>
+                  <CardTitle className="text-lg">Standard</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-2xl font-bold">$90</p>
-                  <p className="text-sm text-gray-500">50 Credits</p>
+                  <p className="text-2xl font-bold text-red-600">$45</p>
+                  <p className="text-sm text-gray-500">10 Credits</p>
                 </CardContent>
                 <CardFooter>
                   <Button className="w-full">Purchase</Button>
@@ -467,16 +464,27 @@ const JobBoard: React.FC<JobBoardProps> = ({
 
               <Card>
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-lg">Professional</CardTitle>
+                  <CardTitle className="text-lg">Pro</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-2xl font-bold">$180</p>
-                  <p className="text-sm text-gray-500">100 Credits</p>
+                  <p className="text-2xl font-bold text-red-600">$80</p>
+                  <p className="text-sm text-gray-500">20 Credits</p>
                 </CardContent>
                 <CardFooter>
-                  <Button variant="outline" className="w-full">
-                    Purchase
-                  </Button>
+                  <Button variant="outline" className="w-full">Purchase</Button>
+                </CardFooter>
+              </Card>
+
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-lg">Elite</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-2xl font-bold text-red-600">$180</p>
+                  <p className="text-sm text-gray-500">50 Credits</p>
+                </CardContent>
+                <CardFooter>
+                  <Button variant="outline" className="w-full">Purchase</Button>
                 </CardFooter>
               </Card>
             </div>
@@ -717,7 +725,7 @@ const JobBoard: React.FC<JobBoardProps> = ({
                     <div className="flex justify-between items-center">
                       <span>Cost:</span>
                       <span className="font-medium">
-                        {selectedJob.type === "emergency" ? "10" : "5"} Credits
+                        {selectedJob.type === "emergency" ? "2" : "1"} Credits
                       </span>
                     </div>
                     <div className="flex justify-between items-center mt-2">
@@ -727,7 +735,7 @@ const JobBoard: React.FC<JobBoardProps> = ({
                     <div className="flex justify-between items-center mt-2">
                       <span>Remaining balance:</span>
                       <span className="font-medium">
-                        {credits - (selectedJob.type === "emergency" ? 10 : 5)}{" "}
+                        {credits - (selectedJob.type === "emergency" ? 2 : 1)}{" "}
                         Credits
                       </span>
                     </div>

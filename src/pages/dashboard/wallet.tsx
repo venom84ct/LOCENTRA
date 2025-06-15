@@ -32,9 +32,10 @@ const mockTransactions = [
 ];
 
 const creditBundles = [
-  { id: "b1", name: "Starter", credits: 50, price: 50 },
-  { id: "b2", name: "Popular", credits: 110, price: 100, popular: true, savings: "Save 10%" },
-  { id: "b3", name: "Professional", credits: 240, price: 200, savings: "Save 16%" },
+  { id: "b1", name: "Starter", credits: 5, price: 25 },
+  { id: "b2", name: "Standard", credits: 10, price: 45 },
+  { id: "b3", name: "Pro", credits: 20, price: 80 },
+  { id: "b4", name: "Elite", credits: 50, price: 180 },
 ];
 
 const WalletPage = () => {

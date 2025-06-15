@@ -51,7 +51,7 @@ const HelpPage = () => {
     {
       question: "How much does it cost to post a job?",
       answer:
-        "Standard job postings are free for homeowners. Emergency job postings have a $25 fee to ensure they get priority attention from tradies. Tradies pay credits to access job details and contact homeowners.",
+        "Standard job postings are free for homeowners. Emergency job postings have a $10 fee to ensure they get priority attention from tradies. Tradies pay credits to access job details and contact homeowners.",
     },
     {
       question: "How do I choose the right tradie for my job?",

@@ -46,7 +46,7 @@ const TradieHelpPage = () => {
     {
       question: "How do I purchase job leads?",
       answer:
-        "To purchase job leads, browse the available leads in your dashboard and click on the 'Purchase Lead' button. You'll need to have sufficient credits in your wallet. Standard jobs cost 5 credits, while emergency jobs cost 10 credits.",
+        "To purchase job leads, browse the available leads in your dashboard and click on the 'Purchase Lead' button. You'll need to have sufficient credits in your wallet. Standard jobs cost 1 credit, while emergency jobs cost 2 credits.",
     },
     {
       question: "How do I buy credits?",

@@ -75,7 +75,7 @@ const JobPreviewModal: React.FC<JobPreviewModalProps> = ({
           <div className="bg-blue-50 border border-blue-200 rounded-md p-3">
             <p className="text-sm text-blue-800">
               <span className="font-medium">Lead cost: </span>
-              {job.emergency ? 10 : 5} credits
+              {job.emergency ? 2 : 1} credits
             </p>
           </div>
         </div>

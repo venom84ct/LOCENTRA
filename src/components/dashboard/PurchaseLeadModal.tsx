@@ -29,7 +29,7 @@ const PurchaseLeadModal: React.FC<PurchaseLeadModalProps> = ({
 }) => {
   if (!job) return null;
 
-  const leadCost = job.emergency ? 10 : 5;
+  const leadCost = job.emergency ? 2 : 1;
   const canPurchase = availableCredits >= leadCost;
 
   return (
