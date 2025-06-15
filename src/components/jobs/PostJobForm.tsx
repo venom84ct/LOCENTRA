@@ -136,6 +136,12 @@ const PostJobForm: React.FC<{ onSuccess?: () => void }> = ({ onSuccess }) => {
       onSuccess();
     } else {
       setSuccess("✅ Job posted successfully!");
+
+      if (isEmergency && formData.paymentMethod === "credit-card") {
+        navigate("/pay/credit-card");
+        return;
+      }
+
       setFormData({
         title: "",
         description: "",

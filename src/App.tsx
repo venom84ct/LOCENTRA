@@ -43,6 +43,7 @@ const TradieWallet = lazy(() => import("./pages/dashboard/tradie/wallet"));
 
 // Public profile page
 const PublicTradieProfile = lazy(() => import("./pages/public/profile/[tradie_id]"));
+const CreditCardPayment = lazy(() => import("./pages/credit-card-payment"));
 
 function App() {
   return (
@@ -60,7 +61,8 @@ function App() {
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
+         <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/pay/credit-card" element={<CreditCardPayment />} />
 
           {/* Dashboard landing pages */}
           <Route path="/dashboard" element={<Dashboard />} />
