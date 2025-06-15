@@ -18,7 +18,6 @@ const navItems = [
   { to: "/dashboard/tradie/tradie-messages", icon: <MessageSquare className="w-4 h-4 mr-2" />, label: "Messages" },
   { to: "/dashboard/tradie/notifications", icon: <Bell className="w-4 h-4 mr-2" />, label: "Notifications" },
   { to: "/dashboard/tradie/profile", icon: <User className="w-4 h-4 mr-2" />, label: "Profile" },
-  { to: "/dashboard/tradie/settings", icon: <Settings className="w-4 h-4 mr-2" />, label: "Settings" },
   { to: "/dashboard/tradie/help", icon: <HelpCircle className="w-4 h-4 mr-2" />, label: "Help" },
   { to: "/dashboard/tradie/top-tradies", icon: <Users className="w-4 h-4 mr-2" />, label: "Top Tradies" },
 ];
