@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
   Card,
@@ -39,6 +40,7 @@ const creditBundles = [
 ];
 
 const WalletPage = () => {
+  const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState("credits");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [profile, setProfile] = useState<any>(null);
@@ -166,7 +168,18 @@ const WalletPage = () => {
                       )}
                     </CardContent>
                     <CardFooter>
-                      <Button className="w-full" onClick={() => setIsModalOpen(true)}>
+                      <Button
+                        className="w-full"
+                        onClick={() =>
+                          bundle.id === "b1"
+                            ? navigate("/pay/starter")
+                            : bundle.id === "b2"
+                            ? navigate("/pay/standard")
+                            : bundle.id === "b3"
+                            ? navigate("/pay/pro")
+                            : setIsModalOpen(true)
+                        }
+                      >
                         Purchase
                       </Button>
                     </CardFooter>
