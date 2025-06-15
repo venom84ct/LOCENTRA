@@ -42,6 +42,23 @@ const TradieHelpPage = () => {
 
   const [searchQuery, setSearchQuery] = useState("");
 
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    const name = (formData.get("name") || "") as string;
+    const email = (formData.get("email") || "") as string;
+    const subject = (formData.get("subject") || "") as string;
+    const message = (formData.get("message") || "") as string;
+
+    const mailto = `mailto:admin@locentra.com.au?subject=${encodeURIComponent(
+      subject
+    )}&body=${encodeURIComponent(
+      `Name: ${name}\nEmail: ${email}\n\n${message}`
+    )}`;
+
+    window.location.href = mailto;
+  };
+
   const faqs = [
     {
       question: "How do I purchase job leads?",
@@ -66,12 +83,7 @@ const TradieHelpPage = () => {
     {
       question: "How do I get verified on the platform?",
       answer:
-        "To get verified, you need to submit your trade license, ABN, and insurance details. Our team will review these documents and verify your account, usually within 1-2 business days. Verified tradies appear higher in search results and are more likely to win jobs.",
-    },
-    {
-      question: "What are reward points and how do I earn them?",
-      answer:
-        "Reward points are earned through platform activity. You earn points by completing jobs (50 points), receiving 5-star reviews (25 points), and referring other tradies (100 points). These points can be redeemed for free credits, premium listing features, and other benefits.",
+        "To get verified, you need to submit your trade license, ABN, and insurance details. Our team will review these documents and verify your account, usually within 1-2 business days.",
     },
     {
       question: "How do I report an issue with a homeowner?",
@@ -96,56 +108,7 @@ const TradieHelpPage = () => {
             <h1 className="text-2xl font-bold">Help & Support</h1>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-            <Card className="bg-white">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <MessageSquare className="h-5 w-5 mr-2" />
-                  Live Chat
-                </CardTitle>
-                <CardDescription>Chat with our support team</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm mb-4">
-                  Our support team is available Monday to Friday, 9am to 5pm
-                  AEST.
-                </p>
-                <Button className="w-full">Start Chat</Button>
-              </CardContent>
-            </Card>
 
-            <Card className="bg-white">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Phone className="h-5 w-5 mr-2" />
-                  Phone Support
-                </CardTitle>
-                <CardDescription>Call our support team</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm mb-4">
-                  Call us at 1800 123 456 (Monday to Friday, 9am to 5pm AEST)
-                </p>
-                <Button className="w-full">Call Now</Button>
-              </CardContent>
-            </Card>
-
-            <Card className="bg-white">
-              <CardHeader>
-                <CardTitle className="flex items-center">
-                  <Mail className="h-5 w-5 mr-2" />
-                  Email Support
-                </CardTitle>
-                <CardDescription>Send us an email</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm mb-4">
-                  We typically respond within 24 hours on business days.
-                </p>
-                <Button className="w-full">Email Us</Button>
-              </CardContent>
-            </Card>
-          </div>
 
           <Card className="bg-white mb-8">
             <CardHeader>
@@ -204,19 +167,19 @@ const TradieHelpPage = () => {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              <form className="space-y-4">
+              <form className="space-y-4" onSubmit={handleSubmit}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <label htmlFor="name" className="text-sm font-medium">
                       Name
                     </label>
-                    <Input id="name" defaultValue={user.name} />
+                    <Input id="name" name="name" defaultValue={user.name} />
                   </div>
                   <div className="space-y-2">
                     <label htmlFor="email" className="text-sm font-medium">
                       Email
                     </label>
-                    <Input id="email" type="email" defaultValue={user.email} />
+                    <Input id="email" name="email" type="email" defaultValue={user.email} />
                   </div>
                 </div>
                 <div className="space-y-2">
@@ -225,6 +188,7 @@ const TradieHelpPage = () => {
                   </label>
                   <Input
                     id="subject"
+                    name="subject"
                     placeholder="What is your inquiry about?"
                   />
                 </div>
@@ -234,6 +198,7 @@ const TradieHelpPage = () => {
                   </label>
                   <Textarea
                     id="message"
+                    name="message"
                     placeholder="Please describe your issue in detail"
                     rows={5}
                   />
