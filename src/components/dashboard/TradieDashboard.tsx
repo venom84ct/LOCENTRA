@@ -38,6 +38,23 @@ interface TradieProfile {
 const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
   const navigate = useNavigate();
   const [jobStats, setJobStats] = useState({ active: 0, completed: 0, total: 0 });
+  const [latestProfile, setLatestProfile] = useState<TradieProfile>(profile);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!profile?.id) return;
+
+      const { data } = await supabase
+        .from("profile_centra_tradie")
+        .select("*")
+        .eq("id", profile.id)
+        .single();
+
+      if (data) setLatestProfile(data);
+    };
+
+    fetchProfile();
+  }, [profile?.id]);
 
   useEffect(() => {
     const fetchJobs = async () => {
@@ -59,18 +76,22 @@ const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
     fetchJobs();
   }, [profile?.id]);
 
-  const fullName = `${profile.first_name || ""} ${profile.last_name || ""}`.trim();
-  const joinDate = profile?.created_at
-    ? new Date(profile.created_at).toLocaleDateString("en-AU", {
+  const fullName = `${latestProfile.first_name || ""} ${latestProfile.last_name || ""}`.trim();
+  const joinDate = latestProfile?.created_at
+    ? new Date(latestProfile.created_at).toLocaleDateString("en-AU", {
         year: "numeric",
         month: "long",
         day: "numeric",
       })
     : "Unknown";
 
-  const activeJobs = jobStats.total ? jobStats.active : profile.jobs?.filter((j) => j.status !== "completed" && j.status !== "cancelled").length || 0;
-  const completedJobs = jobStats.total ? jobStats.completed : profile.jobs?.filter((j) => j.status === "completed").length || 0;
-  const totalJobs = jobStats.total ? jobStats.total : profile.jobs?.length || 0;
+  const activeJobs = jobStats.total
+    ? jobStats.active
+    : latestProfile.jobs?.filter((j) => j.status !== "completed" && j.status !== "cancelled").length || 0;
+  const completedJobs = jobStats.total
+    ? jobStats.completed
+    : latestProfile.jobs?.filter((j) => j.status === "completed").length || 0;
+  const totalJobs = jobStats.total ? jobStats.total : latestProfile.jobs?.length || 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -82,7 +103,7 @@ const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
               <Link to="/">Back to Home</Link>
             </Button>
             <Avatar className="h-8 w-8">
-              <AvatarImage src={profile.avatar_url} />
+              <AvatarImage src={latestProfile.avatar_url} />
               <AvatarFallback>{fullName.slice(0, 2).toUpperCase() || "TR"}</AvatarFallback>
             </Avatar>
           </div>
@@ -98,31 +119,31 @@ const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
           </CardHeader>
           <CardContent className="flex items-center space-x-4">
             <Avatar className="h-14 w-14">
-              <AvatarImage src={profile.avatar_url} />
+              <AvatarImage src={latestProfile.avatar_url} />
               <AvatarFallback>{fullName.slice(0, 2).toUpperCase() || "TR"}</AvatarFallback>
             </Avatar>
             <div className="text-sm">
               <p className="font-semibold">{fullName || "Tradie"}</p>
               <p className="text-muted-foreground">Member since {joinDate}</p>
-              {profile.address && (
+              {latestProfile.address && (
                 <div className="flex items-center text-xs text-muted-foreground mt-1">
-                  <MapPin className="h-4 w-4 mr-1" /> {profile.address}
+                  <MapPin className="h-4 w-4 mr-1" /> {latestProfile.address}
                 </div>
               )}
-              {profile.trade_category && (
+              {latestProfile.trade_category && (
                 <div className="flex items-center text-xs text-muted-foreground mt-1">
-                  <Hammer className="h-4 w-4 mr-1" /> {profile.trade_category}
+                  <Hammer className="h-4 w-4 mr-1" /> {latestProfile.trade_category}
                 </div>
               )}
               <div className="text-xs mt-1">
                 <Link to="/dashboard/tradie/wallet" className="hover:underline flex items-center">
                   <Gift className="inline h-4 w-4 mr-1" />
-                  {profile.credits || 0} credits
+                  {latestProfile.credits || 0} credits
                 </Link>
               </div>
               <div className="text-xs text-yellow-500 flex items-center mt-1">
                 <Star className="h-4 w-4 mr-1" />
-                {profile.rating_avg?.toFixed(1) || "0.0"} ({profile.rating_count || 0} reviews)
+                {latestProfile.rating_avg?.toFixed(1) || "0.0"} ({latestProfile.rating_count || 0} reviews)
               </div>
             </div>
           </CardContent>

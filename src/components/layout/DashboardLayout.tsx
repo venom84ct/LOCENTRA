@@ -189,7 +189,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             <div className="text-lg font-bold">
               {user?.first_name} {user?.last_name}
             </div>
-            <div className="text-sm text-gray-500">{user?.email}</div>
+            <div className="text-sm text-gray-500">
+              {userType === "tradie" ? user?.trade_category : user?.email}
+            </div>
           </div>
           <nav className="space-y-2">
             {navItems.map((item) => {
@@ -248,7 +250,9 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             <div className="text-lg font-bold">
               {user?.first_name} {user?.last_name}
             </div>
-            <div className="text-sm text-gray-500">{user?.email}</div>
+            <div className="text-sm text-gray-500">
+              {userType === "tradie" ? user?.trade_category : user?.email}
+            </div>
           </div>
 
           {navItems.map((item) => {

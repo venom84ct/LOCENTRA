@@ -28,7 +28,14 @@ import {
 
 // Fallback mock in case no transactions exist
 const mockTransactions = [
-  { id: "1", type: "debit", amount: 5, description: "Lead purchase", date: "2023-06-14", status: "completed" },
+  {
+    id: "1",
+    type: "debit",
+    amount: 5,
+    description: "Lead purchase",
+    created_at: "2023-06-14",
+    status: "completed",
+  },
 ];
 
 const creditBundles = [
@@ -124,7 +131,9 @@ const WalletPage = () => {
                       </div>
                       <div>
                         <p className="text-sm font-medium">{t.description}</p>
-                        <p className="text-xs text-muted-foreground">{t.date}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(t.created_at || t.date).toLocaleDateString()}
+                        </p>
                       </div>
                     </div>
                     <div className={`font-medium ${t.type === "credit" ? "text-green-600" : "text-blue-600"}`}>
@@ -185,7 +194,9 @@ const WalletPage = () => {
                     <div key={t.id} className="flex justify-between items-center p-2 border rounded">
                       <div>
                         <p className="font-medium">{t.description}</p>
-                        <p className="text-xs text-muted-foreground">{t.date}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(t.created_at || t.date).toLocaleDateString()}
+                        </p>
                       </div>
                       <div className={`font-medium ${t.type === "credit" ? "text-green-600" : "text-blue-600"}`}>
                         {t.type === "credit" ? "+" : "-"}
