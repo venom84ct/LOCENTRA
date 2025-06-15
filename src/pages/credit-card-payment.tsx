@@ -15,7 +15,7 @@ const CreditCardPayment: React.FC = () => {
   return (
     <div className="flex justify-center items-center min-h-screen">
       <stripe-buy-button
-        buy-button-id="buy_btn_1RaHNoQ9V4aAIaGVx1LiZX1z"
+        buy-button-id="buy_btn_1RaIeZQ9V4aAIaGVH7un20qj"
         publishable-key="pk_test_51RRT3EQ9V4aAIaGV7OjdmRNhg1lTln0Sx90T0r5dt98r9AhYH5onQ4Gu9dGpc67VZ2NlxRkdUq6Aeb0C9fKMPK8P00h8s2uaLB"
       ></stripe-buy-button>
     </div>
