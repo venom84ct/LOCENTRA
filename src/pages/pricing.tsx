@@ -59,7 +59,7 @@ const Pricing = () => {
                   For urgent needs with faster response times
                 </p>
                 <div className="flex items-baseline gap-2 mb-4">
-                  <span className="text-2xl font-bold">$25</span>
+                  <span className="text-2xl font-bold">$10</span>
                   <span className="text-muted-foreground">
                     per emergency posting
                   </span>
@@ -95,14 +95,14 @@ const Pricing = () => {
                   <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                   <div>
                     <span className="font-medium">Standard Jobs:</span>
-                    <span className="ml-1">5 credits per lead</span>
+                    <span className="ml-1">1 credit per lead</span>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
                   <Check className="h-5 w-5 text-primary shrink-0 mt-0.5" />
                   <div>
                     <span className="font-medium">Emergency Jobs:</span>
-                    <span className="ml-1">10 credits per lead</span>
+                    <span className="ml-1">2 credits per lead</span>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -124,31 +124,23 @@ const Pricing = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="border rounded-lg p-3 text-center">
                     <div className="font-medium">Starter</div>
-                    <div className="text-lg font-bold">$50</div>
-                    <div className="text-sm text-muted-foreground">
-                      50 credits
-                    </div>
+                    <div className="text-lg font-bold text-red-600">$25</div>
+                    <div className="text-sm text-muted-foreground">5 credits</div>
                   </div>
                   <div className="border rounded-lg p-3 text-center">
-                    <div className="font-medium">Popular</div>
-                    <div className="text-lg font-bold">$100</div>
-                    <div className="text-sm text-muted-foreground">
-                      110 credits
-                    </div>
+                    <div className="font-medium">Standard</div>
+                    <div className="text-lg font-bold text-red-600">$45</div>
+                    <div className="text-sm text-muted-foreground">10 credits</div>
                   </div>
                   <div className="border rounded-lg p-3 text-center">
                     <div className="font-medium">Pro</div>
-                    <div className="text-lg font-bold">$200</div>
-                    <div className="text-sm text-muted-foreground">
-                      240 credits
-                    </div>
+                    <div className="text-lg font-bold text-red-600">$80</div>
+                    <div className="text-sm text-muted-foreground">20 credits</div>
                   </div>
                   <div className="border rounded-lg p-3 text-center">
-                    <div className="font-medium">Business</div>
-                    <div className="text-lg font-bold">$500</div>
-                    <div className="text-sm text-muted-foreground">
-                      650 credits
-                    </div>
+                    <div className="font-medium">Elite</div>
+                    <div className="text-lg font-bold text-red-600">$180</div>
+                    <div className="text-sm text-muted-foreground">50 credits</div>
                   </div>
                 </div>
                 <Button asChild className="w-full">

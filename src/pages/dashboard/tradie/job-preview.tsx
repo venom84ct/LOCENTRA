@@ -54,7 +54,7 @@ const JobPreviewPage = () => {
   const handlePurchaseLead = async () => {
     if (!job || !profile) return;
 
-    const leadCost = job.is_emergency ? 10 : 5;
+    const leadCost = job.is_emergency ? 2 : 1;
     const updatedCredits = profile.credits - leadCost;
 
     if (updatedCredits < 0) {
@@ -195,7 +195,7 @@ const JobPreviewPage = () => {
 
           <div className="pt-4">
             <Button variant="default" onClick={handlePurchaseLead}>
-              Purchase Lead ({job.is_emergency ? 10 : 5} credits)
+              Purchase Lead ({job.is_emergency ? 2 : 1} credits)
             </Button>
           </div>
         </div>

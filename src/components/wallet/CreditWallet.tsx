@@ -43,28 +43,10 @@ interface CreditWalletProps {
 }
 
 const creditBundles: CreditBundle[] = [
-  {
-    id: "small",
-    name: "Small",
-    price: 50,
-    credits: 50,
-    bonusCredits: 0,
-  },
-  {
-    id: "medium",
-    name: "Medium",
-    price: 100,
-    credits: 100,
-    bonusCredits: 10,
-    popular: true,
-  },
-  {
-    id: "large",
-    name: "Large",
-    price: 200,
-    credits: 200,
-    bonusCredits: 30,
-  },
+  { id: "starter", name: "Starter", price: 25, credits: 5, bonusCredits: 0 },
+  { id: "standard", name: "Standard", price: 45, credits: 10, bonusCredits: 0 },
+  { id: "pro", name: "Pro", price: 80, credits: 20, bonusCredits: 0 },
+  { id: "elite", name: "Elite", price: 180, credits: 50, bonusCredits: 0 },
 ];
 
 const defaultTransactions: Transaction[] = [
@@ -174,7 +156,7 @@ const CreditWallet: React.FC<CreditWalletProps> = ({
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="font-bold">${bundle.price}</p>
+                            <p className="font-bold text-red-600">${bundle.price}</p>
                             <p className="text-xs text-gray-500">
                               $
                               {(
@@ -199,7 +181,9 @@ const CreditWallet: React.FC<CreditWalletProps> = ({
                         disabled={!selectedBundle}
                       >
                         <CreditCard className="mr-2 h-4 w-4" />
-                        Pay ${selectedBundle?.price || 0}
+                        <span className="text-red-600">
+                          Pay ${selectedBundle?.price || 0}
+                        </span>
                       </Button>
                     </DialogFooter>
                   </>
@@ -265,7 +249,7 @@ const CreditWallet: React.FC<CreditWalletProps> = ({
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-2xl font-bold">${bundle.price}</p>
+                    <p className="text-2xl font-bold text-red-600">${bundle.price}</p>
                     <p className="text-sm text-gray-500">
                       {bundle.credits} Credits
                       {bundle.bonusCredits > 0 && (
@@ -331,7 +315,7 @@ const CreditWallet: React.FC<CreditWalletProps> = ({
                           <Button variant="outline">Cancel</Button>
                           <Button>
                             <CreditCard className="mr-2 h-4 w-4" />
-                            Pay ${bundle.price}
+                            <span className="text-red-600">Pay ${bundle.price}</span>
                           </Button>
                         </DialogFooter>
                       </DialogContent>
