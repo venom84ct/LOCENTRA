@@ -65,6 +65,14 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
     }
   };
 
+  const handlePostJobClick = () => {
+    if (loggedIn && role === "homeowner") {
+      navigate("/post-job");
+    } else {
+      navigate("/login?redirect=/post-job");
+    }
+  };
+
   const isActive = (path: string) => location.pathname === path;
 
   const navItems = [
@@ -273,9 +281,12 @@ const PublicLayout: React.FC<PublicLayoutProps> = ({ children }) => {
               <h3 className="text-lg font-semibold mb-4">For Homeowners</h3>
               <ul className="space-y-2 text-sm">
                 <li>
-                  <Link to="/post-job" className="text-gray-600 hover:text-primary">
+                  <button
+                    onClick={handlePostJobClick}
+                    className="text-gray-600 hover:text-primary"
+                  >
                     Post a Job
-                  </Link>
+                  </button>
                 </li>
                 <li>
                   <Link to="/how-it-works" className="text-gray-600 hover:text-primary">
