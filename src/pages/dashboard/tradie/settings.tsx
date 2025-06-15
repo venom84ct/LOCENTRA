@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
@@ -18,13 +19,18 @@ import ProfilePictureUploader from "@/components/settings/ProfilePictureUploader
 import { supabase } from "@/lib/supabaseClient";
 
 const TradieSettingsPage = () => {
+  const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchUser = async () => {
       const { data } = await supabase.auth.getUser();
       const userId = data.user?.id;
-      if (!userId) return;
+      if (!userId) {
+        navigate("/login");
+        return;
+      }
 
       const { data: profile } = await supabase
         .from("profile_centra_tradie")
@@ -33,6 +39,7 @@ const TradieSettingsPage = () => {
         .single();
 
       setUser(profile);
+      setLoading(false);
     };
 
     fetchUser();
@@ -78,7 +85,8 @@ const TradieSettingsPage = () => {
     });
   };
 
-  if (!user) return null;
+  if (loading) return <div className="p-8">Loading settings...</div>;
+  if (!user) return <div className="p-8 text-red-600">Unable to load user.</div>;
 
   return (
     <DashboardLayout userType="tradie" user={user}>
