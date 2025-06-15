@@ -175,6 +175,8 @@ const WalletPage = () => {
                             ? navigate("/pay/starter")
                             : bundle.id === "b2"
                             ? navigate("/pay/standard")
+                            : bundle.id === "b3"
+                            ? navigate("/pay/pro")
                             : setIsModalOpen(true)
                         }
                       >
