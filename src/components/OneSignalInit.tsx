@@ -51,10 +51,6 @@ const OneSignalInit = () => {
             }
           });
 
-          // Optionally prompt the user manually (or remove this block if you only want auto-prompt)
-          window.OneSignal.showSlidedownPrompt().catch((e: any) => {
-            console.warn("Prompt error:", e);
-          });
         });
       };
 
@@ -62,6 +58,31 @@ const OneSignalInit = () => {
     };
 
     loadOneSignal();
+  }, []);
+
+  useEffect(() => {
+    const promptIfNeeded = async () => {
+      try {
+        const enabled = await window.OneSignal.isPushNotificationsEnabled();
+        if (!enabled) {
+          await window.OneSignal.showSlidedownPrompt();
+        }
+      } catch (e) {
+        console.warn("Prompt error:", e);
+      }
+    };
+
+    if (window.OneSignal && typeof window.OneSignal.push === 'function') {
+      window.OneSignal.push(promptIfNeeded);
+    } else {
+      const interval = setInterval(() => {
+        if (window.OneSignal && typeof window.OneSignal.push === 'function') {
+          clearInterval(interval);
+          window.OneSignal.push(promptIfNeeded);
+        }
+      }, 100);
+      return () => clearInterval(interval);
+    }
   }, []);
 
   return null;
