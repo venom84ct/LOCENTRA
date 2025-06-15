@@ -44,6 +44,10 @@ const TradieWallet = lazy(() => import("./pages/dashboard/tradie/wallet"));
 // Public profile page
 const PublicTradieProfile = lazy(() => import("./pages/public/profile/[tradie_id]"));
 const CreditCardPayment = lazy(() => import("./pages/credit-card-payment"));
+const StarterPayment = lazy(() => import("./pages/starter-payment"));
+const StarterSuccess = lazy(() => import("./pages/starter-success"));
+const StandardPayment = lazy(() => import("./pages/standard-payment"));
+const StandardSuccess = lazy(() => import("./pages/standard-success"));
 
 function App() {
   return (
@@ -62,7 +66,11 @@ function App() {
           <Route path="/register" element={<Register />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/pay/credit-card" element={<CreditCardPayment />} />
+         <Route path="/pay/credit-card" element={<CreditCardPayment />} />
+         <Route path="/pay/starter" element={<StarterPayment />} />
+         <Route path="/pay/starter-success" element={<StarterSuccess />} />
+         <Route path="/pay/standard" element={<StandardPayment />} />
+         <Route path="/pay/standard-success" element={<StandardSuccess />} />
 
           {/* Dashboard landing pages */}
           <Route path="/dashboard" element={<Dashboard />} />
