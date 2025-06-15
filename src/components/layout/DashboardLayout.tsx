@@ -14,6 +14,7 @@ import {
   Search,
   LogOut,
   Menu,
+  Wallet,
 } from "lucide-react";
 import { supabase } from "@/lib/supabaseClient";
 import {
@@ -174,6 +175,7 @@ const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           },
           { name: "Top Tradies", path: "/dashboard/tradie/top-tradies", icon: Award },
           { name: "Profile", path: "/dashboard/tradie/profile", icon: User },
+          { name: "Wallet", path: "/dashboard/tradie/wallet", icon: Wallet },
           { name: "Settings", path: "/dashboard/tradie/settings", icon: Settings },
           { name: "Help", path: "/dashboard/tradie/help", icon: HelpCircle },
         ];

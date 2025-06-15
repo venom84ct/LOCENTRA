@@ -93,8 +93,10 @@ const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
                 </div>
               )}
               <div className="text-xs mt-1">
-                <Gift className="inline h-4 w-4 mr-1" />
-                {profile.credits || 0} credits
+                <Link to="/dashboard/tradie/wallet" className="hover:underline flex items-center">
+                  <Gift className="inline h-4 w-4 mr-1" />
+                  {profile.credits || 0} credits
+                </Link>
               </div>
               <div className="text-xs text-yellow-500 flex items-center mt-1">
                 <Star className="h-4 w-4 mr-1" />
