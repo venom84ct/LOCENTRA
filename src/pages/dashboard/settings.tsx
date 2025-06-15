@@ -25,9 +25,10 @@ const SettingsPage = () => {
 
   useEffect(() => {
     const fetchUser = async () => {
-      const { data } = await supabase.auth.getUser();
+      const { data, error } = await supabase.auth.getUser();
       const userId = data.user?.id;
-      if (!userId) {
+      if (!userId || error) {
+        setLoading(false);
         navigate("/login");
         return;
       }
