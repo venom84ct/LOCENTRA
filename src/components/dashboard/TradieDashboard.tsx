@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -12,7 +12,6 @@ import { Button } from "@/components/ui/button";
 import {
   MapPin,
   Gift,
-  ClipboardList,
   MessageSquare,
   PlusCircle,
   Star,
@@ -20,8 +19,10 @@ import {
   Wallet,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
+import { supabase } from "@/lib/supabaseClient";
 
 interface TradieProfile {
+  id?: string;
   first_name?: string;
   last_name?: string;
   avatar_url?: string;
@@ -36,6 +37,27 @@ interface TradieProfile {
 
 const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
   const navigate = useNavigate();
+  const [jobStats, setJobStats] = useState({ active: 0, completed: 0, total: 0 });
+
+  useEffect(() => {
+    const fetchJobs = async () => {
+      if (!profile?.id) return;
+
+      const { data } = await supabase
+        .from("jobs")
+        .select("status")
+        .or(`tradie_id.eq.${profile.id},assigned_tradie.eq.${profile.id}`);
+
+      if (data) {
+        const active = data.filter((j) => j.status !== "completed" && j.status !== "cancelled").length;
+        const completed = data.filter((j) => j.status === "completed").length;
+        const total = data.length;
+        setJobStats({ active, completed, total });
+      }
+    };
+
+    fetchJobs();
+  }, [profile?.id]);
 
   const fullName = `${profile.first_name || ""} ${profile.last_name || ""}`.trim();
   const joinDate = profile?.created_at
@@ -46,9 +68,9 @@ const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
       })
     : "Unknown";
 
-  const activeJobs = profile.jobs?.filter((j) => j.status !== "completed" && j.status !== "cancelled").length || 0;
-  const completedJobs = profile.jobs?.filter((j) => j.status === "completed").length || 0;
-  const totalJobs = profile.jobs?.length || 0;
+  const activeJobs = jobStats.total ? jobStats.active : profile.jobs?.filter((j) => j.status !== "completed" && j.status !== "cancelled").length || 0;
+  const completedJobs = jobStats.total ? jobStats.completed : profile.jobs?.filter((j) => j.status === "completed").length || 0;
+  const totalJobs = jobStats.total ? jobStats.total : profile.jobs?.length || 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -93,8 +115,10 @@ const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
                 </div>
               )}
               <div className="text-xs mt-1">
-                <Gift className="inline h-4 w-4 mr-1" />
-                {profile.credits || 0} credits
+                <Link to="/dashboard/tradie/wallet" className="hover:underline flex items-center">
+                  <Gift className="inline h-4 w-4 mr-1" />
+                  {profile.credits || 0} credits
+                </Link>
               </div>
               <div className="text-xs text-yellow-500 flex items-center mt-1">
                 <Star className="h-4 w-4 mr-1" />
