@@ -75,6 +75,11 @@ const LoginPage = () => {
               <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
               <Label>Password</Label>
               <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <div className="flex justify-end">
+                <a href="/forgot-password" className="text-sm text-primary hover:underline">
+                  Forget your password?
+                </a>
+              </div>
               {error && <p className="text-red-600 text-sm">❌ {error}</p>}
               <Button type="submit" className="w-full">Log In</Button>
             </form>
@@ -86,6 +91,11 @@ const LoginPage = () => {
               <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
               <Label>Password</Label>
               <Input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
+              <div className="flex justify-end">
+                <a href="/forgot-password" className="text-sm text-primary hover:underline">
+                  Forget your password?
+                </a>
+              </div>
               {error && <p className="text-red-600 text-sm">❌ {error}</p>}
               <Button type="submit" className="w-full">Log In</Button>
             </form>
