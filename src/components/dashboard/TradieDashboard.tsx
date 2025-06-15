@@ -19,7 +19,7 @@ import {
   Hammer,
   Wallet,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 interface TradieProfile {
   first_name?: string;
@@ -51,7 +51,22 @@ const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
   const totalJobs = profile.jobs?.length || 0;
 
   return (
-    <div className="p-4 space-y-6 max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-50">
+      <header className="bg-white border-b border-gray-200 sticky top-0 z-10">
+        <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-primary">Tradie Dashboard</h1>
+          <div className="flex items-center space-x-4">
+            <Button asChild variant="outline" size="sm">
+              <Link to="/">Back to Home</Link>
+            </Button>
+            <Avatar className="h-8 w-8">
+              <AvatarImage src={profile.avatar_url} />
+              <AvatarFallback>{fullName.slice(0, 2).toUpperCase() || "TR"}</AvatarFallback>
+            </Avatar>
+          </div>
+        </div>
+      </header>
+      <div className="p-4 space-y-6 max-w-7xl mx-auto">
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Profile Summary */}
         <Card>
@@ -146,6 +161,7 @@ const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
         </Card>
       </div>
     </div>
+  </div>
   );
 };
 

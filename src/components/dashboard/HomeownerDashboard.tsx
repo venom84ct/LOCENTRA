@@ -108,13 +108,17 @@ const HomeownerDashboard = () => {
             Centra Resident Dashboard
           </h1>
           <div className="flex items-center space-x-4">
+            <Button asChild variant="outline" size="sm">
+              <Link to="/">Back to Home</Link>
+            </Button>
             <div className="text-right mr-2">
               <p className="font-medium">{fullName}</p>
             </div>
             <Avatar>
               <AvatarImage src={userProfile?.avatar_url} />
               <AvatarFallback>
-                {userProfile?.first_name?.[0]}{userProfile?.last_name?.[0] || "U"}
+                {userProfile?.first_name?.[0]}
+                {userProfile?.last_name?.[0] || "U"}
               </AvatarFallback>
             </Avatar>
           </div>
