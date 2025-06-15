@@ -39,6 +39,7 @@ const TradieHelp = lazy(() => import("./pages/dashboard/tradie/help"));
 const TradieTopTradies = lazy(() => import("./pages/dashboard/tradie/top-tradies"));
 const TradieMyJobs = lazy(() => import("./pages/dashboard/tradie/my-jobs"));
 const TradieFindJobs = lazy(() => import("./pages/dashboard/tradie/find-jobs"));
+const TradieWallet = lazy(() => import("./pages/dashboard/tradie/wallet"));
 
 // Public profile page
 const PublicTradieProfile = lazy(() => import("./pages/public/profile/[tradie_id]"));
@@ -88,6 +89,7 @@ function App() {
           <Route path="/dashboard/tradie/top-tradies" element={<TradieTopTradies />} />
           <Route path="/dashboard/tradie/my-jobs" element={<TradieMyJobs />} />
           <Route path="/dashboard/tradie/find-jobs" element={<TradieFindJobs />} />
+          <Route path="/dashboard/tradie/wallet" element={<TradieWallet />} />
 
           {/* Public tradie profile view */}
           <Route path="/public/profile/:tradie_id" element={<PublicTradieProfile />} />
