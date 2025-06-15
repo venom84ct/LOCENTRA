@@ -21,6 +21,7 @@ import {
   MessageSquare,
   CheckCircle,
 } from "lucide-react";
+import { supabase } from "@/lib/supabaseClient";
 
 interface Tradie {
   id: string;
@@ -118,14 +119,27 @@ const FindTradiePage = () => {
   const [selectedTrade, setSelectedTrade] = useState<string | null>(null);
   const [selectedTradie, setSelectedTradie] = useState<Tradie | null>(null);
 
-  // Mock user data - in a real app, this would come from authentication
-  const user = {
-    name: "John Smith",
-    email: "john.smith@example.com",
-    avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-    unreadMessages: 2,
-    unreadNotifications: 3,
-  };
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+      const userId = authUser?.id;
+      if (!userId) return;
+
+      const { data: profile } = await supabase
+        .from("profile_centra_resident")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      if (profile) setUser(profile);
+    };
+
+    fetchProfile();
+  }, []);
 
   useEffect(() => {
     if (tradieId) {
@@ -175,6 +189,8 @@ const FindTradiePage = () => {
   const handleCloseProfile = () => {
     setSelectedTradie(null);
   };
+
+  if (!user) return <p>Loading...</p>;
 
   return (
     <DashboardLayout userType="centraResident" user={user}>

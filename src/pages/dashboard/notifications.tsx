@@ -42,14 +42,25 @@ const HomeownerNotificationsPage = () => {
 
   useEffect(() => {
     const fetchUserAndNotifications = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      setUser(user);
+      const {
+        data: { user: authUser },
+      } = await supabase.auth.getUser();
+      const userId = authUser?.id;
+      if (!userId) return;
+
+      const { data: profile } = await supabase
+        .from("profile_centra_resident")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      if (!profile) return;
+      setUser(profile);
 
       const { data, error } = await supabase
         .from("notifications")
         .select("*")
-        .eq("recipient_id", user.id)
+        .eq("recipient_id", userId)
         .eq("recipient_type", "homeowner")
         .order("created_at", { ascending: false });
 
