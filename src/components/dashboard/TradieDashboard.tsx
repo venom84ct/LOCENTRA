@@ -179,7 +179,7 @@ const TradieDashboard = ({ profile }: { profile: TradieProfile }) => {
               onClick={() => navigate("/dashboard/tradie/wallet")}
             >
               <Wallet className="mr-2 h-4 w-4" />
-              Wallet
+              Buy Credits
             </Button>
           </CardContent>
         </Card>

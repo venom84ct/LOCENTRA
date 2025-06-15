@@ -78,13 +78,9 @@ const WalletPage = () => {
     <DashboardLayout userType="tradie" user={profile}>
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto">
-          <div className="flex justify-between items-center mb-6">
-            <h1 className="text-2xl font-bold">Credit Wallet</h1>
-            <Button onClick={() => setIsModalOpen(true)}>
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Buy Credits
-            </Button>
-          </div>
+            <div className="flex justify-between items-center mb-6">
+              <h1 className="text-2xl font-bold">Credit Wallet</h1>
+            </div>
 
           {/* Credit Summary Cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
