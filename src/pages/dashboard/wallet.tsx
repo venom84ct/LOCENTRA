@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import DashboardLayout from "@/components/layout/DashboardLayout";
 import {
   Card,
@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { supabase } from "@/lib/supabaseClient";
 import {
   CreditCard,
   PlusCircle,
@@ -25,10 +26,9 @@ import {
   X,
 } from "lucide-react";
 
-// Mock data
+// Fallback mock in case no transactions exist
 const mockTransactions = [
   { id: "1", type: "debit", amount: 5, description: "Lead purchase", date: "2023-06-14", status: "completed" },
-  { id: "2", type: "credit", amount: 50, description: "Bundle Purchase", date: "2023-06-12", status: "completed" },
 ];
 
 const creditBundles = [
@@ -41,14 +41,39 @@ const creditBundles = [
 const WalletPage = () => {
   const [activeTab, setActiveTab] = useState("credits");
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
+  const [transactions, setTransactions] = useState<any[]>([]);
 
-  const user = {
-    name: "Mike Johnson",
-    credits: 45,
-  };
+  useEffect(() => {
+    const fetchData = async () => {
+      const { data: userData } = await supabase.auth.getUser();
+      const userId = userData?.user?.id;
+      if (!userId) return;
+
+      const { data: profileData } = await supabase
+        .from("profile_centra_tradie")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      if (profileData) setProfile(profileData);
+
+      const { data: txData } = await supabase
+        .from("credit_transactions")
+        .select("*")
+        .eq("user_id", userId)
+        .order("created_at", { ascending: false });
+
+      if (txData) setTransactions(txData);
+    };
+
+    fetchData();
+  }, []);
+
+  if (!profile) return <div>Loading...</div>;
 
   return (
-    <DashboardLayout userType="tradie" user={user}>
+    <DashboardLayout userType="tradie" user={profile}>
       <div className="min-h-screen bg-gray-50">
         <div className="container mx-auto">
           <div className="flex justify-between items-center mb-6">
@@ -69,7 +94,7 @@ const WalletPage = () => {
               <CardContent>
                 <div className="flex justify-between items-center">
                   <div>
-                    <p className="text-4xl font-bold">{user.credits}</p>
+                    <p className="text-4xl font-bold">{profile?.credits || 0}</p>
                     <p className="text-sm text-muted-foreground">credits available</p>
                   </div>
                   <div className="h-16 w-16 bg-primary/10 rounded-full flex items-center justify-center">
@@ -78,7 +103,7 @@ const WalletPage = () => {
                 </div>
               </CardContent>
               <CardFooter>
-                <Progress value={(user.credits / 100) * 100} className="h-2" />
+                <Progress value={((profile?.credits || 0) / 100) * 100} className="h-2" />
               </CardFooter>
             </Card>
 
@@ -87,7 +112,7 @@ const WalletPage = () => {
                 <CardTitle>Recent Activity</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {mockTransactions.map((t) => (
+                {(transactions.length ? transactions : mockTransactions).map((t) => (
                   <div key={t.id} className="flex justify-between">
                     <div className="flex items-center">
                       <div className={`h-8 w-8 rounded-full flex items-center justify-center mr-3 ${t.type === "credit" ? "bg-green-100" : "bg-blue-100"}`}>
@@ -156,7 +181,7 @@ const WalletPage = () => {
                   <CardTitle>All Transactions</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  {mockTransactions.map((t) => (
+                  {(transactions.length ? transactions : mockTransactions).map((t) => (
                     <div key={t.id} className="flex justify-between items-center p-2 border rounded">
                       <div>
                         <p className="font-medium">{t.description}</p>
