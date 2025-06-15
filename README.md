@@ -29,6 +29,10 @@ export default {
 - Optionally add `plugin:@typescript-eslint/stylistic-type-checked`
 - Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and add `plugin:react/recommended` & `plugin:react/jsx-runtime` to the `extends` list
 
+## OneSignal Setup
+
+To enable push notification prompts the environment variable `VITE_ONESIGNAL_APP_ID` must be defined. Refer to `.env.example` for configuration details.
+
 ## License
 
 This project is licensed under the [MIT License](LICENSE).
