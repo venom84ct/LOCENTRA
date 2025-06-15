@@ -84,8 +84,8 @@ const ProfilePictureUploader: React.FC<ProfilePictureUploaderProps> = ({
     <div className="flex flex-col items-center space-y-4">
       <div className="relative">
         <Avatar className="h-24 w-24">
-          <AvatarImage src={currentAvatar} alt={userName} />
-          <AvatarFallback>{userName.substring(0, 2)}</AvatarFallback>
+          <AvatarImage src={currentAvatar} alt={userName ?? ''} />
+          <AvatarFallback>{userName ? userName.substring(0, 2) : ''}</AvatarFallback>
         </Avatar>
         <Button
           size="icon"

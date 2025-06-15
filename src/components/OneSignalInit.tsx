@@ -11,12 +11,13 @@ declare global {
 const OneSignalInit = () => {
   const appId = import.meta.env.VITE_ONESIGNAL_APP_ID;
   if (!appId) {
-    console.warn("VITE_ONESIGNAL_APP_ID is not set");
+    console.warn("VITE_ONESIGNAL_APP_ID is not set; OneSignal will not be initialised");
   }
 
   useEffect(() => {
     const loadOneSignal = () => {
       if (window.OneSignal) return;
+      if (!appId) return; // do not attempt to load when appId is missing
 
       const script = document.createElement("script");
       script.src = "https://cdn.onesignal.com/sdks/OneSignalSDK.js";
@@ -61,7 +62,9 @@ const OneSignalInit = () => {
       document.head.appendChild(script);
     };
 
-    loadOneSignal();
+    if (appId) {
+      loadOneSignal();
+    }
   }, []);
 
   return null;
